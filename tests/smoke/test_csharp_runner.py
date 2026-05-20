@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from tflex_harness.runner import run_csharp_snippet
 
 
@@ -7,6 +9,25 @@ def test_csharp_hello_snippet_runs():
     assert result["ok"] is True, result
     assert result["stage"] == "run"
     assert "hello-from-csharp" in result["stdout"]
+
+
+def test_csharp_runner_writes_structured_run_files():
+    code = 'public class Program { public static int Main(){ System.Console.WriteLine("structured-files"); return 0; } }'
+    result = run_csharp_snippet(code, mode="run", timeout_sec=20, references=[], artifact_prefix="test_csharp_structured_files")
+    assert result["ok"] is True, result
+    expected = {
+        "request.json",
+        "snippet.cs",
+        "result.json",
+        "stdout.txt",
+        "stderr.txt",
+        "build.log",
+        "run.log",
+    }
+    run_dir = result["run_dir"]
+    for name in expected:
+        assert (Path(run_dir) / name).exists(), result
+    assert result["snippet_path"].endswith("snippet.cs")
 
 
 def test_csharp_compile_error_is_structured():

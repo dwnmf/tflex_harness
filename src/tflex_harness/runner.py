@@ -107,7 +107,7 @@ def run_csharp_snippet(
     run_dir = store.create_run_dir(artifact_prefix)
     request = {"mode": mode, "timeout_sec": timeout_sec, "references": references, "artifact_prefix": artifact_prefix, "environment": environment or {}}
     store.write_json(run_dir / "request.json", request)
-    snippet = run_dir / "Snippet.cs"
+    snippet = run_dir / "snippet.cs"
     store.write_text(snippet, code)
 
     csc = find_csc()
