@@ -8,6 +8,7 @@ def test_csharp_hello_snippet_runs():
     result = run_csharp_snippet(code, mode="run", timeout_sec=20, references=[], artifact_prefix="test_csharp_hello")
     assert result["ok"] is True, result
     assert result["stage"] == "run"
+    assert result["phase"] == "run"
     assert "hello-from-csharp" in result["stdout"]
     assert result["resolved_references"] == []
 
@@ -36,6 +37,7 @@ def test_csharp_compile_error_is_structured():
     result = run_csharp_snippet(code, mode="compile_only", timeout_sec=20, references=[], artifact_prefix="test_csharp_compile_error")
     assert result["ok"] is False
     assert result["stage"] == "compile"
+    assert result["phase"] == "compile"
     assert any(d["code"] == "CS0246" for d in result["diagnostics"]), result
 
 
@@ -45,6 +47,8 @@ def test_csharp_compile_cache_reuses_successful_build():
     second = run_csharp_snippet(code, mode="compile_only", timeout_sec=20, references=[], artifact_prefix="test_csharp_cache_second")
     assert first["ok"] is True, first
     assert second["ok"] is True, second
+    assert first["phase"] == "compile"
+    assert second["phase"] == "compile"
     assert first["cache_key"] == second["cache_key"]
     assert second["cache_hit"] is True
     assert second["resolved_references"] == []

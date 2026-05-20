@@ -176,6 +176,7 @@ def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> 
         **result,
         "ok": proc.returncode == 0 and built_executable.exists(),
         "stage": "build",
+        "phase": "build",
         "exit_code": proc.returncode,
         "duration_ms": int((time.perf_counter() - started) * 1000),
         "stdout": stdout,
@@ -382,6 +383,7 @@ def run_csharp_snippet(
         result = {
             "ok": False,
             "stage": "compile",
+            "phase": "compile",
             "exit_code": compile_exit_code,
             "duration_ms": compile_ms,
             "cache_key": cache_key,
@@ -403,6 +405,7 @@ def run_csharp_snippet(
         result = {
             "ok": True,
             "stage": "compile",
+            "phase": "compile",
             "exit_code": 0,
             "duration_ms": compile_ms,
             "cache_key": cache_key,
@@ -439,6 +442,7 @@ def run_csharp_snippet(
         result = {
             "ok": run_proc.returncode == 0,
             "stage": "run",
+            "phase": "run",
             "exit_code": run_proc.returncode,
             "duration_ms": compile_ms + run_ms,
             "compile_duration_ms": compile_ms,
