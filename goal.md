@@ -517,7 +517,20 @@ runner/TFlexRunner/
 - если возможно, проверить `net8.0-windows`;
 - выбрать минимально совместимый вариант по build результатам.
 
-### 5.4. Snippet shape
+### 5.4. Политика компиляции
+
+Компиляция C# — это feedback loop, а не обязательная цена каждого API действия.
+
+Целевой порядок зрелости:
+
+1. **Dynamic snippet mode** — для исследования и live verification можно компилировать один видимый C# snippet на один `run_csharp_tflex` вызов.
+2. **Content-addressed compile cache** — успешные сборки кешируются по hash исходника, references, compiler path и ключевых build options. Повторный запуск того же snippet не должен снова вызывать `csc.exe`.
+3. **Verified recipe mode** — проверенные recipes лежат как C# исходники, но запускаются через тот же compile cache, чтобы они оставались редактируемыми и не превращались в скрытый framework.
+4. **Persistent runner mode** — будущая production-оптимизация: долгоживущий C# process держит T-FLEX session и принимает JSON-команды от Python/MCP без перекомпиляции на каждую мелкую операцию.
+
+Важно: кеш или persistent runner не должны скрывать реальный C# код от LLM. Snippet/recipe source остаётся основным контрактом и всегда сохраняется в artifacts.
+
+### 5.5. Snippet shape
 
 Желательный формат snippet:
 
@@ -555,7 +568,7 @@ var doc = ...;
 ...
 ```
 
-### 5.5. Structured result
+### 5.6. Structured result
 
 Каждый запуск должен создавать:
 
@@ -579,6 +592,8 @@ artifacts/runs/<timestamp>_<slug>/
   "stage": "run",
   "duration_ms": 1234,
   "exit_code": 0,
+  "cache_key": "sha256...",
+  "cache_hit": false,
   "diagnostics": [],
   "stdout_path": "stdout.txt",
   "stderr_path": "stderr.txt",

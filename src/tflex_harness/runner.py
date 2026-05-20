@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import shutil
@@ -53,6 +54,27 @@ def _runtime_env(cfg: HarnessConfig) -> dict[str, str]:
     return env
 
 
+def _compile_cache_key(code: str, refs: list[Path], csc: Path) -> str:
+    digest = hashlib.sha256()
+    digest.update(b"tflex_harness.csc.v1\0")
+    digest.update(str(csc).encode("utf-8", errors="replace"))
+    digest.update(b"\0/platform:x64\0/target:exe\0")
+    digest.update(code.encode("utf-8"))
+    for ref in refs:
+        stat = ref.stat()
+        digest.update(b"\0ref\0")
+        digest.update(str(ref.resolve()).encode("utf-8", errors="replace"))
+        digest.update(b"\0")
+        digest.update(str(stat.st_size).encode("ascii"))
+        digest.update(b"\0")
+        digest.update(str(stat.st_mtime_ns).encode("ascii"))
+    return digest.hexdigest()
+
+
+def _cache_dir(cfg: HarnessConfig, key: str) -> Path:
+    return cfg.artifacts_dir / "build_cache" / key[:2] / key
+
+
 def run_csharp_snippet(
     code: str,
     mode: str = "run",
@@ -89,27 +111,57 @@ def run_csharp_snippet(
         return result
 
     exe = run_dir / "Snippet.exe"
-    cmd = [
-        str(csc),
-        "/nologo",
-        "/platform:x64",
-        "/target:exe",
-        f"/out:{exe}",
-    ]
-    cmd.extend(f"/reference:{ref}" for ref in refs)
-    cmd.append(str(snippet))
+    cache_key = _compile_cache_key(code, refs, csc)
+    cache_dir = _cache_dir(cfg, cache_key)
+    cache_exe = cache_dir / "Snippet.exe"
+    cache_build_log = cache_dir / "build.log"
     started = time.perf_counter()
-    proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout_sec)
+    cache_hit = cache_exe.exists()
+    if cache_hit:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(cache_exe, exe)
+        build_output = cache_build_log.read_text(encoding="utf-8") if cache_build_log.exists() else ""
+        compile_ms = 0
+    else:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_snippet = cache_dir / "Snippet.cs"
+        store.write_text(cache_snippet, code)
+        cmd = [
+            str(csc),
+            "/nologo",
+            "/platform:x64",
+            "/target:exe",
+            f"/out:{cache_exe}",
+        ]
+        cmd.extend(f"/reference:{ref}" for ref in refs)
+        cmd.append(str(cache_snippet))
+        proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout_sec)
+        build_output = (proc.stdout or "") + (proc.stderr or "")
+        store.write_text(cache_build_log, build_output)
+        store.write_json(
+            cache_dir / "metadata.json",
+            {
+                "cache_key": cache_key,
+                "csc": str(csc),
+                "references": [str(ref) for ref in refs],
+                "platform": "x64",
+                "target": "exe",
+            },
+        )
+        if proc.returncode == 0:
+            shutil.copy2(cache_exe, exe)
     compile_ms = int((time.perf_counter() - started) * 1000)
-    build_output = (proc.stdout or "") + (proc.stderr or "")
     store.write_text(run_dir / "build.log", build_output)
     diagnostics = parse_csc_diagnostics(build_output)
-    if proc.returncode != 0:
+    compile_exit_code = 0 if cache_hit else proc.returncode
+    if compile_exit_code != 0:
         result = {
             "ok": False,
             "stage": "compile",
-            "exit_code": proc.returncode,
+            "exit_code": compile_exit_code,
             "duration_ms": compile_ms,
+            "cache_key": cache_key,
+            "cache_hit": False,
             "diagnostics": diagnostics,
             "stdout": proc.stdout,
             "stderr": proc.stderr,
@@ -126,6 +178,8 @@ def run_csharp_snippet(
             "stage": "compile",
             "exit_code": 0,
             "duration_ms": compile_ms,
+            "cache_key": cache_key,
+            "cache_hit": cache_hit,
             "diagnostics": diagnostics,
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
@@ -156,6 +210,8 @@ def run_csharp_snippet(
             "duration_ms": compile_ms + run_ms,
             "compile_duration_ms": compile_ms,
             "run_duration_ms": run_ms,
+            "cache_key": cache_key,
+            "cache_hit": cache_hit,
             "diagnostics": diagnostics,
             "stdout": run_proc.stdout,
             "stderr": run_proc.stderr,

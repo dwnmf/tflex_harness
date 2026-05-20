@@ -39,3 +39,21 @@ def test_run_create_simple_2d_line_recipe_live():
     path = pathlib.Path(output)
     assert path.exists()
     assert path.stat().st_size > 0
+
+
+@pytest.mark.integration
+def test_run_create_simple_3d_extrusion_recipe_live():
+    result = run_recipe("create_simple_3d_extrusion", timeout_sec=90)
+    assert result["ok"] is True, result
+    assert result["recipe"] == "create_simple_3d_extrusion"
+    assert "endChanges=OK" in result["stdout"]
+    assert "operationsAfter=1" in result["stdout"]
+    assert "operationType=TFlex.Model.Model3D.ThickenExtrusion" in result["stdout"]
+    assert "bodyNull=False" in result["stdout"]
+    assert "geometryNull=False" in result["stdout"]
+    assert "saved=True" in result["stdout"]
+    output = result["recipe_artifacts"]["output_file"]
+    import pathlib
+    path = pathlib.Path(output)
+    assert path.exists()
+    assert path.stat().st_size > 0

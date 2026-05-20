@@ -15,3 +15,13 @@ def test_csharp_compile_error_is_structured():
     assert result["ok"] is False
     assert result["stage"] == "compile"
     assert any(d["code"] == "CS0246" for d in result["diagnostics"]), result
+
+
+def test_csharp_compile_cache_reuses_successful_build():
+    code = 'public class Program { public static int Main(){ System.Console.WriteLine("hello-cache"); return 0; } }'
+    first = run_csharp_snippet(code, mode="compile_only", timeout_sec=20, references=[], artifact_prefix="test_csharp_cache_first")
+    second = run_csharp_snippet(code, mode="compile_only", timeout_sec=20, references=[], artifact_prefix="test_csharp_cache_second")
+    assert first["ok"] is True, first
+    assert second["ok"] is True, second
+    assert first["cache_key"] == second["cache_key"]
+    assert second["cache_hit"] is True
