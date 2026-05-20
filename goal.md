@@ -589,7 +589,8 @@ artifacts/runs/<timestamp>_<slug>/
 ```json
 {
   "ok": true,
-  "stage": "run",
+  "stage": "run|compile|timeout",
+  "phase": "compile|run",
   "duration_ms": 1234,
   "exit_code": 0,
   "cache_key": "sha256...",
@@ -607,6 +608,8 @@ artifacts/runs/<timestamp>_<slug>/
 
 - `TFLEX_HARNESS_RUN_DIR` — корень конкретного запуска;
 - `TFLEX_HARNESS_ARTIFACTS_DIR` — writable папка для файлов, которые создаёт snippet.
+
+Timeout должен быть структурированным: `stage="timeout"` и `phase="compile"` или `phase="run"`, чтобы LLM понимала, на каком этапе зависло выполнение.
 
 ---
 

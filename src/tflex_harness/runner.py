@@ -153,7 +153,33 @@ def run_csharp_snippet(
         ]
         cmd.extend(f"/reference:{ref}" for ref in refs)
         cmd.append(str(cache_snippet))
-        proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout_sec)
+        try:
+            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout_sec)
+        except subprocess.TimeoutExpired as exc:
+            compile_ms = int((time.perf_counter() - started) * 1000)
+            partial_output = ((exc.stdout or "") if isinstance(exc.stdout, str) else "") + ((exc.stderr or "") if isinstance(exc.stderr, str) else "")
+            store.write_text(cache_build_log, partial_output)
+            store.write_text(run_dir / "build.log", partial_output)
+            result = {
+                "ok": False,
+                "stage": "timeout",
+                "phase": "compile",
+                "error": str(exc),
+                "timeout_sec": timeout_sec,
+                "duration_ms": compile_ms,
+                "cache_key": cache_key,
+                "cache_hit": False,
+                "diagnostics": parse_csc_diagnostics(partial_output),
+                "stdout": exc.stdout if isinstance(exc.stdout, str) else "",
+                "stderr": exc.stderr if isinstance(exc.stderr, str) else "",
+                "run_dir": str(run_dir),
+                "snippet_path": str(snippet),
+                "build_log": str(run_dir / "build.log"),
+                "artifacts_dir": str(run_dir / "artifacts"),
+                "artifacts": _collect_artifacts(run_dir),
+            }
+            store.write_json(run_dir / "result.json", result)
+            return result
         build_output = (proc.stdout or "") + (proc.stderr or "")
         store.write_text(cache_build_log, build_output)
         store.write_json(
@@ -254,9 +280,15 @@ def run_csharp_snippet(
         result = {
             "ok": False,
             "stage": "timeout",
+            "phase": "run",
             "error": str(exc),
             "timeout_sec": timeout_sec,
+            "compile_duration_ms": compile_ms,
+            "cache_key": cache_key,
+            "cache_hit": cache_hit,
             "diagnostics": diagnostics,
+            "stdout": exc.stdout if isinstance(exc.stdout, str) else "",
+            "stderr": exc.stderr if isinstance(exc.stderr, str) else "",
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
             "executable": str(exe),

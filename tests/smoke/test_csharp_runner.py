@@ -46,3 +46,23 @@ public class Program {
     assert result["artifacts_dir"]
     assert result["run_log"]
     assert any(item["relative_path"] == "artifacts/probe.txt" and item["size"] == 11 for item in result["artifacts"]), result
+
+
+def test_csharp_runner_runtime_timeout_is_structured():
+    code = r'''
+public class Program {
+  public static int Main(){
+    System.Threading.Thread.Sleep(5000);
+    return 0;
+  }
+}
+'''
+    compiled = run_csharp_snippet(code, mode="compile_only", timeout_sec=20, references=[], artifact_prefix="test_csharp_timeout_compile")
+    assert compiled["ok"] is True, compiled
+
+    result = run_csharp_snippet(code, mode="run", timeout_sec=1, references=[], artifact_prefix="test_csharp_timeout_run")
+    assert result["ok"] is False, result
+    assert result["stage"] == "timeout"
+    assert result["phase"] == "run"
+    assert result["timeout_sec"] == 1
+    assert result["cache_hit"] is True

@@ -33,6 +33,7 @@ Snippet runs receive:
 - `TFLEX_HARNESS_ARTIFACTS_DIR` — writable folder for snippet-generated files.
 
 `result.json` includes `build_log`, `stdout_path`, `stderr_path`, `run_log`, `artifacts_dir`, and discovered files under `artifacts/`.
+Timeouts are structured as `stage: "timeout"` with `phase: "compile"` or `phase: "run"`.
 
 ## Verified recipes
 
