@@ -598,9 +598,15 @@ artifacts/runs/<timestamp>_<slug>/
   "stdout_path": "stdout.txt",
   "stderr_path": "stderr.txt",
   "snippet_path": "snippet.cs",
+  "artifacts_dir": "artifacts/runs/.../artifacts",
   "artifacts": []
 }
 ```
+
+При запуске snippet runner должен передавать:
+
+- `TFLEX_HARNESS_RUN_DIR` — корень конкретного запуска;
+- `TFLEX_HARNESS_ARTIFACTS_DIR` — writable папка для файлов, которые создаёт snippet.
 
 ---
 

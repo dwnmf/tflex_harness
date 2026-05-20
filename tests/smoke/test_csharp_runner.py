@@ -25,3 +25,24 @@ def test_csharp_compile_cache_reuses_successful_build():
     assert second["ok"] is True, second
     assert first["cache_key"] == second["cache_key"]
     assert second["cache_hit"] is True
+
+
+def test_csharp_runner_reports_snippet_artifacts():
+    code = r'''
+using System;
+using System.IO;
+public class Program {
+  public static int Main(){
+    string dir = Environment.GetEnvironmentVariable("TFLEX_HARNESS_ARTIFACTS_DIR");
+    Directory.CreateDirectory(dir);
+    File.WriteAllText(Path.Combine(dir, "probe.txt"), "artifact-ok");
+    Console.WriteLine("artifact-dir=" + dir);
+    return 0;
+  }
+}
+'''
+    result = run_csharp_snippet(code, mode="run", timeout_sec=20, references=[], artifact_prefix="test_csharp_artifact")
+    assert result["ok"] is True, result
+    assert result["artifacts_dir"]
+    assert result["run_log"]
+    assert any(item["relative_path"] == "artifacts/probe.txt" and item["size"] == 11 for item in result["artifacts"]), result

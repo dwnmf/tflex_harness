@@ -27,6 +27,13 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `run_tflex_recipe` / `python -m tflex_harness.cli run-recipe` — runs verified recipes.
 - `capture_tflex_state` / `python -m tflex_harness.cli state` — captures read-only live session/document state.
 
+Snippet runs receive:
+
+- `TFLEX_HARNESS_RUN_DIR` — per-run artifact root.
+- `TFLEX_HARNESS_ARTIFACTS_DIR` — writable folder for snippet-generated files.
+
+`result.json` includes `build_log`, `stdout_path`, `stderr_path`, `run_log`, `artifacts_dir`, and discovered files under `artifacts/`.
+
 ## Verified recipes
 
 - `environment_probe` — initializes and exits a minimal read-only API session.

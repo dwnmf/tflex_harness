@@ -54,6 +54,24 @@ def _runtime_env(cfg: HarnessConfig) -> dict[str, str]:
     return env
 
 
+def _collect_artifacts(run_dir: Path) -> list[dict[str, Any]]:
+    root = run_dir / "artifacts"
+    if not root.exists():
+        return []
+    artifacts: list[dict[str, Any]] = []
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        try:
+            rel = path.relative_to(run_dir)
+        except ValueError:
+            rel = path
+        artifacts.append({
+            "path": str(path),
+            "relative_path": str(rel).replace("\\", "/"),
+            "size": path.stat().st_size,
+        })
+    return artifacts
+
+
 def _compile_cache_key(code: str, refs: list[Path], csc: Path) -> str:
     digest = hashlib.sha256()
     digest.update(b"tflex_harness.csc.v1\0")
@@ -168,6 +186,8 @@ def run_csharp_snippet(
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
             "build_log": str(run_dir / "build.log"),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
         }
         store.write_json(run_dir / "result.json", result)
         return result
@@ -185,6 +205,8 @@ def run_csharp_snippet(
             "snippet_path": str(snippet),
             "executable": str(exe),
             "build_log": str(run_dir / "build.log"),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
         }
         store.write_json(run_dir / "result.json", result)
         return result
@@ -197,12 +219,15 @@ def run_csharp_snippet(
     started = time.perf_counter()
     try:
         run_env = _runtime_env(cfg)
+        run_env["TFLEX_HARNESS_RUN_DIR"] = str(run_dir)
+        run_env["TFLEX_HARNESS_ARTIFACTS_DIR"] = str(run_dir / "artifacts")
         if environment:
             run_env.update({str(k): str(v) for k, v in environment.items()})
         run_proc = subprocess.run([str(exe)], cwd=run_dir, text=True, capture_output=True, timeout=timeout_sec, env=run_env)
         run_ms = int((time.perf_counter() - started) * 1000)
         store.write_text(run_dir / "stdout.txt", run_proc.stdout or "")
         store.write_text(run_dir / "stderr.txt", run_proc.stderr or "")
+        store.write_text(run_dir / "run.log", f"STDOUT:\n{run_proc.stdout or ''}\nSTDERR:\n{run_proc.stderr or ''}")
         result = {
             "ok": run_proc.returncode == 0,
             "stage": "run",
@@ -221,6 +246,9 @@ def run_csharp_snippet(
             "build_log": str(run_dir / "build.log"),
             "stdout_path": str(run_dir / "stdout.txt"),
             "stderr_path": str(run_dir / "stderr.txt"),
+            "run_log": str(run_dir / "run.log"),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
         }
     except subprocess.TimeoutExpired as exc:
         result = {
@@ -232,6 +260,8 @@ def run_csharp_snippet(
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
             "executable": str(exe),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
         }
     store.write_json(run_dir / "result.json", result)
     return result
