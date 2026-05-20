@@ -180,3 +180,31 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
         },
         "tflex_process": {"running": bool(processes), "processes": processes},
     }
+
+
+def get_live_environment_blockers(environment: dict[str, Any] | None = None, config: HarnessConfig | None = None) -> list[str]:
+    env = environment or get_environment(config)
+    blockers: list[str] = []
+
+    if not env["tflex_install_dir"]["exists"]:
+        blockers.append(f"T-FLEX CAD 17 install dir missing: {env['tflex_install_dir']['path']}")
+    if not env["tflex_program_dir"]["exists"]:
+        blockers.append(f"T-FLEX CAD 17 program dir missing: {env['tflex_program_dir']['path']}")
+
+    for status in env["dlls"].values():
+        if not status["exists"]:
+            blockers.append(f"T-FLEX DLL missing: {status['path']}")
+
+    if not env["tools"]["csc"]["available"]:
+        blockers.append("csc.exe not found")
+
+    runner = env["runner"]
+    if not runner["project_exists"]:
+        blockers.append(f"runner project missing: {runner['project_path']}")
+    if not runner["build_script_exists"]:
+        blockers.append(f"runner build script missing: {runner['build_script']}")
+    if runner["project_exists"] and runner["build_script_exists"] and not runner["build_ok"]:
+        detail = runner.get("error") or runner.get("env_probe_error") or runner.get("build_error") or "runner env probe failed"
+        blockers.append(f"runner unavailable: {detail}")
+
+    return blockers
