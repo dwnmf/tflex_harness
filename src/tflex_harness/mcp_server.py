@@ -31,7 +31,7 @@ def create_server():
         return get_environment()
 
     @server.tool()
-    def run_csharp_tflex(code: str, mode: Literal["compile_only", "run"] = "run", timeout_sec: int = 30, references: list[str] | None = None, artifact_prefix: str = "mcp_snippet", environment: dict[str, str] | None = None) -> dict:
+    def run_csharp_tflex(code: str, mode: Literal["compile_only", "run"] = "run", timeout_sec: int = 30, references: list[Literal["TFlexAPI", "TFlexAPI3D", "TFlexAPIData", "TFlexCommandAPI"]] | None = None, artifact_prefix: str = "mcp_snippet", environment: dict[str, str] | None = None) -> dict:
         """Compile or run a visible C# snippet against local T-FLEX API references."""
         return run_csharp_snippet(code=code, mode=mode, timeout_sec=timeout_sec, references=references, artifact_prefix=artifact_prefix, environment=environment)
 

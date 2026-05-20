@@ -72,3 +72,24 @@ def test_cli_run_csharp_compile_only_returns_structured_result():
     assert result["ok"] is True, result
     assert result["stage"] == "compile"
     assert result["snippet_path"].endswith("snippet.cs")
+
+
+def test_cli_run_csharp_accepts_known_reference():
+    code = "using TFlex; public class Program { public static int Main(){ ApplicationSessionSetup setup = null; return setup == null ? 0 : 1; } }"
+    result = _cli(
+        "run-csharp",
+        "--mode",
+        "compile_only",
+        "--timeout-sec",
+        "30",
+        "--artifact-prefix",
+        "test_cli_compile_tflex_reference",
+        "--reference",
+        "TFlexAPI",
+        "--code",
+        code,
+        timeout=90,
+    )
+
+    assert result["ok"] is True, result
+    assert result["resolved_references"][0]["name"] == "TFlexAPI"

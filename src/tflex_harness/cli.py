@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--code", required=True)
     run_p.add_argument("--mode", choices=["compile_only", "run"], default="run")
     run_p.add_argument("--timeout-sec", type=int, default=30)
-    run_p.add_argument("--reference", action="append", dest="references", default=None)
+    run_p.add_argument("--reference", action="append", choices=TFLEX_DOC_ASSEMBLIES, dest="references", default=None)
     run_p.add_argument("--artifact-prefix", default="cli_snippet")
     run_p.add_argument("--env", action="append", default=[], help="Extra runtime environment variable in NAME=VALUE form")
 
