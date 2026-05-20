@@ -158,6 +158,36 @@ def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> 
     }
 
 
+def write_run_artifacts(request: dict[str, Any], result: dict[str, Any], config: HarnessConfig | None = None) -> Path:
+    cfg = config or load_config()
+    store = ArtifactStore(cfg)
+    run_dir = store.create_run_dir(str(request.get("artifact_prefix") or result.get("stage") or "run"))
+    persisted_result = dict(result)
+    persisted_result.setdefault("run_dir", str(run_dir))
+
+    store.write_json(run_dir / "request.json", request)
+    if "code" in request:
+        store.write_text(run_dir / "snippet.cs", str(request["code"]))
+        persisted_result.setdefault("snippet_path", str(run_dir / "snippet.cs"))
+    if "stdout" in result:
+        store.write_text(run_dir / "stdout.txt", str(result.get("stdout") or ""))
+        persisted_result.setdefault("stdout_path", str(run_dir / "stdout.txt"))
+    if "stderr" in result:
+        store.write_text(run_dir / "stderr.txt", str(result.get("stderr") or ""))
+        persisted_result.setdefault("stderr_path", str(run_dir / "stderr.txt"))
+    if "build_output" in result:
+        store.write_text(run_dir / "build.log", str(result.get("build_output") or ""))
+        persisted_result.setdefault("build_log", str(run_dir / "build.log"))
+    if "stdout" in result or "stderr" in result:
+        store.write_text(run_dir / "run.log", f"STDOUT:\n{result.get('stdout') or ''}\nSTDERR:\n{result.get('stderr') or ''}")
+        persisted_result.setdefault("run_log", str(run_dir / "run.log"))
+
+    persisted_result.setdefault("artifacts_dir", str(run_dir / "artifacts"))
+    persisted_result.setdefault("artifacts", _collect_artifacts(run_dir))
+    store.write_json(run_dir / "result.json", persisted_result)
+    return run_dir
+
+
 def run_csharp_snippet(
     code: str,
     mode: str = "run",
