@@ -53,6 +53,40 @@ def _version_command(command: list[str], timeout: int = 15) -> dict[str, Any]:
         return {"available": False, "error": str(exc)}
 
 
+def check_tflex_dlls(config: HarnessConfig | None = None) -> dict[str, dict[str, Any]]:
+    cfg = config or load_config()
+    return {name: {"exists": (cfg.tflex_program_dir / name).exists(), "path": str(cfg.tflex_program_dir / name)} for name in TFLEX_DLLS}
+
+
+def check_dotnet() -> dict[str, Any]:
+    dotnet = shutil.which("dotnet")
+    return _version_command([dotnet, "--info"]) if dotnet else {"available": False}
+
+
+def check_docs_repo(config: HarnessConfig | None = None) -> dict[str, Any]:
+    cfg = config or load_config()
+    status: dict[str, Any] = {
+        "dir": str(cfg.docs_dir),
+        "exists": cfg.docs_dir.exists(),
+        "symbols_jsonl": cfg.symbols_jsonl.exists(),
+        "chm_pages_jsonl": cfg.chm_pages_jsonl.exists(),
+        "types_dir": cfg.types_dir.exists(),
+        "manifest_json": cfg.manifest_json.exists(),
+    }
+    if cfg.manifest_json.exists():
+        try:
+            manifest = json.loads(cfg.manifest_json.read_text(encoding="utf-8"))
+            status["manifest"] = {
+                "symbol_count": manifest.get("symbol_count"),
+                "type_page_count": manifest.get("type_page_count"),
+                "chm_page_count": manifest.get("chm_page_count"),
+                "assemblies": manifest.get("assemblies") or {},
+            }
+        except Exception as exc:
+            status["manifest_error"] = str(exc)
+    return status
+
+
 def _runner_environment(cfg: HarnessConfig, csc: Path | None) -> dict[str, Any]:
     project = cfg.runner_dir / "TFlexRunner.csproj"
     build_script = cfg.runner_dir / "build.ps1"
@@ -119,8 +153,6 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
     cfg = config or load_config()
     csc = find_csc()
     msbuild = find_msbuild()
-    dotnet = shutil.which("dotnet")
-    dlls = {name: {"exists": (cfg.tflex_program_dir / name).exists(), "path": str(cfg.tflex_program_dir / name)} for name in TFLEX_DLLS}
     processes = []
     try:
         ps = subprocess.run(
@@ -134,23 +166,15 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
             processes = parsed if isinstance(parsed, list) else [parsed]
     except Exception:
         processes = []
-    docs = {
-        "dir": str(cfg.docs_dir),
-        "exists": cfg.docs_dir.exists(),
-        "symbols_jsonl": cfg.symbols_jsonl.exists(),
-        "chm_pages_jsonl": cfg.chm_pages_jsonl.exists(),
-        "types_dir": cfg.types_dir.exists(),
-        "manifest_json": cfg.manifest_json.exists(),
-    }
     return {
         "tflex_install_dir": {"path": str(cfg.tflex_install_dir), "exists": cfg.tflex_install_dir.exists()},
         "tflex_program_dir": {"path": str(cfg.tflex_program_dir), "exists": cfg.tflex_program_dir.exists()},
-        "dlls": dlls,
-        "docs": docs,
+        "dlls": check_tflex_dlls(cfg),
+        "docs": check_docs_repo(cfg),
         "runner": _runner_environment(cfg, csc),
         "tools": {
             "python": _version_command([shutil.which("python") or "python", "--version"]),
-            "dotnet": _version_command([dotnet, "--info"]) if dotnet else {"available": False},
+            "dotnet": check_dotnet(),
             "csc": {"available": csc is not None, "path": str(csc) if csc else None},
             "msbuild": {"available": msbuild is not None, "path": str(msbuild) if msbuild else None},
         },
