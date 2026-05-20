@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -60,7 +61,18 @@ def check_tflex_dlls(config: HarnessConfig | None = None) -> dict[str, dict[str,
 
 def check_dotnet() -> dict[str, Any]:
     dotnet = shutil.which("dotnet")
-    return _version_command([dotnet, "--info"]) if dotnet else {"available": False}
+    if not dotnet:
+        return {"available": False, "version": None}
+    status = _version_command([dotnet, "--info"])
+    version = _version_command([dotnet, "--version"])
+    status["path"] = dotnet
+    status["version"] = version.get("stdout") if version.get("available") else _dotnet_host_version(status.get("stdout") or "")
+    return status
+
+
+def _dotnet_host_version(info_output: str) -> str | None:
+    match = re.search(r"^\s*Version:\s*([^\s]+)\s*$", info_output, flags=re.MULTILINE)
+    return match.group(1) if match else None
 
 
 def check_docs_repo(config: HarnessConfig | None = None) -> dict[str, Any]:
@@ -166,19 +178,22 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
             processes = parsed if isinstance(parsed, list) else [parsed]
     except Exception:
         processes = []
+    pids = [int(proc["Id"]) for proc in processes if isinstance(proc, dict) and proc.get("Id") is not None]
+    dotnet = check_dotnet()
     return {
         "tflex_install_dir": {"path": str(cfg.tflex_install_dir), "exists": cfg.tflex_install_dir.exists()},
         "tflex_program_dir": {"path": str(cfg.tflex_program_dir), "exists": cfg.tflex_program_dir.exists()},
         "dlls": check_tflex_dlls(cfg),
         "docs": check_docs_repo(cfg),
+        "dotnet": dotnet,
         "runner": _runner_environment(cfg, csc),
         "tools": {
             "python": _version_command([shutil.which("python") or "python", "--version"]),
-            "dotnet": check_dotnet(),
+            "dotnet": dotnet,
             "csc": {"available": csc is not None, "path": str(csc) if csc else None},
             "msbuild": {"available": msbuild is not None, "path": str(msbuild) if msbuild else None},
         },
-        "tflex_process": {"running": bool(processes), "processes": processes},
+        "tflex_process": {"running": bool(processes), "pids": pids, "processes": processes},
     }
 
 

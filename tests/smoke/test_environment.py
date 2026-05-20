@@ -5,12 +5,16 @@ def test_environment_reports_docs_and_compiler():
     env = get_environment()
     assert env["docs"]["symbols_jsonl"] is True
     assert env["docs"]["manifest"]["symbol_count"] > 10000
+    assert "available" in env["dotnet"]
+    assert "version" in env["dotnet"]
+    assert env["tools"]["dotnet"] == env["dotnet"]
     assert env["tools"]["csc"]["available"] is True
     assert env["runner"]["project_exists"] is True
     assert env["runner"]["build_script_exists"] is True
     assert env["runner"]["executable_exists"] is True
     assert env["runner"]["build_ok"] is True
     assert env["runner"]["env_probe_ok"] is True
+    assert isinstance(env["tflex_process"]["pids"], list)
 
 
 def test_diagnostics_helpers_report_goal_contracts():
@@ -25,6 +29,7 @@ def test_diagnostics_helpers_report_goal_contracts():
     assert docs["types_dir"] is True
     assert docs["manifest"]["assemblies"]["TFlexAPI"] > 0
     assert "available" in dotnet
+    assert "version" in dotnet
 
 
 def test_live_environment_blockers_are_explicit_for_missing_components():
