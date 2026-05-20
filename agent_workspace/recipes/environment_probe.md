@@ -63,6 +63,27 @@ after=True
 exited=False
 ```
 
+## Live Verification Report
+
+Test: `environment_probe`
+
+Docs used:
+
+- `D:\REALPROJECTS\tflex_api\llm\symbols.jsonl`
+- `D:\REALPROJECTS\tflex_api\llm\types\TFlexAPI__TFlex.ApplicationSessionSetup__20c5987e.md`
+
+Snippet: `agent_workspace/recipes/environment_probe.cs`
+
+Result: pass.
+
+Evidence:
+
+- stdout contains `init=True`, `after=True`, and `exited=False`;
+- live integration test `tests/integration/test_tflex_recipes.py::test_run_environment_probe_recipe_live` passes;
+- MCP and CLI live tests also exercise this recipe.
+
+Blockers: none on the verified local T-FLEX CAD 17 environment.
+
 ## Assumptions
 
 - T-FLEX CAD 17 is installed at `C:\Program Files\T-FLEX CAD 17`.

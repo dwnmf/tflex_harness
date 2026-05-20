@@ -50,6 +50,27 @@ session=False
 
 The test additionally verifies that the saved `.grb` file exists under `artifacts/tflex_docs/` and has non-zero size.
 
+## Live Verification Report
+
+Test: `create_empty_document`
+
+Docs used:
+
+- `D:\REALPROJECTS\tflex_api\llm\symbols.jsonl`
+- `D:\REALPROJECTS\tflex_api\llm\types\TFlexAPI__TFlex.Model.Document__8a0793a4.md`
+
+Snippet: `agent_workspace/recipes/create_empty_document.cs`
+
+Result: pass.
+
+Evidence:
+
+- stdout contains `docNull=False`, `saved=True`, `exists=True`, and `session=False`;
+- saved `.grb` artifact exists under `artifacts/tflex_docs/` and is non-empty;
+- live tests `tests/integration/test_tflex_live_document.py` and `tests/integration/test_tflex_recipes.py::test_run_create_empty_document_recipe_live` pass.
+
+Blockers: none on the verified local T-FLEX CAD 17 environment.
+
 ## Assumptions
 
 - T-FLEX CAD 17 is installed at `C:\Program Files\T-FLEX CAD 17`.

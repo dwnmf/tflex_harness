@@ -19,3 +19,23 @@ def test_each_verified_recipe_has_markdown_and_csharp_source():
         if recipe["verified"]:
             assert (recipes_dir / f"{recipe['name']}.md").exists(), recipe
             assert (recipes_dir / f"{recipe['name']}.cs").exists(), recipe
+
+
+def test_each_verified_recipe_has_live_verification_report():
+    cfg = load_config()
+    recipes_dir = cfg.repo_dir / "agent_workspace" / "recipes"
+    required_phrases = [
+        "## Live Verification Report",
+        "Test:",
+        "Docs used:",
+        "Snippet:",
+        "Result:",
+        "Evidence:",
+        "Blockers:",
+    ]
+
+    for recipe in list_recipes():
+        if recipe["verified"]:
+            text = (recipes_dir / f"{recipe['name']}.md").read_text(encoding="utf-8")
+            for phrase in required_phrases:
+                assert phrase in text, (recipe["name"], phrase)

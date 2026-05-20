@@ -47,6 +47,28 @@ The live tests assert:
 - `Document.FileName` is populated after save;
 - `TFLEX_HARNESS_ARTIFACTS_DIR` marker is reported through runner artifacts.
 
+## Live Verification Report
+
+Test: `save_document_as_temp`
+
+Docs used:
+
+- `D:\REALPROJECTS\tflex_api\llm\symbols.jsonl`
+- `D:\REALPROJECTS\tflex_api\llm\types\TFlexAPI__TFlex.Model.Document__8a0793a4.md`
+
+Snippet: `agent_workspace/recipes/save_document_as_temp.cs`
+
+Result: pass.
+
+Evidence:
+
+- stdout contains `saved=True`, `exists=True`, `fileNameAfter=...`, and `artifactMarker=...`;
+- runner reports `artifacts/saved_document_path.txt`;
+- saved `.grb` artifact exists and is non-empty;
+- live test `tests/integration/test_tflex_recipes.py::test_run_save_document_as_temp_recipe_live` passes.
+
+Blockers: none on the verified local T-FLEX CAD 17 environment.
+
 ## Assumptions
 
 - T-FLEX CAD 17 is installed at `C:\Program Files\T-FLEX CAD 17`.

@@ -62,6 +62,28 @@ Artifact evidence:
 - run directory: `artifacts/runs/20260520_224300_887226_manual_3d_extrusion`
 - bounding-box verification run: `artifacts/runs/20260520_225011_637244_manual_3d_bbox4`
 
+## Live Verification Report
+
+Test: `create_simple_3d_extrusion`
+
+Docs used:
+
+- `D:\REALPROJECTS\tflex_api\llm\symbols.jsonl`
+- T-FLEX 3D type pages for `StandardWorkplane`, `AreaProfile`, `ThickenExtrusion`, `Document3D`, and operation geometry/bounding boxes.
+
+Snippet: `agent_workspace/recipes/create_simple_3d_extrusion.cs`
+
+Result: pass.
+
+Evidence:
+
+- stdout contains `operationsAfter=1`, `operationType=TFlex.Model.Model3D.ThickenExtrusion`, `bodyNull=False`, `geometryNull=False`, `bboxValid=True`, `bboxPositive=True`, `saved=True`, and `exists=True`;
+- bounding-box sizes are positive in X/Y/Z;
+- saved `.grb` artifact exists and is non-empty;
+- live tests `tests/integration/test_tflex_live_3d.py` and `tests/integration/test_tflex_recipes.py::test_run_create_simple_3d_extrusion_recipe_live` pass.
+
+Blockers: none on the verified local T-FLEX CAD 17 environment.
+
 ## Assumptions
 
 - T-FLEX CAD 17 is installed at `C:\Program Files\T-FLEX CAD 17`.
