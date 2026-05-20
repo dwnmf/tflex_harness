@@ -40,6 +40,18 @@ def _default_references(cfg: HarnessConfig, selected: list[str] | None) -> list[
     return resolved
 
 
+def _reference_payload(refs: list[Path]) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": ref.stem,
+            "dll": ref.name,
+            "path": str(ref),
+            "exists": ref.exists(),
+        }
+        for ref in refs
+    ]
+
+
 def _copy_runtime_dlls(run_dir: Path, references: list[Path]) -> None:
     for ref in references:
         target = run_dir / ref.name
@@ -239,6 +251,7 @@ def run_csharp_snippet(
         return result
 
     refs = _default_references(cfg, references)
+    resolved_references = _reference_payload(refs)
     missing_refs = []
     if references:
         for name in references:
@@ -246,7 +259,14 @@ def run_csharp_snippet(
             if not (cfg.tflex_program_dir / dll_name).exists():
                 missing_refs.append(str(cfg.tflex_program_dir / dll_name))
     if missing_refs:
-        result = {"ok": False, "stage": "environment", "error": "missing references", "missing_references": missing_refs, "run_dir": str(run_dir)}
+        result = {
+            "ok": False,
+            "stage": "environment",
+            "error": "missing references",
+            "missing_references": missing_refs,
+            "resolved_references": resolved_references,
+            "run_dir": str(run_dir),
+        }
         store.write_json(run_dir / "result.json", result)
         return result
 
@@ -291,6 +311,7 @@ def run_csharp_snippet(
                 "duration_ms": compile_ms,
                 "cache_key": cache_key,
                 "cache_hit": False,
+                "resolved_references": resolved_references,
                 "diagnostics": parse_csc_diagnostics(partial_output),
                 "stdout": exc.stdout if isinstance(exc.stdout, str) else "",
                 "stderr": exc.stderr if isinstance(exc.stderr, str) else "",
@@ -328,6 +349,7 @@ def run_csharp_snippet(
             "duration_ms": compile_ms,
             "cache_key": cache_key,
             "cache_hit": False,
+            "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "stdout": proc.stdout,
             "stderr": proc.stderr,
@@ -348,6 +370,7 @@ def run_csharp_snippet(
             "duration_ms": compile_ms,
             "cache_key": cache_key,
             "cache_hit": cache_hit,
+            "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
@@ -385,6 +408,7 @@ def run_csharp_snippet(
             "run_duration_ms": run_ms,
             "cache_key": cache_key,
             "cache_hit": cache_hit,
+            "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "stdout": run_proc.stdout,
             "stderr": run_proc.stderr,
@@ -408,6 +432,7 @@ def run_csharp_snippet(
             "compile_duration_ms": compile_ms,
             "cache_key": cache_key,
             "cache_hit": cache_hit,
+            "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "stdout": exc.stdout if isinstance(exc.stdout, str) else "",
             "stderr": exc.stderr if isinstance(exc.stderr, str) else "",

@@ -9,6 +9,7 @@ def test_csharp_hello_snippet_runs():
     assert result["ok"] is True, result
     assert result["stage"] == "run"
     assert "hello-from-csharp" in result["stdout"]
+    assert result["resolved_references"] == []
 
 
 def test_csharp_runner_writes_structured_run_files():
@@ -46,6 +47,27 @@ def test_csharp_compile_cache_reuses_successful_build():
     assert second["ok"] is True, second
     assert first["cache_key"] == second["cache_key"]
     assert second["cache_hit"] is True
+    assert second["resolved_references"] == []
+
+
+def test_csharp_runner_reports_selected_references():
+    code = r'''
+using System;
+using System.Reflection;
+public class Program {
+  public static int Main(){
+    Console.WriteLine(Assembly.Load("TFlexAPI").GetName().Name);
+    return 0;
+  }
+}
+'''
+    result = run_csharp_snippet(code, mode="compile_only", timeout_sec=30, references=["TFlexAPI"], artifact_prefix="test_csharp_selected_reference")
+
+    assert result["ok"] is True, result
+    assert result["resolved_references"][0]["name"] == "TFlexAPI"
+    assert result["resolved_references"][0]["dll"] == "TFlexAPI.dll"
+    assert result["resolved_references"][0]["exists"] is True
+    assert result["resolved_references"][0]["path"].endswith("TFlexAPI.dll")
 
 
 def test_csharp_runner_reports_snippet_artifacts():
