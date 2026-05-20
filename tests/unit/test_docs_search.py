@@ -30,6 +30,9 @@ def test_search_symbols_finds_document_related_records():
 def test_search_all_has_expected_scopes():
     result = DocsSearch().search("TFlexAPI", scope="all", limit=3)
     assert set(result) >= {"query", "results", "symbols", "types", "chm"}
+    assert result["scope"] == "all"
+    assert result["limit"] == 3
+    assert result["max_limit"] == DOCS_SEARCH_MAX_LIMIT
     assert result["results"]
     assert len(result["results"]) <= 3
     assert result["results"][0]["scope"] == "symbols"
@@ -38,6 +41,9 @@ def test_search_all_has_expected_scopes():
 
 def test_search_symbols_scope_exposes_unified_results_contract():
     result = DocsSearch().search("Document SaveAs", scope="symbols", limit=1)
+    assert result["scope"] == "symbols"
+    assert result["limit"] == 1
+    assert result["max_limit"] == DOCS_SEARCH_MAX_LIMIT
     assert result["results"]
     assert result["results"][0]["scope"] == "symbols"
     assert result["results"][0]["id"] == "M:TFlex.Model.Document.SaveAs(System.String)"
@@ -56,6 +62,8 @@ def test_docs_search_limits_are_bounded():
     assert normalize_limit(10_000) == DOCS_SEARCH_MAX_LIMIT
 
     result = DocsSearch().search("TFlex", scope="all", limit=10_000)
+    assert result["limit"] == DOCS_SEARCH_MAX_LIMIT
+    assert result["max_limit"] == DOCS_SEARCH_MAX_LIMIT
     assert len(result["results"]) <= DOCS_SEARCH_MAX_LIMIT
     assert len(result["symbols"]) <= DOCS_SEARCH_MAX_LIMIT
     assert len(result["types"]) <= DOCS_SEARCH_MAX_LIMIT

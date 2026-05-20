@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import HarnessConfig, load_config
-from .schemas import DOCS_SEARCH_SCOPES, normalize_limit
+from .schemas import DOCS_SEARCH_MAX_LIMIT, DOCS_SEARCH_SCOPES, normalize_limit
 
 
 def _terms(query: str) -> list[str]:
@@ -165,6 +165,9 @@ class DocsSearch:
         return {
             "query": query,
             "assembly": assembly,
+            "scope": "all",
+            "limit": per_scope,
+            "max_limit": DOCS_SEARCH_MAX_LIMIT,
             "results": self._combined_results(symbols, types, chm, limit=per_scope),
             "symbols": symbols,
             "types": types,
@@ -176,13 +179,13 @@ class DocsSearch:
         limit = normalize_limit(limit)
         if scope == "symbols":
             symbols = self.search_symbols(query, assembly, limit)
-            return {"query": query, "assembly": assembly, "results": self._combined_results(symbols, [], [], limit), "symbols": symbols}
+            return {"query": query, "assembly": assembly, "scope": "symbols", "limit": limit, "max_limit": DOCS_SEARCH_MAX_LIMIT, "results": self._combined_results(symbols, [], [], limit), "symbols": symbols}
         if scope == "types":
             types = self.search_types(query, limit)
-            return {"query": query, "results": self._combined_results([], types, [], limit), "types": types}
+            return {"query": query, "scope": "types", "limit": limit, "max_limit": DOCS_SEARCH_MAX_LIMIT, "results": self._combined_results([], types, [], limit), "types": types}
         if scope == "chm":
             chm = self.search_chm(query, limit)
-            return {"query": query, "results": self._combined_results([], [], chm, limit), "chm": chm}
+            return {"query": query, "scope": "chm", "limit": limit, "max_limit": DOCS_SEARCH_MAX_LIMIT, "results": self._combined_results([], [], chm, limit), "chm": chm}
         if scope == "all":
             return self.search_all(query, assembly, limit)
         raise ValueError(f"Unsupported docs search scope: {scope}; expected one of {', '.join(DOCS_SEARCH_SCOPES)}")
