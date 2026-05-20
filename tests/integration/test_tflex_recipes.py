@@ -26,6 +26,23 @@ def test_run_create_empty_document_recipe_live():
 
 
 @pytest.mark.integration
+def test_run_save_document_as_temp_recipe_live():
+    result = run_recipe("save_document_as_temp", timeout_sec=60)
+    assert result["ok"] is True, result
+    assert result["recipe"] == "save_document_as_temp"
+    assert "saved=True" in result["stdout"]
+    assert "exists=True" in result["stdout"]
+    assert "fileNameAfter=" in result["stdout"]
+    assert "artifactMarker=" in result["stdout"]
+    assert any(item["relative_path"] == "artifacts/saved_document_path.txt" for item in result["artifacts"]), result
+    output = result["recipe_artifacts"]["output_file"]
+    import pathlib
+    path = pathlib.Path(output)
+    assert path.exists()
+    assert path.stat().st_size > 0
+
+
+@pytest.mark.integration
 def test_run_create_simple_2d_line_recipe_live():
     result = run_recipe("create_simple_2d_line", timeout_sec=60)
     assert result["ok"] is True, result

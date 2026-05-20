@@ -47,6 +47,12 @@ def list_recipes() -> list[dict[str, Any]]:
             "verified": True,
         },
         {
+            "name": "save_document_as_temp",
+            "description": "Create a hidden 2D document and verify SaveAs to a temporary .grb artifact path.",
+            "args": {"output_file": "optional absolute .grb path"},
+            "verified": True,
+        },
+        {
             "name": "create_simple_2d_line",
             "description": "Create an invisible 2D document with two free nodes and a construction line through them.",
             "args": {"output_file": "optional absolute .grb path"},
@@ -66,6 +72,8 @@ def _recipe_source(name: str, cfg: HarnessConfig) -> str:
         return ENVIRONMENT_PROBE_CODE
     if name == "create_empty_document":
         return (cfg.repo_dir / "agent_workspace" / "recipes" / "create_empty_document.cs").read_text(encoding="utf-8")
+    if name == "save_document_as_temp":
+        return (cfg.repo_dir / "agent_workspace" / "recipes" / "save_document_as_temp.cs").read_text(encoding="utf-8")
     if name == "create_simple_2d_line":
         return (cfg.repo_dir / "agent_workspace" / "recipes" / "create_simple_2d_line.cs").read_text(encoding="utf-8")
     if name == "create_simple_3d_extrusion":
@@ -79,7 +87,7 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
     env: dict[str, str] = {}
     artifacts: dict[str, Any] = {}
 
-    if name in {"create_empty_document", "create_simple_2d_line", "create_simple_3d_extrusion"}:
+    if name in {"create_empty_document", "save_document_as_temp", "create_simple_2d_line", "create_simple_3d_extrusion"}:
         output = args.get("output_file")
         if output:
             output_file = Path(str(output)).resolve()
@@ -88,6 +96,7 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
             doc_dir = ArtifactStore(cfg).create_tflex_doc_dir(f"recipe_{name}")
             output_name = {
                 "create_empty_document": "empty_document.grb",
+                "save_document_as_temp": "saved_document_as_temp.grb",
                 "create_simple_2d_line": "simple_2d_line.grb",
                 "create_simple_3d_extrusion": "simple_3d_extrusion.grb",
             }[name]
