@@ -17,6 +17,10 @@ def test_each_verified_recipe_has_markdown_and_csharp_source():
 
     for recipe in list_recipes():
         if recipe["verified"]:
+            assert recipe["markdown_path"] == str(recipes_dir / f"{recipe['name']}.md")
+            assert recipe["source_path"] == str(recipes_dir / f"{recipe['name']}.cs")
+            assert recipe["markdown_exists"] is True
+            assert recipe["source_exists"] is True
             assert (recipes_dir / f"{recipe['name']}.md").exists(), recipe
             assert (recipes_dir / f"{recipe['name']}.cs").exists(), recipe
 

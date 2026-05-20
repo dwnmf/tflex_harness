@@ -69,3 +69,8 @@ def test_mcp_docs_and_recipe_tools_return_machine_readable_payloads():
         "save_document_as_temp",
         "create_simple_3d_extrusion",
     }.issubset(names)
+    by_name = {recipe["name"]: recipe for recipe in recipes["recipes"]}
+    assert by_name["environment_probe"]["source_path"].endswith("environment_probe.cs")
+    assert by_name["environment_probe"]["markdown_path"].endswith("environment_probe.md")
+    assert by_name["environment_probe"]["source_exists"] is True
+    assert by_name["environment_probe"]["markdown_exists"] is True

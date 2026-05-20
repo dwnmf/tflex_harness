@@ -40,6 +40,10 @@ def test_cli_recipes_lists_verified_sources():
     recipes = {recipe["name"]: recipe for recipe in result["recipes"]}
 
     assert recipes["environment_probe"]["verified"] is True
+    assert recipes["environment_probe"]["source_path"].endswith("agent_workspace\\recipes\\environment_probe.cs")
+    assert recipes["environment_probe"]["markdown_path"].endswith("agent_workspace\\recipes\\environment_probe.md")
+    assert recipes["environment_probe"]["source_exists"] is True
+    assert recipes["environment_probe"]["markdown_exists"] is True
     assert recipes["create_simple_3d_extrusion"]["verified"] is True
 
 

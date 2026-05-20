@@ -7,54 +7,70 @@ from .artifacts import ArtifactStore
 from .config import HarnessConfig, load_config
 from .runner import run_csharp_snippet
 
+_RECIPE_DEFINITIONS: tuple[dict[str, Any], ...] = (
+    {
+        "name": "environment_probe",
+        "description": "Initialize and exit a read-only minimal T-FLEX API session.",
+        "args": {},
+        "verified": True,
+    },
+    {
+        "name": "create_empty_document",
+        "description": "Create an invisible empty 2D document, save it as .grb, close it, and exit session.",
+        "args": {"output_file": "optional absolute .grb path"},
+        "verified": True,
+    },
+    {
+        "name": "save_document_as_temp",
+        "description": "Create a hidden 2D document and verify SaveAs to a temporary .grb artifact path.",
+        "args": {"output_file": "optional absolute .grb path"},
+        "verified": True,
+    },
+    {
+        "name": "create_simple_2d_line",
+        "description": "Create an invisible 2D document with two free nodes and a construction line through them.",
+        "args": {"output_file": "optional absolute .grb path"},
+        "verified": True,
+    },
+    {
+        "name": "create_simple_3d_extrusion",
+        "description": "Create an invisible 3D document with a circular profile and verified thicken extrusion.",
+        "args": {"output_file": "optional absolute .grb path"},
+        "verified": True,
+    },
+)
 
-def list_recipes() -> list[dict[str, Any]]:
-    return [
-        {
-            "name": "environment_probe",
-            "description": "Initialize and exit a read-only minimal T-FLEX API session.",
-            "args": {},
-            "verified": True,
-        },
-        {
-            "name": "create_empty_document",
-            "description": "Create an invisible empty 2D document, save it as .grb, close it, and exit session.",
-            "args": {"output_file": "optional absolute .grb path"},
-            "verified": True,
-        },
-        {
-            "name": "save_document_as_temp",
-            "description": "Create a hidden 2D document and verify SaveAs to a temporary .grb artifact path.",
-            "args": {"output_file": "optional absolute .grb path"},
-            "verified": True,
-        },
-        {
-            "name": "create_simple_2d_line",
-            "description": "Create an invisible 2D document with two free nodes and a construction line through them.",
-            "args": {"output_file": "optional absolute .grb path"},
-            "verified": True,
-        },
-        {
-            "name": "create_simple_3d_extrusion",
-            "description": "Create an invisible 3D document with a circular profile and verified thicken extrusion.",
-            "args": {"output_file": "optional absolute .grb path"},
-            "verified": True,
-        },
-    ]
+
+def _recipe_paths(name: str, cfg: HarnessConfig) -> dict[str, str]:
+    recipes_dir = cfg.repo_dir / "agent_workspace" / "recipes"
+    return {
+        "source_path": str(recipes_dir / f"{name}.cs"),
+        "markdown_path": str(recipes_dir / f"{name}.md"),
+    }
+
+
+def _recipe_definition(name: str) -> dict[str, Any]:
+    for recipe in _RECIPE_DEFINITIONS:
+        if recipe["name"] == name:
+            return dict(recipe)
+    raise KeyError(f"Unknown recipe: {name}")
+
+
+def list_recipes(config: HarnessConfig | None = None) -> list[dict[str, Any]]:
+    cfg = config or load_config()
+    recipes: list[dict[str, Any]] = []
+    for definition in _RECIPE_DEFINITIONS:
+        recipe = dict(definition)
+        recipe.update(_recipe_paths(recipe["name"], cfg))
+        recipe["source_exists"] = Path(recipe["source_path"]).exists()
+        recipe["markdown_exists"] = Path(recipe["markdown_path"]).exists()
+        recipes.append(recipe)
+    return recipes
 
 
 def _recipe_source(name: str, cfg: HarnessConfig) -> str:
-    if name == "environment_probe":
-        return (cfg.repo_dir / "agent_workspace" / "recipes" / "environment_probe.cs").read_text(encoding="utf-8")
-    if name == "create_empty_document":
-        return (cfg.repo_dir / "agent_workspace" / "recipes" / "create_empty_document.cs").read_text(encoding="utf-8")
-    if name == "save_document_as_temp":
-        return (cfg.repo_dir / "agent_workspace" / "recipes" / "save_document_as_temp.cs").read_text(encoding="utf-8")
-    if name == "create_simple_2d_line":
-        return (cfg.repo_dir / "agent_workspace" / "recipes" / "create_simple_2d_line.cs").read_text(encoding="utf-8")
-    if name == "create_simple_3d_extrusion":
-        return (cfg.repo_dir / "agent_workspace" / "recipes" / "create_simple_3d_extrusion.cs").read_text(encoding="utf-8")
-    raise KeyError(f"Unknown recipe: {name}")
+    _recipe_definition(name)
+    return Path(_recipe_paths(name, cfg)["source_path"]).read_text(encoding="utf-8")
 
 
 def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int = 60, config: HarnessConfig | None = None) -> dict[str, Any]:
