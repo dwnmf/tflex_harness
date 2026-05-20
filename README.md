@@ -35,6 +35,7 @@ Snippet runs receive:
 
 `result.json` includes `build_log`, `stdout_path`, `stderr_path`, `run_log`, `artifacts_dir`, and discovered files under `artifacts/`.
 Timeouts are structured as `stage: "timeout"` with `phase: "compile"` or `phase: "run"`.
+Each `run-csharp` / `run_csharp_tflex` call also appends a compact event to `logs/events.jsonl` with stage, phase, run directory, cache info, diagnostic count, and artifact count.
 
 ## Verified recipes
 

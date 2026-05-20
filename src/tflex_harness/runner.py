@@ -13,6 +13,7 @@ from typing import Any
 from .artifacts import ArtifactStore
 from .config import HarnessConfig, load_config
 from .diagnostics import TFLEX_DLLS, find_csc
+from .logging_utils import log_event
 
 DIAG_RE = re.compile(r"^(?P<file>.*)\((?P<line>\d+),(?P<column>\d+)\):\s*(?P<severity>error|warning)\s*(?P<code>CS\d+)\s*:\s*(?P<message>.*)$")
 
@@ -214,6 +215,29 @@ def write_run_artifacts(request: dict[str, Any], result: dict[str, Any], config:
     return run_dir
 
 
+def _persist_run_result(cfg: HarnessConfig, store: ArtifactStore, run_dir: Path, result: dict[str, Any]) -> None:
+    store.write_json(run_dir / "result.json", result)
+    try:
+        log_event(
+            "run_csharp_snippet",
+            {
+                "ok": result.get("ok"),
+                "stage": result.get("stage"),
+                "phase": result.get("phase"),
+                "exit_code": result.get("exit_code"),
+                "run_dir": result.get("run_dir"),
+                "snippet_path": result.get("snippet_path"),
+                "cache_key": result.get("cache_key"),
+                "cache_hit": result.get("cache_hit"),
+                "diagnostic_count": len(result.get("diagnostics") or []),
+                "artifact_count": len(result.get("artifacts") or []),
+            },
+            config=cfg,
+        )
+    except Exception:
+        pass
+
+
 def run_csharp_snippet(
     code: str,
     mode: str = "run",
@@ -243,7 +267,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        store.write_json(run_dir / "result.json", result)
+        _persist_run_result(cfg, store, run_dir, result)
         return result
 
     csc = find_csc()
@@ -257,7 +281,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        store.write_json(run_dir / "result.json", result)
+        _persist_run_result(cfg, store, run_dir, result)
         return result
 
     refs = _default_references(cfg, references)
@@ -280,7 +304,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        store.write_json(run_dir / "result.json", result)
+        _persist_run_result(cfg, store, run_dir, result)
         return result
 
     exe = run_dir / "Snippet.exe"
@@ -334,7 +358,7 @@ def run_csharp_snippet(
                 "artifacts_dir": str(run_dir / "artifacts"),
                 "artifacts": _collect_artifacts(run_dir),
             }
-            store.write_json(run_dir / "result.json", result)
+            _persist_run_result(cfg, store, run_dir, result)
             return result
         build_output = (proc.stdout or "") + (proc.stderr or "")
         store.write_text(cache_build_log, build_output)
@@ -372,7 +396,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        store.write_json(run_dir / "result.json", result)
+        _persist_run_result(cfg, store, run_dir, result)
         return result
 
     if mode == "compile_only":
@@ -392,11 +416,11 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        store.write_json(run_dir / "result.json", result)
+        _persist_run_result(cfg, store, run_dir, result)
         return result
     if mode != "run":
         result = {"ok": False, "stage": "request", "error": f"unsupported mode: {mode}", "run_dir": str(run_dir)}
-        store.write_json(run_dir / "result.json", result)
+        _persist_run_result(cfg, store, run_dir, result)
         return result
 
     _copy_runtime_dlls(run_dir, refs)
@@ -455,5 +479,5 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-    store.write_json(run_dir / "result.json", result)
+    _persist_run_result(cfg, store, run_dir, result)
     return result

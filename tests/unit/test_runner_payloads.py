@@ -5,6 +5,18 @@ from tflex_harness.config import HarnessConfig
 from tflex_harness.runner import parse_csc_diagnostics, run_csharp_snippet, write_run_artifacts
 
 
+def _config(tmp_path):
+    return HarnessConfig(
+        repo_dir=tmp_path,
+        docs_dir=tmp_path / "docs",
+        tflex_install_dir=tmp_path / "tflex",
+        tflex_program_dir=tmp_path / "tflex" / "Program",
+        runner_dir=tmp_path / "runner" / "TFlexRunner",
+        artifacts_dir=tmp_path / "artifacts",
+        logs_dir=tmp_path / "logs",
+    )
+
+
 def test_parse_csc_diagnostics():
     text = r"C:\tmp\Snippet.cs(7,13): error CS0246: The type or namespace name 'Foo' could not be found"
     diagnostics = parse_csc_diagnostics(text)
@@ -19,15 +31,7 @@ def test_parse_csc_diagnostics():
 
 
 def test_write_run_artifacts_creates_reproducible_payload(tmp_path):
-    cfg = HarnessConfig(
-        repo_dir=tmp_path,
-        docs_dir=tmp_path / "docs",
-        tflex_install_dir=tmp_path / "tflex",
-        tflex_program_dir=tmp_path / "tflex" / "Program",
-        runner_dir=tmp_path / "runner" / "TFlexRunner",
-        artifacts_dir=tmp_path / "artifacts",
-        logs_dir=tmp_path / "logs",
-    )
+    cfg = _config(tmp_path)
     request = {
         "artifact_prefix": "payload test",
         "mode": "run",
@@ -55,12 +59,15 @@ def test_write_run_artifacts_creates_reproducible_payload(tmp_path):
     assert Path(persisted["snippet_path"]) == run_dir / "snippet.cs"
 
 
-def test_run_csharp_snippet_rejects_invalid_mode():
+def test_run_csharp_snippet_rejects_invalid_mode(tmp_path):
+    cfg = _config(tmp_path)
+
     result = run_csharp_snippet(
         "public class Program { public static int Main(){ return 0; } }",
         mode="execute",
         references=[],
         artifact_prefix="test_invalid_mode",
+        config=cfg,
     )
 
     assert result["ok"] is False
@@ -69,3 +76,8 @@ def test_run_csharp_snippet_rejects_invalid_mode():
     assert result["allowed_modes"] == ["compile_only", "run"]
     assert result["snippet_path"].endswith("snippet.cs")
     assert result["artifacts_dir"].endswith("artifacts")
+    events = (cfg.logs_dir / "events.jsonl").read_text(encoding="utf-8").splitlines()
+    record = json.loads(events[-1])
+    assert record["event"] == "run_csharp_snippet"
+    assert record["payload"]["stage"] == "input"
+    assert record["payload"]["run_dir"] == result["run_dir"]
