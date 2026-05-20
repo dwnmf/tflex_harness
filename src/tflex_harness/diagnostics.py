@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -52,6 +53,68 @@ def _version_command(command: list[str], timeout: int = 15) -> dict[str, Any]:
         return {"available": False, "error": str(exc)}
 
 
+def _runner_environment(cfg: HarnessConfig, csc: Path | None) -> dict[str, Any]:
+    project = cfg.runner_dir / "TFlexRunner.csproj"
+    build_script = cfg.runner_dir / "build.ps1"
+    executable = cfg.runner_dir / "bin" / "csc" / "Debug" / "TFlexRunner.exe"
+    status: dict[str, Any] = {
+        "project_path": str(project),
+        "project_exists": project.exists(),
+        "build_script": str(build_script),
+        "build_script_exists": build_script.exists(),
+        "executable": str(executable),
+        "executable_exists": executable.exists(),
+        "build_attempted": False,
+        "build_ok": False,
+        "env_probe_ok": False,
+    }
+    if not status["project_exists"] or not status["build_script_exists"]:
+        status["error"] = "runner project or build script is missing"
+        return status
+    if not executable.exists() and csc is not None:
+        status["build_attempted"] = True
+        try:
+            build_env = os.environ.copy()
+            build_env["CSC_EXE"] = str(csc)
+            build_env["TFLEX_PROGRAM_DIR"] = str(cfg.tflex_program_dir)
+            build = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(build_script), "-Configuration", "Debug"],
+                cwd=cfg.runner_dir,
+                text=True,
+                capture_output=True,
+                timeout=60,
+                env=build_env,
+            )
+            status["build_returncode"] = build.returncode
+            status["build_stdout"] = build.stdout.strip()
+            status["build_stderr"] = build.stderr.strip()
+        except Exception as exc:
+            status["build_error"] = str(exc)
+    status["executable_exists"] = executable.exists()
+    if not executable.exists():
+        if csc is None:
+            status["error"] = "csc.exe not found; runner build skipped"
+        return status
+    env = os.environ.copy()
+    env["PATH"] = str(cfg.tflex_program_dir) + os.pathsep + env.get("PATH", "")
+    try:
+        probe = subprocess.run([str(executable), "env"], cwd=cfg.runner_dir, text=True, capture_output=True, timeout=30, env=env)
+        status["env_probe_returncode"] = probe.returncode
+        status["env_probe_stdout"] = probe.stdout.strip()
+        status["env_probe_stderr"] = probe.stderr.strip()
+        if probe.returncode == 0 and probe.stdout.strip():
+            try:
+                parsed = json.loads(probe.stdout)
+                status["env_probe"] = parsed
+                status["env_probe_ok"] = parsed.get("ok") is True
+            except json.JSONDecodeError as exc:
+                status["env_probe_parse_error"] = str(exc)
+    except Exception as exc:
+        status["env_probe_error"] = str(exc)
+    status["build_ok"] = status["executable_exists"] and status["env_probe_ok"]
+    return status
+
+
 def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
     cfg = config or load_config()
     csc = find_csc()
@@ -84,6 +147,7 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
         "tflex_program_dir": {"path": str(cfg.tflex_program_dir), "exists": cfg.tflex_program_dir.exists()},
         "dlls": dlls,
         "docs": docs,
+        "runner": _runner_environment(cfg, csc),
         "tools": {
             "python": _version_command([shutil.which("python") or "python", "--version"]),
             "dotnet": _version_command([dotnet, "--info"]) if dotnet else {"available": False},

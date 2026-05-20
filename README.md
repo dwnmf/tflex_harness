@@ -21,7 +21,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 ## Implemented tools
 
 - `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `D:\REALPROJECTS\tflex_api\llm`.
-- `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, and process state.
+- `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, runner skeleton build/env probe, and process state.
 - `run_csharp_tflex` / `python -m tflex_harness.cli run-csharp` — compiles and runs visible C# snippets via `csc.exe`, with successful builds cached by content hash.
 - `list_tflex_recipes` / `python -m tflex_harness.cli recipes` — lists verified recipes.
 - `run_tflex_recipe` / `python -m tflex_harness.cli run-recipe` — runs verified recipes.

@@ -9,6 +9,10 @@ def test_tflex_dlls_present():
     env = get_environment()
     missing = [name for name in TFLEX_DLLS if not env["dlls"][name]["exists"]]
     assert not missing
+    assert env["runner"]["build_ok"] is True
+    loaded = {item["name"]: item["loaded"] for item in env["runner"]["env_probe"]["assemblies"]}
+    assert loaded["TFlexAPI"] is True
+    assert loaded["TFlexAPI3D"] is True
 
 
 @pytest.mark.integration
