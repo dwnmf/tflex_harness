@@ -4,9 +4,10 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .config import HarnessConfig, load_config
+from .schemas import DOCS_SEARCH_SCOPES, normalize_limit
 
 
 def _terms(query: str) -> list[str]:
@@ -58,6 +59,7 @@ class DocsSearch:
         self.config = config or load_config()
 
     def search_symbols(self, query: str, assembly: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+        limit = normalize_limit(limit)
         terms = _terms(query)
         results: list[dict[str, Any]] = []
         for rec in _load_symbols(str(self.config.symbols_jsonl)):
@@ -86,6 +88,7 @@ class DocsSearch:
         return results[:limit]
 
     def search_types(self, query: str, limit: int = 20) -> list[dict[str, Any]]:
+        limit = normalize_limit(limit)
         terms = _terms(query)
         results: list[dict[str, Any]] = []
         if not self.config.types_dir.exists():
@@ -111,6 +114,7 @@ class DocsSearch:
         return results[:limit]
 
     def search_chm(self, query: str, limit: int = 20) -> list[dict[str, Any]]:
+        limit = normalize_limit(limit)
         terms = _terms(query)
         results: list[dict[str, Any]] = []
         path = self.config.chm_pages_jsonl
@@ -154,7 +158,7 @@ class DocsSearch:
         return combined
 
     def search_all(self, query: str, assembly: str | None = None, limit: int = 20) -> dict[str, Any]:
-        per_scope = max(limit, 1)
+        per_scope = normalize_limit(limit)
         symbols = self.search_symbols(query, assembly=assembly, limit=per_scope)
         types = self.search_types(query, limit=per_scope)
         chm = self.search_chm(query, limit=per_scope)
@@ -169,6 +173,7 @@ class DocsSearch:
 
     def search(self, query: str, scope: str = "all", assembly: str | None = None, limit: int = 20) -> dict[str, Any]:
         scope = scope.lower()
+        limit = normalize_limit(limit)
         if scope == "symbols":
             symbols = self.search_symbols(query, assembly, limit)
             return {"query": query, "assembly": assembly, "results": self._combined_results(symbols, [], [], limit), "symbols": symbols}
@@ -180,4 +185,4 @@ class DocsSearch:
             return {"query": query, "results": self._combined_results([], [], chm, limit), "chm": chm}
         if scope == "all":
             return self.search_all(query, assembly, limit)
-        raise ValueError(f"Unsupported docs search scope: {scope}")
+        raise ValueError(f"Unsupported docs search scope: {scope}; expected one of {', '.join(DOCS_SEARCH_SCOPES)}")

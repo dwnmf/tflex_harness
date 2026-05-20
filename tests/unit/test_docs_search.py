@@ -2,6 +2,7 @@ import json
 
 from tflex_harness.config import load_config
 from tflex_harness.docs_search import DocsSearch
+from tflex_harness.schemas import DOCS_SEARCH_MAX_LIMIT, normalize_limit
 
 
 def test_docs_manifest_contains_expected_counts():
@@ -47,3 +48,15 @@ def test_search_chm_returns_preview():
     result = DocsSearch().search_chm("T-FLEX", limit=3)
     assert result
     assert "preview" in result[0]
+
+
+def test_docs_search_limits_are_bounded():
+    assert normalize_limit(None) == 20
+    assert normalize_limit(0) == 1
+    assert normalize_limit(10_000) == DOCS_SEARCH_MAX_LIMIT
+
+    result = DocsSearch().search("TFlex", scope="all", limit=10_000)
+    assert len(result["results"]) <= DOCS_SEARCH_MAX_LIMIT
+    assert len(result["symbols"]) <= DOCS_SEARCH_MAX_LIMIT
+    assert len(result["types"]) <= DOCS_SEARCH_MAX_LIMIT
+    assert len(result["chm"]) <= DOCS_SEARCH_MAX_LIMIT
