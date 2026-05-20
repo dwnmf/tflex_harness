@@ -1,4 +1,22 @@
+import json
+
+from tflex_harness.config import load_config
 from tflex_harness.docs_search import DocsSearch
+
+
+def test_docs_manifest_contains_expected_counts():
+    cfg = load_config()
+    assert cfg.manifest_json.exists()
+    manifest = json.loads(cfg.manifest_json.read_text(encoding="utf-8"))
+    assert manifest["symbol_count"] > 10000
+    assert manifest["type_page_count"] > 1000
+    assert manifest["chm_page_count"] > 10000
+    assert set(manifest["assemblies"]) >= {
+        "TFlexAPI",
+        "TFlexAPI3D",
+        "TFlexAPIData",
+        "TFlexCommandAPI",
+    }
 
 
 def test_search_symbols_finds_document_related_records():
