@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tflex-harness"
+version = "0.1.0"
+description = "Thin MCP/harness for T-FLEX CAD 17 API docs search and C# snippet execution"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+mcp = ["mcp>=1.0"]
+
+[project.scripts]
+tflex-harness = "tflex_harness.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+  "integration: requires live T-FLEX CAD environment",
+  "smoke: smoke tests for local tooling",
+]

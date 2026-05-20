@@ -1,8 +1,11 @@
 .chunkhound/
+.pytest_cache/
 artifacts/
 logs/
 .tmp*/
 __pycache__/
 *.pyc
+runner/**/bin/
+runner/**/obj/
 .DS_Store
 Thumbs.db
