@@ -7,7 +7,9 @@ import sys
 from .artifacts import json_default
 from .diagnostics import get_environment
 from .docs_search import DocsSearch
+from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
+from .state import capture_tflex_state
 
 
 def emit(data: object) -> None:
@@ -32,6 +34,17 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--timeout-sec", type=int, default=30)
     run_p.add_argument("--reference", action="append", dest="references", default=None)
     run_p.add_argument("--artifact-prefix", default="cli_snippet")
+    run_p.add_argument("--env", action="append", default=[], help="Extra runtime environment variable in NAME=VALUE form")
+
+    recipes_p = sub.add_parser("recipes", help="List verified recipes")
+
+    recipe_p = sub.add_parser("run-recipe", help="Run a verified T-FLEX recipe")
+    recipe_p.add_argument("name")
+    recipe_p.add_argument("--arg", action="append", default=[], help="Recipe argument in NAME=VALUE form")
+    recipe_p.add_argument("--timeout-sec", type=int, default=60)
+
+    state_p = sub.add_parser("state", help="Capture read-only live T-FLEX state")
+    state_p.add_argument("--timeout-sec", type=int, default=60)
 
     args = parser.parse_args(argv)
     if args.command == "env":
@@ -41,7 +54,28 @@ def main(argv: list[str] | None = None) -> int:
         emit(DocsSearch().search(args.query, scope=args.scope, assembly=args.assembly, limit=args.limit))
         return 0
     if args.command == "run-csharp":
-        emit(run_csharp_snippet(args.code, mode=args.mode, timeout_sec=args.timeout_sec, references=args.references, artifact_prefix=args.artifact_prefix))
+        extra_env = {}
+        for item in args.env:
+            if "=" not in item:
+                parser.error(f"--env must be NAME=VALUE, got {item!r}")
+            key, value = item.split("=", 1)
+            extra_env[key] = value
+        emit(run_csharp_snippet(args.code, mode=args.mode, timeout_sec=args.timeout_sec, references=args.references, artifact_prefix=args.artifact_prefix, environment=extra_env))
+        return 0
+    if args.command == "recipes":
+        emit({"recipes": list_recipes()})
+        return 0
+    if args.command == "run-recipe":
+        recipe_args = {}
+        for item in args.arg:
+            if "=" not in item:
+                parser.error(f"--arg must be NAME=VALUE, got {item!r}")
+            key, value = item.split("=", 1)
+            recipe_args[key] = value
+        emit(run_recipe(args.name, args=recipe_args, timeout_sec=args.timeout_sec))
+        return 0
+    if args.command == "state":
+        emit(capture_tflex_state(timeout_sec=args.timeout_sec))
         return 0
     parser.error(f"unknown command {args.command}")
     return 2

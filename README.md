@@ -12,6 +12,22 @@ python -m pytest tests/smoke -v
 python -m tflex_harness.cli env
 python -m tflex_harness.cli search "TFlex.Model.Document" --limit 5
 python -m tflex_harness.cli run-csharp --code "public class Program { public static int Main(){ System.Console.WriteLine(\"ok\"); return 0; } }"
+python -m tflex_harness.cli recipes
+python -m tflex_harness.cli state
 ```
 
 Live T-FLEX integration checks are marked `integration` and may skip when the CAD runtime is unavailable.
+
+## Implemented tools
+
+- `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `D:\REALPROJECTS\tflex_api\llm`.
+- `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, and process state.
+- `run_csharp_tflex` / `python -m tflex_harness.cli run-csharp` — compiles and runs visible C# snippets via `csc.exe`.
+- `list_tflex_recipes` / `python -m tflex_harness.cli recipes` — lists verified recipes.
+- `run_tflex_recipe` / `python -m tflex_harness.cli run-recipe` — runs verified recipes.
+- `capture_tflex_state` / `python -m tflex_harness.cli state` — captures read-only live session/document state.
+
+## Verified recipes
+
+- `environment_probe` — initializes and exits a minimal read-only API session.
+- `create_empty_document` — creates an invisible empty 2D document, saves it as `.grb`, closes it, and exits the session.

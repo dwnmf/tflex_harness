@@ -36,6 +36,12 @@ class ArtifactStore:
         (path / "artifacts").mkdir(exist_ok=True)
         return path
 
+    def create_tflex_doc_dir(self, name: str) -> Path:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        path = self.root / "tflex_docs" / f"{stamp}_{slugify(name)}"
+        path.mkdir(parents=True, exist_ok=False)
+        return path
+
     @staticmethod
     def write_json(path: Path, data: Any) -> None:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")

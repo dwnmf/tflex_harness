@@ -59,12 +59,13 @@ def run_csharp_snippet(
     timeout_sec: int = 30,
     references: list[str] | None = None,
     artifact_prefix: str = "snippet",
+    environment: dict[str, str] | None = None,
     config: HarnessConfig | None = None,
 ) -> dict[str, Any]:
     cfg = config or load_config()
     store = ArtifactStore(cfg)
     run_dir = store.create_run_dir(artifact_prefix)
-    request = {"mode": mode, "timeout_sec": timeout_sec, "references": references, "artifact_prefix": artifact_prefix}
+    request = {"mode": mode, "timeout_sec": timeout_sec, "references": references, "artifact_prefix": artifact_prefix, "environment": environment or {}}
     store.write_json(run_dir / "request.json", request)
     snippet = run_dir / "Snippet.cs"
     store.write_text(snippet, code)
@@ -141,7 +142,10 @@ def run_csharp_snippet(
     _copy_runtime_dlls(run_dir, refs)
     started = time.perf_counter()
     try:
-        run_proc = subprocess.run([str(exe)], cwd=run_dir, text=True, capture_output=True, timeout=timeout_sec, env=_runtime_env(cfg))
+        run_env = _runtime_env(cfg)
+        if environment:
+            run_env.update({str(k): str(v) for k, v in environment.items()})
+        run_proc = subprocess.run([str(exe)], cwd=run_dir, text=True, capture_output=True, timeout=timeout_sec, env=run_env)
         run_ms = int((time.perf_counter() - started) * 1000)
         store.write_text(run_dir / "stdout.txt", run_proc.stdout or "")
         store.write_text(run_dir / "stderr.txt", run_proc.stderr or "")
