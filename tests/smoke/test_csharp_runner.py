@@ -70,6 +70,21 @@ public class Program {
     assert result["resolved_references"][0]["path"].endswith("TFlexAPI.dll")
 
 
+def test_csharp_runner_missing_reference_keeps_repro_artifacts():
+    code = 'public class Program { public static int Main(){ return 0; } }'
+    result = run_csharp_snippet(code, mode="compile_only", timeout_sec=20, references=["NoSuchTFlexAssembly"], artifact_prefix="test_csharp_missing_reference")
+
+    assert result["ok"] is False
+    assert result["stage"] == "environment"
+    assert result["error"] == "missing references"
+    assert result["missing_references"][0].endswith("NoSuchTFlexAssembly.dll")
+    assert result["snippet_path"].endswith("snippet.cs")
+    assert result["artifacts_dir"].endswith("artifacts")
+    assert (Path(result["run_dir"]) / "request.json").exists()
+    assert (Path(result["run_dir"]) / "snippet.cs").exists()
+    assert (Path(result["run_dir"]) / "result.json").exists()
+
+
 def test_csharp_runner_reports_snippet_artifacts():
     code = r'''
 using System;

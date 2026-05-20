@@ -67,3 +67,5 @@ def test_run_csharp_snippet_rejects_invalid_mode():
     assert result["stage"] == "input"
     assert result["error"] == "invalid mode"
     assert result["allowed_modes"] == ["compile_only", "run"]
+    assert result["snippet_path"].endswith("snippet.cs")
+    assert result["artifacts_dir"].endswith("artifacts")

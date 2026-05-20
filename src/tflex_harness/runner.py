@@ -240,13 +240,23 @@ def run_csharp_snippet(
             "allowed_modes": ["compile_only", "run"],
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
         }
         store.write_json(run_dir / "result.json", result)
         return result
 
     csc = find_csc()
     if not csc:
-        result = {"ok": False, "stage": "environment", "error": "csc.exe not found", "run_dir": str(run_dir)}
+        result = {
+            "ok": False,
+            "stage": "environment",
+            "error": "csc.exe not found",
+            "run_dir": str(run_dir),
+            "snippet_path": str(snippet),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
+        }
         store.write_json(run_dir / "result.json", result)
         return result
 
@@ -266,6 +276,9 @@ def run_csharp_snippet(
             "missing_references": missing_refs,
             "resolved_references": resolved_references,
             "run_dir": str(run_dir),
+            "snippet_path": str(snippet),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
         }
         store.write_json(run_dir / "result.json", result)
         return result
