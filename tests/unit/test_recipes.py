@@ -1,5 +1,5 @@
 from tflex_harness.config import load_config
-from tflex_harness.recipes import list_recipes
+from tflex_harness.recipes import list_recipes, run_recipe
 
 
 def test_list_recipes_includes_verified_baseline():
@@ -43,3 +43,13 @@ def test_each_verified_recipe_has_live_verification_report():
             text = (recipes_dir / f"{recipe['name']}.md").read_text(encoding="utf-8")
             for phrase in required_phrases:
                 assert phrase in text, (recipe["name"], phrase)
+
+
+def test_unknown_recipe_returns_structured_input_error():
+    result = run_recipe("missing_recipe", timeout_sec=1)
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "unknown recipe"
+    assert result["recipe"] == "missing_recipe"
+    assert "environment_probe" in result["known_recipes"]

@@ -77,3 +77,10 @@ def test_mcp_docs_and_recipe_tools_return_machine_readable_payloads():
     assert by_name["environment_probe"]["markdown_path"].endswith("environment_probe.md")
     assert by_name["environment_probe"]["source_exists"] is True
     assert by_name["environment_probe"]["markdown_exists"] is True
+
+    missing_recipe = _json_payload(
+        _run(server.call_tool("run_tflex_recipe", {"recipe": "missing_recipe", "timeout_sec": 1}))
+    )
+    assert missing_recipe["ok"] is False
+    assert missing_recipe["stage"] == "input"
+    assert missing_recipe["error"] == "unknown recipe"

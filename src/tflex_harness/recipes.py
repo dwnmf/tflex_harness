@@ -56,6 +56,10 @@ def _recipe_definition(name: str) -> dict[str, Any]:
     raise KeyError(f"Unknown recipe: {name}")
 
 
+def _known_recipe_names() -> list[str]:
+    return [str(recipe["name"]) for recipe in _RECIPE_DEFINITIONS]
+
+
 def list_recipes(config: HarnessConfig | None = None) -> list[dict[str, Any]]:
     cfg = config or load_config()
     recipes: list[dict[str, Any]] = []
@@ -79,6 +83,17 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
     env: dict[str, str] = {}
     artifacts: dict[str, Any] = {}
 
+    if name not in _known_recipe_names():
+        return {
+            "ok": False,
+            "stage": "input",
+            "error": "unknown recipe",
+            "recipe": name,
+            "known_recipes": _known_recipe_names(),
+            "recipe_args": args,
+            "recipe_artifacts": {},
+        }
+
     if name in {"create_empty_document", "save_document_as_temp", "create_simple_2d_line", "create_simple_3d_extrusion"}:
         output = args.get("output_file")
         if output:
@@ -95,8 +110,6 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
             output_file = doc_dir / output_name
         env["TFLEX_RECIPE_OUTPUT_FILE"] = str(output_file)
         artifacts["output_file"] = str(output_file)
-    elif name != "environment_probe":
-        raise KeyError(f"Unknown recipe: {name}")
 
     code = _recipe_source(name, cfg)
     result = run_csharp_snippet(
