@@ -1,3 +1,4 @@
+from tflex_harness.config import load_config
 from tflex_harness.recipes import list_recipes
 
 
@@ -8,3 +9,13 @@ def test_list_recipes_includes_verified_baseline():
     assert "save_document_as_temp" in names
     assert "create_simple_2d_line" in names
     assert "create_simple_3d_extrusion" in names
+
+
+def test_each_verified_recipe_has_markdown_and_csharp_source():
+    cfg = load_config()
+    recipes_dir = cfg.repo_dir / "agent_workspace" / "recipes"
+
+    for recipe in list_recipes():
+        if recipe["verified"]:
+            assert (recipes_dir / f"{recipe['name']}.md").exists(), recipe
+            assert (recipes_dir / f"{recipe['name']}.cs").exists(), recipe

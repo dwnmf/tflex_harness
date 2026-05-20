@@ -8,30 +8,6 @@ from .config import HarnessConfig, load_config
 from .runner import run_csharp_snippet
 
 
-ENVIRONMENT_PROBE_CODE = r'''
-using System;
-using TFlex;
-public class Program {
-  public static int Main(){
-    var setup = new ApplicationSessionSetup();
-    setup.ReadOnly = true;
-    setup.Enable3D = false;
-    setup.EnableDOCs = false;
-    setup.EnableMacros = false;
-    setup.PromptToSaveModifiedDocuments = false;
-    setup.ProtectionLicense = ApplicationSessionSetup.License.TFlexAPI;
-    Console.WriteLine("before=" + Application.IsSessionInitialized);
-    bool ok = Application.InitSession(setup);
-    Console.WriteLine("init=" + ok);
-    Console.WriteLine("after=" + Application.IsSessionInitialized);
-    if (Application.IsSessionInitialized) Application.ExitSession();
-    Console.WriteLine("exited=" + Application.IsSessionInitialized);
-    return ok ? 0 : 3;
-  }
-}
-'''
-
-
 def list_recipes() -> list[dict[str, Any]]:
     return [
         {
@@ -69,7 +45,7 @@ def list_recipes() -> list[dict[str, Any]]:
 
 def _recipe_source(name: str, cfg: HarnessConfig) -> str:
     if name == "environment_probe":
-        return ENVIRONMENT_PROBE_CODE
+        return (cfg.repo_dir / "agent_workspace" / "recipes" / "environment_probe.cs").read_text(encoding="utf-8")
     if name == "create_empty_document":
         return (cfg.repo_dir / "agent_workspace" / "recipes" / "create_empty_document.cs").read_text(encoding="utf-8")
     if name == "save_document_as_temp":
