@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from .diagnostics import get_environment
 from .docs_search import DocsSearch
 from .recipes import list_recipes, run_recipe
@@ -19,7 +21,7 @@ def create_server():
     docs = DocsSearch()
 
     @server.tool()
-    def search_tflex_docs(query: str, scope: str = "all", assembly: str | None = None, limit: int = 20) -> dict:
+    def search_tflex_docs(query: str, scope: Literal["symbols", "types", "chm", "all"] = "all", assembly: str | None = None, limit: int = 20) -> dict:
         """Search T-FLEX CAD 17 API docs in symbols/type pages/CHM JSONL."""
         return docs.search(query=query, scope=scope, assembly=assembly, limit=limit)
 
@@ -29,7 +31,7 @@ def create_server():
         return get_environment()
 
     @server.tool()
-    def run_csharp_tflex(code: str, mode: str = "run", timeout_sec: int = 30, references: list[str] | None = None, artifact_prefix: str = "mcp_snippet", environment: dict[str, str] | None = None) -> dict:
+    def run_csharp_tflex(code: str, mode: Literal["compile_only", "run"] = "run", timeout_sec: int = 30, references: list[str] | None = None, artifact_prefix: str = "mcp_snippet", environment: dict[str, str] | None = None) -> dict:
         """Compile or run a visible C# snippet against local T-FLEX API references."""
         return run_csharp_snippet(code=code, mode=mode, timeout_sec=timeout_sec, references=references, artifact_prefix=artifact_prefix, environment=environment)
 

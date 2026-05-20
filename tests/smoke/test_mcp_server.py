@@ -35,10 +35,12 @@ def test_mcp_server_lists_core_tools_and_schemas():
     docs_schema = by_name["search_tflex_docs"].inputSchema
     assert "query" in docs_schema["required"]
     assert docs_schema["properties"]["scope"]["default"] == "all"
+    assert docs_schema["properties"]["scope"]["enum"] == ["symbols", "types", "chm", "all"]
 
     runner_schema = by_name["run_csharp_tflex"].inputSchema
     assert "code" in runner_schema["required"]
     assert runner_schema["properties"]["mode"]["default"] == "run"
+    assert runner_schema["properties"]["mode"]["enum"] == ["compile_only", "run"]
     assert runner_schema["properties"]["timeout_sec"]["default"] == 30
 
     recipe_schema = by_name["run_tflex_recipe"].inputSchema
