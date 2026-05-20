@@ -219,6 +219,19 @@ def run_csharp_snippet(
     snippet = run_dir / "snippet.cs"
     store.write_text(snippet, code)
 
+    if mode not in {"compile_only", "run"}:
+        result = {
+            "ok": False,
+            "stage": "input",
+            "error": "invalid mode",
+            "mode": mode,
+            "allowed_modes": ["compile_only", "run"],
+            "run_dir": str(run_dir),
+            "snippet_path": str(snippet),
+        }
+        store.write_json(run_dir / "result.json", result)
+        return result
+
     csc = find_csc()
     if not csc:
         result = {"ok": False, "stage": "environment", "error": "csc.exe not found", "run_dir": str(run_dir)}

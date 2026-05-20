@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from tflex_harness.config import HarnessConfig
-from tflex_harness.runner import parse_csc_diagnostics, write_run_artifacts
+from tflex_harness.runner import parse_csc_diagnostics, run_csharp_snippet, write_run_artifacts
 
 
 def test_parse_csc_diagnostics():
@@ -53,3 +53,17 @@ def test_write_run_artifacts_creates_reproducible_payload(tmp_path):
     persisted = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
     assert persisted["run_dir"] == str(run_dir)
     assert Path(persisted["snippet_path"]) == run_dir / "snippet.cs"
+
+
+def test_run_csharp_snippet_rejects_invalid_mode():
+    result = run_csharp_snippet(
+        "public class Program { public static int Main(){ return 0; } }",
+        mode="execute",
+        references=[],
+        artifact_prefix="test_invalid_mode",
+    )
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "invalid mode"
+    assert result["allowed_modes"] == ["compile_only", "run"]
