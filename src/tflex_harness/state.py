@@ -50,7 +50,7 @@ public class Program {
     int objects2d = Count2D(doc, index);
     int operations3d = Count3DOperations(doc, index);
     int variables = CountVariables(doc);
-    Console.WriteLine("doc=" + index + "|" + Encode(doc.Title) + "|" + Encode(doc.FileName) + "|" + Encode(doc.FilePath) + "|" + objects2d + "|" + operations3d + "|" + variables);
+    Console.WriteLine("doc=" + index + "|" + Encode(doc.Title) + "|" + Encode(doc.FileName) + "|" + Encode(doc.FilePath) + "|" + objects2d + "|" + operations3d + "|" + variables + "|" + doc.Changed);
   }
 
   static int Count2D(Document doc, int docIndex) {
@@ -205,6 +205,7 @@ def capture_tflex_state(timeout_sec: int = 60) -> dict[str, Any]:
                     "title": _decode(parts[1]),
                     "file_name": _decode(parts[2]),
                     "file_path": _decode(parts[3]),
+                    "changed": _parse_bool(parts[7]) if len(parts) > 7 else None,
                     "object_counts": {
                         "2d": _to_int(parts[4]),
                         "3d_operations": _to_int(parts[5]),

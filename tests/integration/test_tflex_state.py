@@ -17,4 +17,8 @@ def test_capture_tflex_state_live_readonly():
     assert isinstance(state["object2d_types"], dict)
     assert isinstance(state["operation3d_types"], dict)
     assert isinstance(state["operations3d"], list)
+    for doc in state["documents"]:
+        assert "file_path" in doc
+        assert "changed" in doc
+        assert isinstance(doc["changed"], (bool, type(None)))
     assert "session=False" in state["run"]["stdout"]
