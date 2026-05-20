@@ -54,12 +54,14 @@ def load_config(repo_dir: Path | None = None) -> HarnessConfig:
     install = Path(os.environ.get("TFLEX_INSTALL_DIR", r"C:\Program Files\T-FLEX CAD 17"))
     program = Path(os.environ.get("TFLEX_PROGRAM_DIR", str(install / "Program")))
     docs = Path(os.environ.get("TFLEX_API_DOCS_DIR", r"D:\REALPROJECTS\tflex_api"))
+    runner_project = os.environ.get("TFLEX_RUNNER_PROJECT")
+    runner_dir = os.environ.get("TFLEX_RUNNER_DIR", runner_project or str(repo / "runner" / "TFlexRunner"))
     return HarnessConfig(
         repo_dir=repo,
         docs_dir=docs,
         tflex_install_dir=install,
         tflex_program_dir=program,
-        runner_dir=Path(os.environ.get("TFLEX_RUNNER_DIR", str(repo / "runner" / "TFlexRunner"))),
+        runner_dir=Path(runner_dir),
         artifacts_dir=Path(os.environ.get("TFLEX_ARTIFACTS_DIR", str(repo / "artifacts"))),
         logs_dir=Path(os.environ.get("TFLEX_LOGS_DIR", str(repo / "logs"))),
     )
