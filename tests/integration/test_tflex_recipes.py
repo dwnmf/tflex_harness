@@ -8,6 +8,10 @@ def test_run_environment_probe_recipe_live():
     result = run_recipe("environment_probe", timeout_sec=60)
     assert result["ok"] is True, result
     assert result["recipe"] == "environment_probe"
+    assert result["recipe_info"]["source_path"].endswith("environment_probe.cs")
+    assert result["recipe_info"]["markdown_path"].endswith("environment_probe.md")
+    assert result["recipe_info"]["source_exists"] is True
+    assert result["recipe_info"]["markdown_exists"] is True
     assert "init=True" in result["stdout"]
     assert "exited=False" in result["stdout"]
 

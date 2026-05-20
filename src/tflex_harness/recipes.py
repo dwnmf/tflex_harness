@@ -94,6 +94,11 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
             "recipe_artifacts": {},
         }
 
+    recipe_info = _recipe_definition(name)
+    recipe_info.update(_recipe_paths(name, cfg))
+    recipe_info["source_exists"] = Path(recipe_info["source_path"]).exists()
+    recipe_info["markdown_exists"] = Path(recipe_info["markdown_path"]).exists()
+
     if name in {"create_empty_document", "save_document_as_temp", "create_simple_2d_line", "create_simple_3d_extrusion"}:
         output = args.get("output_file")
         if output:
@@ -123,4 +128,5 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
     result["recipe"] = name
     result["recipe_args"] = args
     result["recipe_artifacts"] = artifacts
+    result["recipe_info"] = recipe_info
     return result

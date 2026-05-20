@@ -1,4 +1,5 @@
 from tflex_harness.config import load_config
+from tflex_harness import recipes as recipes_module
 from tflex_harness.recipes import list_recipes, run_recipe
 
 
@@ -53,3 +54,18 @@ def test_unknown_recipe_returns_structured_input_error():
     assert result["error"] == "unknown recipe"
     assert result["recipe"] == "missing_recipe"
     assert "environment_probe" in result["known_recipes"]
+
+
+def test_run_recipe_result_exposes_source_contract(monkeypatch):
+    def fake_run_csharp_snippet(*args, **kwargs):
+        return {"ok": True, "stage": "run", "stdout": "init=True", "artifacts": []}
+
+    monkeypatch.setattr(recipes_module, "run_csharp_snippet", fake_run_csharp_snippet)
+
+    result = run_recipe("environment_probe", timeout_sec=1)
+
+    assert result["ok"] is True
+    assert result["recipe_info"]["source_path"].endswith("agent_workspace\\recipes\\environment_probe.cs")
+    assert result["recipe_info"]["markdown_path"].endswith("agent_workspace\\recipes\\environment_probe.md")
+    assert result["recipe_info"]["source_exists"] is True
+    assert result["recipe_info"]["markdown_exists"] is True
