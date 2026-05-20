@@ -14,6 +14,8 @@ python -m tflex_harness.cli search "TFlex.Model.Document" --limit 5
 python -m tflex_harness.cli run-csharp --code "public class Program { public static int Main(){ System.Console.WriteLine(\"ok\"); return 0; } }"
 python -m tflex_harness.cli recipes
 python -m tflex_harness.cli state
+# after `pip install -e .[mcp]`
+tflex-harness-mcp
 ```
 
 Live T-FLEX integration checks are marked `integration` and may skip when the CAD runtime is unavailable.
@@ -27,6 +29,8 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `run_tflex_recipe` / `python -m tflex_harness.cli run-recipe` — runs verified recipes.
 - `capture_tflex_state` / `python -m tflex_harness.cli state` — captures read-only live session/document state, document list, aggregate 2D/3D/variable counts, observed 2D/3D type counts, 3D operation bounding boxes when documents are open, empty selection, and run artifacts.
 - `save_tflex_snippet_candidate` / `python -m tflex_harness.cli save-snippet` — saves a visible C# candidate under `agent_workspace/snippets` for later docs review, compile/run evidence, and promotion to a verified recipe.
+
+The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
 Snippet runs receive:
 

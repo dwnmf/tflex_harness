@@ -16,6 +16,7 @@ mcp = ["mcp>=1.0"]
 
 [project.scripts]
 tflex-harness = "tflex_harness.cli:main"
+tflex-harness-mcp = "tflex_harness.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
