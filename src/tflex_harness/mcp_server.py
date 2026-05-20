@@ -21,7 +21,7 @@ def create_server():
     docs = DocsSearch()
 
     @server.tool()
-    def search_tflex_docs(query: str, scope: Literal["symbols", "types", "chm", "all"] = "all", assembly: str | None = None, limit: int = 20) -> dict:
+    def search_tflex_docs(query: str, scope: Literal["symbols", "types", "chm", "all"] = "all", assembly: Literal["TFlexAPI", "TFlexAPI3D", "TFlexAPIData", "TFlexCommandAPI"] | None = None, limit: int = 20) -> dict:
         """Search T-FLEX CAD 17 API docs in symbols/type pages/CHM JSONL."""
         return docs.search(query=query, scope=scope, assembly=assembly, limit=limit)
 

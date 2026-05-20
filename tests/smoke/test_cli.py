@@ -27,6 +27,13 @@ def test_cli_search_returns_unified_results():
     assert result["results"][0]["scope"] == "symbols"
 
 
+def test_cli_search_accepts_known_assembly_filter():
+    result = _cli("search", "Document SaveAs", "--scope", "symbols", "--assembly", "TFlexAPI", "--limit", "1")
+
+    assert result["assembly"] == "TFlexAPI"
+    assert result["results"][0]["assembly"] == "TFlexAPI"
+
+
 def test_cli_env_reports_runner_and_docs():
     result = _cli("env", timeout=90)
 

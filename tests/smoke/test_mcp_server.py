@@ -36,6 +36,8 @@ def test_mcp_server_lists_core_tools_and_schemas():
     assert "query" in docs_schema["required"]
     assert docs_schema["properties"]["scope"]["default"] == "all"
     assert docs_schema["properties"]["scope"]["enum"] == ["symbols", "types", "chm", "all"]
+    assembly_schema = docs_schema["properties"]["assembly"]["anyOf"][0]
+    assert assembly_schema["enum"] == ["TFlexAPI", "TFlexAPI3D", "TFlexAPIData", "TFlexCommandAPI"]
 
     runner_schema = by_name["run_csharp_tflex"].inputSchema
     assert "code" in runner_schema["required"]

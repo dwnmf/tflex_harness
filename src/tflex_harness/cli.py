@@ -9,6 +9,7 @@ from .diagnostics import get_environment
 from .docs_search import DocsSearch
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
+from .schemas import DOCS_SEARCH_SCOPES, TFLEX_DOC_ASSEMBLIES
 from .state import capture_tflex_state
 from .workspace import save_snippet_candidate
 
@@ -25,8 +26,8 @@ def main(argv: list[str] | None = None) -> int:
 
     search_p = sub.add_parser("search", help="Search T-FLEX API docs")
     search_p.add_argument("query")
-    search_p.add_argument("--scope", choices=["symbols", "types", "chm", "all"], default="all")
-    search_p.add_argument("--assembly", default=None)
+    search_p.add_argument("--scope", choices=DOCS_SEARCH_SCOPES, default="all")
+    search_p.add_argument("--assembly", choices=TFLEX_DOC_ASSEMBLIES, default=None)
     search_p.add_argument("--limit", type=int, default=10)
 
     run_p = sub.add_parser("run-csharp", help="Compile or run a C# snippet")

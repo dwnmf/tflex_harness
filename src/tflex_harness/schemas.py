@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 DOCS_SEARCH_SCOPES = ("symbols", "types", "chm", "all")
+TFLEX_DOC_ASSEMBLIES = ("TFlexAPI", "TFlexAPI3D", "TFlexAPIData", "TFlexCommandAPI")
 DOCS_SEARCH_DEFAULT_LIMIT = 20
 DOCS_SEARCH_MAX_LIMIT = 50
 
