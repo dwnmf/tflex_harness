@@ -40,6 +40,10 @@ def test_mcp_server_lists_core_tools_and_schemas():
     assert runner_schema["properties"]["mode"]["default"] == "run"
     assert runner_schema["properties"]["timeout_sec"]["default"] == 30
 
+    recipe_schema = by_name["run_tflex_recipe"].inputSchema
+    assert "recipe" in recipe_schema["required"]
+    assert recipe_schema["properties"]["timeout_sec"]["default"] == 60
+
 
 def test_mcp_docs_and_recipe_tools_return_machine_readable_payloads():
     pytest.importorskip("mcp")

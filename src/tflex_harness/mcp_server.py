@@ -38,9 +38,9 @@ def create_server():
         return {"recipes": list_recipes()}
 
     @server.tool()
-    def run_tflex_recipe(name: str, args: dict | None = None, timeout_sec: int = 60) -> dict:
+    def run_tflex_recipe(recipe: str, args: dict | None = None, timeout_sec: int = 60) -> dict:
         """Run a verified T-FLEX recipe by name with JSON args."""
-        return run_recipe(name=name, args=args or {}, timeout_sec=timeout_sec)
+        return run_recipe(name=recipe, args=args or {}, timeout_sec=timeout_sec)
 
     @server.tool()
     def capture_tflex_state(timeout_sec: int = 60) -> dict:
