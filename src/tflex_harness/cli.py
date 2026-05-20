@@ -10,6 +10,7 @@ from .docs_search import DocsSearch
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
 from .state import capture_tflex_state
+from .workspace import save_snippet_candidate
 
 
 def emit(data: object) -> None:
@@ -46,6 +47,11 @@ def main(argv: list[str] | None = None) -> int:
     state_p = sub.add_parser("state", help="Capture read-only live T-FLEX state")
     state_p.add_argument("--timeout-sec", type=int, default=60)
 
+    save_p = sub.add_parser("save-snippet", help="Save a C# snippet candidate under agent_workspace/snippets")
+    save_p.add_argument("name")
+    save_p.add_argument("--code", required=True)
+    save_p.add_argument("--markdown", default=None)
+
     args = parser.parse_args(argv)
     if args.command == "env":
         emit(get_environment())
@@ -76,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "state":
         emit(capture_tflex_state(timeout_sec=args.timeout_sec))
+        return 0
+    if args.command == "save-snippet":
+        emit(save_snippet_candidate(args.name, code=args.code, markdown=args.markdown))
         return 0
     parser.error(f"unknown command {args.command}")
     return 2

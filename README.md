@@ -26,6 +26,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `list_tflex_recipes` / `python -m tflex_harness.cli recipes` — lists verified recipes.
 - `run_tflex_recipe` / `python -m tflex_harness.cli run-recipe` — runs verified recipes.
 - `capture_tflex_state` / `python -m tflex_harness.cli state` — captures read-only live session/document state, document list, aggregate 2D/3D/variable counts, observed 2D/3D type counts, 3D operation bounding boxes when documents are open, empty selection, and run artifacts.
+- `save_tflex_snippet_candidate` / `python -m tflex_harness.cli save-snippet` — saves a visible C# candidate under `agent_workspace/snippets` for later docs review, compile/run evidence, and promotion to a verified recipe.
 
 Snippet runs receive:
 

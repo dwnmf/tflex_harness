@@ -29,6 +29,7 @@ def test_mcp_server_lists_core_tools_and_schemas():
         "list_tflex_recipes",
         "run_tflex_recipe",
         "capture_tflex_state",
+        "save_tflex_snippet_candidate",
     }.issubset(by_name)
 
     docs_schema = by_name["search_tflex_docs"].inputSchema

@@ -5,6 +5,7 @@ from .docs_search import DocsSearch
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
 from .state import capture_tflex_state as capture_tflex_state_impl
+from .workspace import save_snippet_candidate
 
 
 def create_server():
@@ -46,6 +47,11 @@ def create_server():
     def capture_tflex_state(timeout_sec: int = 60) -> dict:
         """Capture read-only live T-FLEX session/document state via a short C# probe."""
         return capture_tflex_state_impl(timeout_sec=timeout_sec)
+
+    @server.tool()
+    def save_tflex_snippet_candidate(name: str, code: str, markdown: str | None = None, metadata: dict | None = None) -> dict:
+        """Save a visible C# snippet candidate for later live verification and recipe promotion."""
+        return save_snippet_candidate(name=name, code=code, markdown=markdown, metadata=metadata or {})
 
     return server
 
