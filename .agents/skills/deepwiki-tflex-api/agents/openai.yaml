@@ -1,0 +1,3 @@
+interface:
+  display_name: "Deepwiki T-FLEX API"
+  short_description: "Help with T-FLEX CAD 17 API docs via DeepWiki"
