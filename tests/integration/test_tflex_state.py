@@ -17,8 +17,15 @@ def test_capture_tflex_state_live_readonly():
     assert isinstance(state["object2d_types"], dict)
     assert isinstance(state["operation3d_types"], dict)
     assert isinstance(state["operations3d"], list)
+    assert isinstance(state["variables"], list)
     for doc in state["documents"]:
         assert "file_path" in doc
         assert "changed" in doc
+        assert "variables" in doc
         assert isinstance(doc["changed"], (bool, type(None)))
+        assert isinstance(doc["variables"], list)
+        for variable in doc["variables"]:
+            assert "name" in variable
+            assert "is_real" in variable
+            assert "is_text" in variable
     assert "session=False" in state["run"]["stdout"]

@@ -49,7 +49,7 @@ public class Program {
   static void WriteDocument(int index, Document doc) {
     int objects2d = Count2D(doc, index);
     int operations3d = Count3DOperations(doc, index);
-    int variables = CountVariables(doc);
+    int variables = WriteVariables(doc, index);
     Console.WriteLine("doc=" + index + "|" + Encode(doc.Title) + "|" + Encode(doc.FileName) + "|" + Encode(doc.FilePath) + "|" + objects2d + "|" + operations3d + "|" + variables + "|" + doc.Changed);
   }
 
@@ -108,7 +108,7 @@ public class Program {
     }
   }
 
-  static int CountVariables(Document doc) {
+  static int WriteVariables(Document doc, int docIndex) {
     try {
       MethodInfo method = doc.GetType().GetMethod("GetVariables", Type.EmptyTypes);
       if (method == null) return -1;
@@ -116,10 +116,39 @@ public class Program {
       int count = 0;
       IEnumerable enumerable = variables as IEnumerable;
       if (enumerable == null) return -1;
-      foreach (object ignored in enumerable) count++;
+      foreach (object variable in enumerable) {
+        Console.WriteLine(
+          "variable=" + docIndex + "|" + count + "|" +
+          Encode(GetPropertyString(variable, "Name")) + "|" +
+          Encode(GetPropertyString(variable, "IsReal")) + "|" +
+          Encode(GetPropertyString(variable, "IsText")) + "|" +
+          Encode(GetPropertyString(variable, "RealValue")) + "|" +
+          Encode(GetPropertyString(variable, "TextValue")) + "|" +
+          Encode(GetPropertyString(variable, "Expression")) + "|" +
+          Encode(GetPropertyString(variable, "Comment")) + "|" +
+          Encode(GetPropertyString(variable, "Hidden")) + "|" +
+          Encode(GetPropertyString(variable, "External")) + "|" +
+          Encode(GetPropertyString(variable, "ErrorState"))
+        );
+        count++;
+      }
       return count;
     } catch {
       return -1;
+    }
+  }
+
+  static string GetPropertyString(object obj, string name) {
+    try {
+      PropertyInfo property = obj.GetType().GetProperty(name);
+      if (property == null) return "";
+      object value = property.GetValue(obj, null);
+      if (value == null) return "";
+      IFormattable formattable = value as IFormattable;
+      if (formattable != null) return formattable.ToString(null, CultureInfo.InvariantCulture);
+      return value.ToString();
+    } catch {
+      return "";
     }
   }
 
@@ -185,6 +214,7 @@ def capture_tflex_state(timeout_sec: int = 60) -> dict[str, Any]:
         "object2d_types": {},
         "operation3d_types": {},
         "operations3d": [],
+        "variables": [],
         "errors": [],
     }
     for line in (result.get("stdout") or "").splitlines():
@@ -239,12 +269,41 @@ def capture_tflex_state(timeout_sec: int = 60) -> dict[str, Any]:
                     "bbox_size": parts[6],
                     "error": _decode(parts[7]) if len(parts) > 7 and parts[7] else None,
                 })
+        elif line.startswith("variable="):
+            parts = line.split("=", 1)[1].split("|")
+            if len(parts) >= 12:
+                variable = {
+                    "document_index": _to_int(parts[0]),
+                    "variable_index": _to_int(parts[1]),
+                    "name": _decode(parts[2]),
+                    "is_real": _parse_bool(parts[3]),
+                    "is_text": _parse_bool(parts[4]),
+                    "real_value": _decode(parts[5]),
+                    "text_value": _decode(parts[6]),
+                    "expression": _decode(parts[7]),
+                    "comment": _decode(parts[8]),
+                    "hidden": _parse_bool(parts[9]),
+                    "external": _parse_bool(parts[10]),
+                    "error_state": _parse_bool(parts[11]),
+                }
+                state["variables"].append(variable)
+                doc_index = variable["document_index"]
+                for doc in state["documents"]:
+                    if doc.get("index") == doc_index:
+                        doc.setdefault("variables", []).append(variable)
+                        break
         elif line.startswith("object2dError=") or line.startswith("operation3dError="):
             state["errors"].append(line)
     if state["document_count"] is None:
         state["document_count"] = len(state["documents"])
     state["object_counts"]["documents"] = state["document_count"]
+    variables_by_doc: dict[int, list[dict[str, Any]]] = {}
+    for variable in state["variables"]:
+        doc_index = variable.get("document_index")
+        if isinstance(doc_index, int):
+            variables_by_doc.setdefault(doc_index, []).append(variable)
     for doc in state["documents"]:
+        doc.setdefault("variables", variables_by_doc.get(doc.get("index"), []))
         counts = doc.get("object_counts") or {}
         for key in ["2d", "3d_operations", "variables"]:
             value = counts.get(key)
