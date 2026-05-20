@@ -9,6 +9,8 @@ from tflex_harness.runner import build_runner
 
 def test_csharp_runner_skeleton_builds_and_reports_env():
     cfg = load_config()
+    for name in ["Program.cs", "SnippetHost.cs", "TFlexSession.cs", "ResultWriter.cs", "References.props", "TFlexRunner.csproj"]:
+        assert (cfg.runner_dir / name).exists()
     result = build_runner(timeout_sec=60, config=cfg)
     assert result["ok"] is True, result
     assert result["stage"] == "build"

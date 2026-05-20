@@ -20,6 +20,8 @@ foreach ($ref in $Refs) { if (-not (Test-Path -LiteralPath $ref)) { throw "Refer
 & $Csc /nologo /platform:x64 /target:exe "/out:$(Join-Path $OutDir 'TFlexRunner.exe')" `
   (Join-Path $ProjectDir "Program.cs") `
   (Join-Path $ProjectDir "ResultWriter.cs") `
+  (Join-Path $ProjectDir "SnippetHost.cs") `
+  (Join-Path $ProjectDir "TFlexSession.cs") `
   ($Refs | ForEach-Object { "/reference:$_" })
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

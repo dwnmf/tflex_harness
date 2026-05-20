@@ -1,0 +1,23 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TFlexProgramDir Condition=" '$(TFlexProgramDir)' == '' ">C:\Program Files\T-FLEX CAD 17\Program</TFlexProgramDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="TFlexAPI">
+      <HintPath>$(TFlexProgramDir)\TFlexAPI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="TFlexAPI3D">
+      <HintPath>$(TFlexProgramDir)\TFlexAPI3D.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="TFlexAPIData">
+      <HintPath>$(TFlexProgramDir)\TFlexAPIData.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="TFlexCommandAPI">
+      <HintPath>$(TFlexProgramDir)\TFlexCommandAPI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

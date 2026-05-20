@@ -23,26 +23,13 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="ResultWriter.cs" />
+    <Compile Include="SnippetHost.cs" />
+    <Compile Include="TFlexSession.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="TFlexAPI">
-      <HintPath>C:\Program Files\T-FLEX CAD 17\Program\TFlexAPI.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TFlexAPI3D">
-      <HintPath>C:\Program Files\T-FLEX CAD 17\Program\TFlexAPI3D.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TFlexAPIData">
-      <HintPath>C:\Program Files\T-FLEX CAD 17\Program\TFlexAPIData.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TFlexCommandAPI">
-      <HintPath>C:\Program Files\T-FLEX CAD 17\Program\TFlexCommandAPI.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
+  <Import Project="References.props" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
