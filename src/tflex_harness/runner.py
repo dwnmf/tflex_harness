@@ -93,6 +93,71 @@ def _cache_dir(cfg: HarnessConfig, key: str) -> Path:
     return cfg.artifacts_dir / "build_cache" / key[:2] / key
 
 
+def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> dict[str, Any]:
+    cfg = config or load_config()
+    csc = find_csc()
+    script = cfg.runner_dir / "build.ps1"
+    project = cfg.runner_dir / "TFlexRunner.csproj"
+    executable = cfg.runner_dir / "bin" / "csc" / "Debug" / "TFlexRunner.exe"
+    result: dict[str, Any] = {
+        "ok": False,
+        "stage": "environment",
+        "project_path": str(project),
+        "project_exists": project.exists(),
+        "build_script": str(script),
+        "build_script_exists": script.exists(),
+        "executable": str(executable),
+    }
+    if csc is None:
+        result["error"] = "csc.exe not found"
+        return result
+    result["csc"] = str(csc)
+    if not project.exists() or not script.exists():
+        result["error"] = "runner project or build script is missing"
+        return result
+
+    env = os.environ.copy()
+    env["CSC_EXE"] = str(csc)
+    env["TFLEX_PROGRAM_DIR"] = str(cfg.tflex_program_dir)
+    started = time.perf_counter()
+    try:
+        proc = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), "-Configuration", "Debug"],
+            cwd=cfg.runner_dir,
+            text=True,
+            capture_output=True,
+            timeout=timeout_sec,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return {
+            **result,
+            "stage": "timeout",
+            "phase": "build",
+            "timeout_sec": timeout_sec,
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "stdout": exc.stdout if isinstance(exc.stdout, str) else "",
+            "stderr": exc.stderr if isinstance(exc.stderr, str) else "",
+            "error": str(exc),
+        }
+
+    stdout = proc.stdout or ""
+    stderr = proc.stderr or ""
+    last_line = next((line.strip() for line in reversed(stdout.splitlines()) if line.strip()), "")
+    built_executable = Path(last_line) if last_line else executable
+    return {
+        **result,
+        "ok": proc.returncode == 0 and built_executable.exists(),
+        "stage": "build",
+        "exit_code": proc.returncode,
+        "duration_ms": int((time.perf_counter() - started) * 1000),
+        "stdout": stdout,
+        "stderr": stderr,
+        "executable": str(built_executable),
+        "executable_exists": built_executable.exists(),
+    }
+
+
 def run_csharp_snippet(
     code: str,
     mode: str = "run",

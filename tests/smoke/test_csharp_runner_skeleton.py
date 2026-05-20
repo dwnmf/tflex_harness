@@ -4,14 +4,15 @@ import subprocess
 from pathlib import Path
 
 from tflex_harness.config import load_config
+from tflex_harness.runner import build_runner
 
 
 def test_csharp_runner_skeleton_builds_and_reports_env():
     cfg = load_config()
-    script = cfg.runner_dir / "build.ps1"
-    proc = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)], text=True, capture_output=True, timeout=60)
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    exe = Path(proc.stdout.strip().splitlines()[-1])
+    result = build_runner(timeout_sec=60, config=cfg)
+    assert result["ok"] is True, result
+    assert result["stage"] == "build"
+    exe = Path(result["executable"])
     assert exe.exists()
     env = os.environ.copy()
     env["PATH"] = str(cfg.tflex_program_dir) + os.pathsep + env.get("PATH", "")
