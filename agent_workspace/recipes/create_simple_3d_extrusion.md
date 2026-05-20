@@ -21,6 +21,9 @@ Local documentation source: `D:\REALPROJECTS\tflex_api`.
 - `T:TFlex.Model.Model3D.ThickenExtrusion` — official XML example shows `Thickness1`, `LengthType`, `ForwardLength`, and `Profile.Add(profile.Geometry.SheetContour)`.
 - `M:TFlex.Model.Model3D.Document3D.GetOperations(TFlex.Model.Document)` — verify the 3D operation count increased.
 - `P:TFlex.Model.Model3D.Operation.Body` and `P:TFlex.Model.Model3D.Operation.Geometry` — verify runtime 3D result objects are not null.
+- `P:TFlex.Model.Model3D.Operation.GeometryData.AABoundBox` — get the axis-aligned operation bounding box.
+- `P:TFlex.Model.Model3D.Geometry.ModelBox.Minimum`, `Maximum`, and `Valid` — verify the bounding box is valid and has positive X/Y/Z extents.
+- `P:TFlex.Model.Model3D.Geometry.BasePoint3D.X`, `Y`, and `Z` — compute observable bounding-box sizes from model points.
 - `M:TFlex.Model.Document.SaveAs(System.String)` and `M:TFlex.Model.Document.Close` — save and close the artifact document.
 - `M:TFlex.Application.ExitSession` — paired session exit.
 
@@ -43,6 +46,11 @@ operationsAfter=1
 operationType=TFlex.Model.Model3D.ThickenExtrusion
 bodyNull=False
 geometryNull=False
+bboxValid=True
+bboxMin=-0.05,-0.011,-0.009
+bboxMax=0.01,0.009,0.011
+bboxSize=0.06,0.02,0.02
+bboxPositive=True
 saved=True
 exists=True
 exited=False
@@ -52,6 +60,7 @@ Artifact evidence:
 
 - saved `.grb`: `artifacts/tflex_docs/20260520_224300_659083_manual_3d_extrusion/manual_3d_extrusion.grb`
 - run directory: `artifacts/runs/20260520_224300_887226_manual_3d_extrusion`
+- bounding-box verification run: `artifacts/runs/20260520_225011_637244_manual_3d_bbox4`
 
 ## Assumptions
 
@@ -62,6 +71,6 @@ Artifact evidence:
 
 ## Limitations
 
-- This recipe verifies the operation count, operation type, non-null body/geometry, and saved file evidence; it does not inspect a bounding box yet.
+- This recipe verifies the operation count, operation type, non-null body/geometry, a valid positive axis-aligned bounding box, and saved file evidence.
 - It creates a minimal circular thicken extrusion only.
 - It writes only to an artifact path created by the harness and does not touch user documents.

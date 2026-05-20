@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using TFlex;
 using TFlex.Model;
@@ -62,6 +63,16 @@ public class Program {
       Console.WriteLine("bodyNull=" + (extrusion.Body == null));
       Console.WriteLine("geometryNull=" + (extrusion.Geometry == null));
 
+      var box = extrusion.Geometry.AABoundBox;
+      double bboxSizeX = Math.Abs(box.Maximum.X - box.Minimum.X);
+      double bboxSizeY = Math.Abs(box.Maximum.Y - box.Minimum.Y);
+      double bboxSizeZ = Math.Abs(box.Maximum.Z - box.Minimum.Z);
+      Console.WriteLine("bboxValid=" + box.Valid);
+      Console.WriteLine("bboxMin=" + FormatPoint(box.Minimum));
+      Console.WriteLine("bboxMax=" + FormatPoint(box.Maximum));
+      Console.WriteLine("bboxSize=" + FormatNumber(bboxSizeX) + "," + FormatNumber(bboxSizeY) + "," + FormatNumber(bboxSizeZ));
+      Console.WriteLine("bboxPositive=" + (bboxSizeX > 0 && bboxSizeY > 0 && bboxSizeZ > 0));
+
       bool saved = document.SaveAs(output);
       Console.WriteLine("saved=" + saved);
       Console.WriteLine("exists=" + File.Exists(output));
@@ -70,7 +81,8 @@ public class Program {
       if (end.ToString() != "OK") return 12;
       if (operationsAfter <= operationsBefore) return 13;
       if (extrusion.Body == null || extrusion.Geometry == null) return 14;
-      if (!saved || !File.Exists(output)) return 15;
+      if (!box.Valid || bboxSizeX <= 0 || bboxSizeY <= 0 || bboxSizeZ <= 0) return 15;
+      if (!saved || !File.Exists(output)) return 16;
       return 0;
     } catch (Exception ex) {
       Console.WriteLine("exceptionType=" + ex.GetType().FullName);
@@ -82,5 +94,13 @@ public class Program {
       if (Application.IsSessionInitialized) Application.ExitSession();
       Console.WriteLine("session=" + Application.IsSessionInitialized);
     }
+  }
+
+  static string FormatPoint(TFlex.Model.Model3D.Geometry.BasePoint3D point){
+    return FormatNumber(point.X) + "," + FormatNumber(point.Y) + "," + FormatNumber(point.Z);
+  }
+
+  static string FormatNumber(double value){
+    return value.ToString(CultureInfo.InvariantCulture);
   }
 }

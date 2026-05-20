@@ -51,6 +51,8 @@ def test_run_create_simple_3d_extrusion_recipe_live():
     assert "operationType=TFlex.Model.Model3D.ThickenExtrusion" in result["stdout"]
     assert "bodyNull=False" in result["stdout"]
     assert "geometryNull=False" in result["stdout"]
+    assert "bboxValid=True" in result["stdout"]
+    assert "bboxPositive=True" in result["stdout"]
     assert "saved=True" in result["stdout"]
     output = result["recipe_artifacts"]["output_file"]
     import pathlib

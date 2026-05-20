@@ -32,4 +32,4 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `environment_probe` — initializes and exits a minimal read-only API session.
 - `create_empty_document` — creates an invisible empty 2D document, saves it as `.grb`, closes it, and exits the session.
 - `create_simple_2d_line` — creates two free 2D nodes, a construction line through them, verifies `Get2DObjects()` count/types, saves `.grb`, closes the document, and exits the session.
-- `create_simple_3d_extrusion` — creates a hidden 3D document, builds a circular area profile on a standard workplane, verifies one `ThickenExtrusion` operation with non-null body/geometry, saves `.grb`, closes the document, and exits the session.
+- `create_simple_3d_extrusion` — creates a hidden 3D document, builds a circular area profile on a standard workplane, verifies one `ThickenExtrusion` operation with non-null body/geometry and positive bounding box, saves `.grb`, closes the document, and exits the session.
