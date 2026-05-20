@@ -10,8 +10,19 @@ def test_search_symbols_finds_document_related_records():
 
 def test_search_all_has_expected_scopes():
     result = DocsSearch().search("TFlexAPI", scope="all", limit=3)
-    assert set(result) >= {"query", "symbols", "types", "chm"}
+    assert set(result) >= {"query", "results", "symbols", "types", "chm"}
+    assert result["results"]
+    assert len(result["results"]) <= 3
+    assert result["results"][0]["scope"] == "symbols"
     assert result["symbols"]
+
+
+def test_search_symbols_scope_exposes_unified_results_contract():
+    result = DocsSearch().search("Document SaveAs", scope="symbols", limit=1)
+    assert result["results"]
+    assert result["results"][0]["scope"] == "symbols"
+    assert result["results"][0]["id"] == "M:TFlex.Model.Document.SaveAs(System.String)"
+    assert result["symbols"][0]["id"] == result["results"][0]["id"]
 
 
 def test_search_chm_returns_preview():

@@ -58,6 +58,8 @@ def test_mcp_docs_and_recipe_tools_return_machine_readable_payloads():
             )
         )
     )
+    assert docs["results"][0]["scope"] == "symbols"
+    assert docs["results"][0]["id"] == "M:TFlex.Model.Document.SaveAs(System.String)"
     assert docs["symbols"][0]["id"] == "M:TFlex.Model.Document.SaveAs(System.String)"
 
     recipes = _json_payload(_run(server.call_tool("list_tflex_recipes", {})))

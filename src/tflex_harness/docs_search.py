@@ -136,24 +136,48 @@ class DocsSearch:
         results.sort(key=lambda r: (-r["score"], str(r.get("id") or "")))
         return results[:limit]
 
+    @staticmethod
+    def _combined_results(
+        symbols: list[dict[str, Any]],
+        types: list[dict[str, Any]],
+        chm: list[dict[str, Any]],
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        combined: list[dict[str, Any]] = []
+        for scope, items in (("symbols", symbols), ("types", types), ("chm", chm)):
+            for item in items:
+                result = dict(item)
+                result["scope"] = scope
+                combined.append(result)
+                if len(combined) >= limit:
+                    return combined
+        return combined
+
     def search_all(self, query: str, assembly: str | None = None, limit: int = 20) -> dict[str, Any]:
         per_scope = max(limit, 1)
+        symbols = self.search_symbols(query, assembly=assembly, limit=per_scope)
+        types = self.search_types(query, limit=per_scope)
+        chm = self.search_chm(query, limit=per_scope)
         return {
             "query": query,
             "assembly": assembly,
-            "symbols": self.search_symbols(query, assembly=assembly, limit=per_scope),
-            "types": self.search_types(query, limit=per_scope),
-            "chm": self.search_chm(query, limit=per_scope),
+            "results": self._combined_results(symbols, types, chm, limit=per_scope),
+            "symbols": symbols,
+            "types": types,
+            "chm": chm,
         }
 
     def search(self, query: str, scope: str = "all", assembly: str | None = None, limit: int = 20) -> dict[str, Any]:
         scope = scope.lower()
         if scope == "symbols":
-            return {"query": query, "assembly": assembly, "symbols": self.search_symbols(query, assembly, limit)}
+            symbols = self.search_symbols(query, assembly, limit)
+            return {"query": query, "assembly": assembly, "results": self._combined_results(symbols, [], [], limit), "symbols": symbols}
         if scope == "types":
-            return {"query": query, "types": self.search_types(query, limit)}
+            types = self.search_types(query, limit)
+            return {"query": query, "results": self._combined_results([], types, [], limit), "types": types}
         if scope == "chm":
-            return {"query": query, "chm": self.search_chm(query, limit)}
+            chm = self.search_chm(query, limit)
+            return {"query": query, "results": self._combined_results([], [], chm, limit), "chm": chm}
         if scope == "all":
             return self.search_all(query, assembly, limit)
         raise ValueError(f"Unsupported docs search scope: {scope}")
