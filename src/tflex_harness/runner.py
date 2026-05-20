@@ -93,11 +93,24 @@ def _cache_dir(cfg: HarnessConfig, key: str) -> Path:
     return cfg.artifacts_dir / "build_cache" / key[:2] / key
 
 
+def _read_runner_project_settings(project: Path) -> dict[str, str | None]:
+    settings: dict[str, str | None] = {"target_framework": None, "platform_target": None}
+    if not project.exists():
+        return settings
+    text = project.read_text(encoding="utf-8", errors="ignore")
+    for key, tag in (("target_framework", "TargetFrameworkVersion"), ("platform_target", "PlatformTarget")):
+        match = re.search(rf"<{tag}>\s*([^<]+?)\s*</{tag}>", text)
+        if match:
+            settings[key] = match.group(1).strip()
+    return settings
+
+
 def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> dict[str, Any]:
     cfg = config or load_config()
     csc = find_csc()
     script = cfg.runner_dir / "build.ps1"
     project = cfg.runner_dir / "TFlexRunner.csproj"
+    project_settings = _read_runner_project_settings(project)
     executable = cfg.runner_dir / "bin" / "csc" / "Debug" / "TFlexRunner.exe"
     result: dict[str, Any] = {
         "ok": False,
@@ -107,6 +120,7 @@ def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> 
         "build_script": str(script),
         "build_script_exists": script.exists(),
         "executable": str(executable),
+        **project_settings,
     }
     if csc is None:
         result["error"] = "csc.exe not found"

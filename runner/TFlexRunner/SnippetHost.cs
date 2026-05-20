@@ -20,7 +20,9 @@ namespace TFlexRunner
                 {
                     var asm = Assembly.Load(names[i]);
                     ResultWriter.WriteJsonPair(writer, "loaded", true, comma: true);
-                    ResultWriter.WriteJsonPair(writer, "fullName", asm.FullName, comma: false);
+                    ResultWriter.WriteJsonPair(writer, "fullName", asm.FullName, comma: true);
+                    ResultWriter.WriteJsonPair(writer, "imageRuntimeVersion", asm.ImageRuntimeVersion, comma: true);
+                    ResultWriter.WriteJsonPair(writer, "processorArchitecture", asm.GetName().ProcessorArchitecture.ToString(), comma: false);
                 }
                 catch (Exception ex)
                 {

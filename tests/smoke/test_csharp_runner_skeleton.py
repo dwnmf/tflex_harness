@@ -14,6 +14,8 @@ def test_csharp_runner_skeleton_builds_and_reports_env():
     result = build_runner(timeout_sec=60, config=cfg)
     assert result["ok"] is True, result
     assert result["stage"] == "build"
+    assert result["target_framework"] == "v4.8"
+    assert result["platform_target"] == "x64"
     exe = Path(result["executable"])
     assert exe.exists()
     env = os.environ.copy()
@@ -23,4 +25,7 @@ def test_csharp_runner_skeleton_builds_and_reports_env():
     data = json.loads(run.stdout)
     assert data["ok"] is True
     assert data["is64BitProcess"] is True
-    assert any(a["name"] == "TFlexAPI" for a in data["assemblies"])
+    assemblies = {a["name"]: a for a in data["assemblies"]}
+    assert assemblies["TFlexAPI"]["loaded"] is True
+    assert assemblies["TFlexAPI"]["imageRuntimeVersion"].startswith("v4.")
+    assert assemblies["TFlexAPI"]["processorArchitecture"] in {"MSIL", "Amd64"}
