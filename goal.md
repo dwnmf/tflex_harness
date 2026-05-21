@@ -918,6 +918,75 @@ Definition of done:
 - each recipe has live test;
 - assumptions and limitations are documented.
 
+### Current implementation status — 2026-05-21
+
+This section records what is implemented in the current `D:\REALPROJECTS\tflex_harness` worktree and what is still open.
+
+#### Implemented and live-verified
+
+- **Milestone 1: Skeleton** — implemented.
+  - Evidence: `README.md`, `pyproject.toml`, package `src/tflex_harness`, config loader, logging helpers, artifact store, unit/smoke/integration test layout.
+  - Config resolves default docs repo `D:\REALPROJECTS\tflex_api`, T-FLEX install dir `C:\Program Files\T-FLEX CAD 17`, program dir, runner dir, artifacts dir, and logs dir.
+- **Milestone 2: Docs search** — implemented.
+  - Evidence: `src/tflex_harness/docs_search.py`, `src/tflex_harness/schemas.py`, tests in `tests/unit/test_docs_search.py`, CLI/MCP smoke tests.
+  - Supported scopes: `symbols`, `types`, `chm`, `all`.
+  - Supported assembly filter values: `TFlexAPI`, `TFlexAPI3D`, `TFlexAPIData`, `TFlexCommandAPI`.
+  - Output is bounded by normalized limits and returns machine-readable previews instead of huge CHM/type pages.
+- **Milestone 3: MCP server** — implemented and extended beyond the minimal two tools.
+  - Evidence: `src/tflex_harness/mcp_server.py`, `tests/smoke/test_mcp_server.py`, `tests/smoke/test_packaging.py`.
+  - Tools present: `search_tflex_docs`, `get_tflex_environment`, `run_csharp_tflex`, `list_tflex_recipes`, `run_tflex_recipe`, `capture_tflex_state`, `save_tflex_snippet_candidate`.
+  - Console entrypoint present: `tflex-harness-mcp = "tflex_harness.mcp_server:main"`.
+- **Milestone 4: C# runner compile-only** — implemented.
+  - Evidence: `runner/TFlexRunner/TFlexRunner.csproj`, `build.ps1`, `References.props`, `Program.cs`, `SnippetHost.cs`, `TFlexSession.cs`, `ResultWriter.cs`, `src/tflex_harness/runner.py`.
+  - `build_runner()` exists and reports target framework/platform.
+  - `run_csharp_snippet(..., mode="compile_only")` compiles snippets with `csc.exe`, parses CS diagnostics, records artifacts, checks requested T-FLEX references, and exposes resolved references.
+- **Milestone 5: C# runner live execution** — implemented and live-verified.
+  - Evidence: `tests/smoke/test_csharp_runner.py`, `tests/integration/test_tflex_live_session.py`, `tests/integration/test_tflex_environment.py`, `tests/integration/test_tflex_cli_live.py`, `tests/integration/test_tflex_mcp_live.py`.
+  - Result contract includes structured `stage`, `phase`, `exit_code`, `duration_ms`, `cache_key`, `cache_hit`, `diagnostics`, `snippet_path`, `build_log`, `stdout_path`, `stderr_path`, `run_log`, `artifacts_dir`, and collected `artifacts`.
+  - Timeouts are structured as `stage="timeout"` with `phase="compile"` or `phase="run"`.
+  - Successful C# builds are cached by content-addressed key and reused on repeated calls.
+  - Snippets receive `TFLEX_HARNESS_RUN_DIR` and `TFLEX_HARNESS_ARTIFACTS_DIR`.
+- **Milestone 6: First verified recipes** — implemented and live-verified.
+  - Evidence: `agent_workspace/recipes/*.cs`, `agent_workspace/recipes/*.md`, `src/tflex_harness/recipes.py`, `tests/integration/test_tflex_recipes.py`, `tests/unit/test_recipes.py`.
+  - Verified recipes:
+    - `environment_probe`
+    - `create_empty_document`
+    - `save_document_as_temp`
+    - `create_simple_2d_line`
+    - `create_simple_3d_extrusion`
+  - Each verified recipe has C# source, Markdown explanation, documented docs evidence, assumptions, limitations, live verification report, and integration coverage.
+- **Live state capture** — implemented.
+  - Evidence: `src/tflex_harness/state.py`, `tests/integration/test_tflex_state.py`, `tests/integration/test_tflex_mcp_live.py`.
+  - Captures session status, active document, document list, document count, aggregate object counts, observed 2D/3D type counts, 3D operation bounding boxes when available, variables, empty selection, run info, and artifacts.
+- **Snippet candidate workflow** — implemented.
+  - Evidence: `src/tflex_harness/workspace.py`, `agent_workspace/snippets/README.md`, `tests/unit/test_workspace.py`.
+  - Saves candidate C# and Markdown review metadata under `agent_workspace/snippets` without promoting them to verified recipes.
+- **Repository skill** — implemented.
+  - Evidence: `.agents/skills/deepwiki-tflex-api/SKILL.md`.
+  - Points agents to DeepWiki repo `dwnmf/tflex_api` and local docs repo `D:\REALPROJECTS\tflex_api`.
+- **Latest full validation observed** — passed.
+  - Evidence: `python -m pytest -v` on 2026-05-21 collected 66 tests and passed all 66, including live T-FLEX integration tests.
+
+#### Recently implemented guardrails
+
+- A safety guardrail rejects `run_tflex_recipe(..., args={"output_file": ...})` paths outside `artifacts/tflex_docs`.
+  - Evidence: `src/tflex_harness/recipes.py`, `tests/unit/test_recipes.py`, `README.md`.
+  - Validation observed before this status update: `tests/unit/test_recipes.py` plus `tests/integration/test_tflex_recipes.py` passed, and then full `python -m pytest -v` passed 66 tests.
+
+#### Not implemented / intentionally deferred
+
+- **Persistent runner mode** is not implemented.
+  - The current implementation uses dynamic snippet mode plus content-addressed compile cache.
+  - This matches the required maturity level for the current harness; persistent runner remains a future production optimization.
+- **Screenshot/export active view** in `capture_tflex_state` is not implemented.
+  - Current state capture is structured/textual and includes model/document counts, variables, 2D/3D type counts, and 3D bounding boxes.
+- **Full model tree traversal** is not implemented.
+  - Current capture reports aggregate counts and selected observable entities, not a complete tree dump.
+- **Broad high-level CAD wrapper/toolset** is intentionally not implemented.
+  - No `create_line`, `create_circle`, `create_extrusion`, `set_material`, `export_step`, etc. MCP tool explosion was explicitly rejected by the architecture.
+- **Completion audit for marking the whole project done** has not been performed.
+  - The implementation is substantially functional and live-verified, but the active goal should only be marked complete after a requirement-by-requirement audit against this document.
+
 ---
 
 ## 9. Suggested first files
@@ -1100,16 +1169,10 @@ This project is not:
 
 ## 14. Immediate next steps
 
-1. Create Python project skeleton.
-2. Implement config and diagnostics.
-3. Implement docs search over `D:\REALPROJECTS\tflex_api\llm\symbols.jsonl`.
-4. Add MCP tool `search_tflex_docs`.
-5. Create minimal C# runner project.
-6. Verify build against local T-FLEX DLLs.
-7. Add `run_csharp_tflex` compile-only mode.
-8. Add live mode with artifacts and timeout.
-9. Write first recipe: `environment_probe`.
-10. Write first live smoke test that does not modify user documents.
+1. Perform a requirement-by-requirement completion audit against this `goal.md`.
+2. If the audit passes, mark the active implementation goal complete.
+3. If the audit finds gaps, implement only the missing items with live verification.
+4. Keep future expansion focused on visible C# snippets and verified recipes, not a large hidden CAD wrapper.
 
 ---
 

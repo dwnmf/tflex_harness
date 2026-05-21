@@ -56,6 +56,19 @@ def test_unknown_recipe_returns_structured_input_error():
     assert "environment_probe" in result["known_recipes"]
 
 
+def test_recipe_output_file_must_stay_under_artifacts(tmp_path):
+    outside = tmp_path / "outside.grb"
+
+    result = run_recipe("create_empty_document", args={"output_file": str(outside)}, timeout_sec=1)
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "recipe output_file must be under artifacts/tflex_docs"
+    assert result["recipe"] == "create_empty_document"
+    assert result["allowed_output_root"].endswith("artifacts\\tflex_docs")
+    assert not outside.exists()
+
+
 def test_run_recipe_result_exposes_source_contract(monkeypatch):
     def fake_run_csharp_snippet(*args, **kwargs):
         return {"ok": True, "stage": "run", "stdout": "init=True", "artifacts": []}

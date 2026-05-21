@@ -60,6 +60,18 @@ def _known_recipe_names() -> list[str]:
     return [str(recipe["name"]) for recipe in _RECIPE_DEFINITIONS]
 
 
+def _output_root(cfg: HarnessConfig) -> Path:
+    return (cfg.artifacts_dir / "tflex_docs").resolve()
+
+
+def _is_under(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def list_recipes(config: HarnessConfig | None = None) -> list[dict[str, Any]]:
     cfg = config or load_config()
     recipes: list[dict[str, Any]] = []
@@ -103,6 +115,18 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         output = args.get("output_file")
         if output:
             output_file = Path(str(output)).resolve()
+            output_root = _output_root(cfg)
+            if not _is_under(output_file, output_root):
+                return {
+                    "ok": False,
+                    "stage": "input",
+                    "error": "recipe output_file must be under artifacts/tflex_docs",
+                    "recipe": name,
+                    "recipe_args": args,
+                    "allowed_output_root": str(output_root),
+                    "recipe_artifacts": {},
+                    "recipe_info": recipe_info,
+                }
             output_file.parent.mkdir(parents=True, exist_ok=True)
         else:
             doc_dir = ArtifactStore(cfg).create_tflex_doc_dir(f"recipe_{name}")

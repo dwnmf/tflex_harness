@@ -32,6 +32,8 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
+Recipe `output_file` arguments are intentionally constrained to `artifacts/tflex_docs/...`; the harness rejects paths outside that tree so live runs do not write random files into the repository or user folders.
+
 Snippet runs receive:
 
 - `TFLEX_HARNESS_RUN_DIR` — per-run artifact root.
