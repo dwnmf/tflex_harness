@@ -1,7 +1,9 @@
 .chunkhound/
 .pytest_cache/
-artifacts/
-logs/
+artifacts/*
+!artifacts/.gitkeep
+logs/*
+!logs/.gitkeep
 .tmp*/
 __pycache__/
 *.pyc

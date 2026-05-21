@@ -966,6 +966,9 @@ This section records what is implemented in the current `D:\REALPROJECTS\tflex_h
   - Points agents to DeepWiki repo `dwnmf/tflex_api` and local docs repo `D:\REALPROJECTS\tflex_api`.
 - **Latest full validation observed** — passed.
   - Evidence: `python -m pytest -v` on 2026-05-21 collected 66 tests and passed all 66, including live T-FLEX integration tests.
+- **Completion audit** — performed on 2026-05-21.
+  - Evidence sources inspected: `goal.md`, tracked files, `.agents/skills/deepwiki-tflex-api`, `pyproject.toml`, `README.md`, `src/tflex_harness`, `runner/TFlexRunner`, `agent_workspace/recipes`, `tests`, `.gitignore`, `artifacts/.gitkeep`, `logs/.gitkeep`, and live pytest output.
+  - Audit gap found and closed: `artifacts/.gitkeep` and `logs/.gitkeep` are now intended tracked placeholders while generated contents remain ignored.
 
 #### Recently implemented guardrails
 
@@ -984,8 +987,8 @@ This section records what is implemented in the current `D:\REALPROJECTS\tflex_h
   - Current capture reports aggregate counts and selected observable entities, not a complete tree dump.
 - **Broad high-level CAD wrapper/toolset** is intentionally not implemented.
   - No `create_line`, `create_circle`, `create_extrusion`, `set_material`, `export_step`, etc. MCP tool explosion was explicitly rejected by the architecture.
-- **Completion audit for marking the whole project done** has not been performed.
-  - The implementation is substantially functional and live-verified, but the active goal should only be marked complete after a requirement-by-requirement audit against this document.
+- **No required `goal.md` milestone remains knowingly incomplete after the 2026-05-21 audit.**
+  - Deferred items above are future extensions or explicit non-goals, not blockers for the requested harness/MCP implementation.
 
 ---
 
