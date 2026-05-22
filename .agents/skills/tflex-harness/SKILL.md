@@ -111,6 +111,26 @@ Use these findings when generating or debugging 3D snippets:
 - `Document3D.GetMates(document)` and `Mate` exist, but native `Mate` creation is fragile. `Mate.Element1/Element2` can be set to `Geometry.Axis`/other geometry, yet live runs may return `CompleteError` and no mate. Treat native assembly mates as unverified until a live snippet proves the exact geometry pair.
 - If a user asks for assembly constraints and native `Mate` fails, report clearly: parametric kinematics via variables/transformation groups verified; native `Mate` objects not verified.
 
+## Live Assembly Mate Notes
+
+Verified on 2026-05-22 in local T-FLEX CAD 17:
+
+- `Cylinder.Geometry.Axis` and `Block.Geometry.Plane` can be non-null after a successful operation `EndChanges()`, but they are not enough by themselves to create working native mates between raw primitive operations.
+- `Cylinder.Geometry.Surface` was null for simple `Cylinder` primitive probes; do not assume it is available for tangency mates.
+- These primitive mate attempts all returned `CompleteError` and `Document3D.GetMates(doc).Count == 0`:
+  - `Mate.Type = Mate.MateType.Concentricity` plus `Mate.Element1 = c1.Geometry.Axis`, `Mate.Element2 = c2.Geometry.Axis`;
+  - `Mate.SetGeomReference(k, new Object3D.GeomReference(axisOrPlane))` for adjacent key pairs `0,1` through `6,7`, both axis/concentricity and plane/distance cases.
+- `Fragment3D` + `PointsLCS` is a verified assembly placement path:
+  - `new Fragment3D(pathFragment, document)` creates a 3D fragment operation.
+  - `Fragment3D.FixByFragmentLCS(sourceLCSName, targetLCS)` fixes a fragment by an LCS in the fragment document to an LCS in the assembly.
+  - `Fragment3D.SourceLCSName` and `Fragment3D.TargetLCS` expose that placement relation.
+  - `Fragment3D.FileName` compiles with an obsolete warning; prefer `Fragment3D.FilePath`.
+  - Mark source and target LCS with both `UseForFragment = true` and `UseForFragmentFixing = true`.
+  - Build `PointsLCS` from three `CoordinateNode3D` objects: assign `PointToOrigin`, `PointToAxisX`, and `PointToAxisY` from each node's `Geometry.Point`.
+  - Save the part `.grb`, close it, create the assembly document, create a target `PointsLCS`, insert `Fragment3D`, call `FixByFragmentLCS("FRAG_LCS", targetLCS)`, then `EndChanges()`.
+  - Live run `artifacts/runs/20260522_200532_825406_probe_fragment_lcs_fix` returned `partEnd=OK`, `asmEnd=OK`, `fragmentSourceLCSAfter=FRAG_LCS`, `fragmentTargetLCSNullAfter=False`, `asmAfter=1`, and saved both `.grb` files under `artifacts/tflex_docs/20260522_200532_574925_probe_fragment_lcs_fix`.
+- Next native mate experiment should not start from two primitive operations. Build or save part `.grb` files with LCS geometry, insert them as `Fragment3D`, then test additional mates/fixing between fragment LCS/geometry.
+
 ## Reporting
 
 Report in caveman style with evidence:
