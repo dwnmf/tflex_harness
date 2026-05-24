@@ -1,0 +1,16 @@
+{
+  "name": "create_empty_document",
+  "description": "Create an invisible empty 2D document, save it as .grb, close it, and exit session.",
+  "args": {
+    "output_file": "optional absolute .grb path"
+  },
+  "verified": true,
+  "last_verified": "2026-05-22",
+  "source": "create_empty_document.cs",
+  "evidence": "create_empty_document.md",
+  "limitations": [
+    "Output path must stay under artifacts/tflex_docs."
+  ],
+  "source_sha256": "fde53f4fea518ec10c339f0461ffb289827929707cd9c36e5e7159484f529625",
+  "markdown_sha256": "4b27f490976c85c8eff92ac1ef81b3258d3ab42230b70f7e5248151b9c90c8d5"
+}

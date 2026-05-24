@@ -1,6 +1,13 @@
-from tflex_harness.config import load_config
+import hashlib
+import json
+
+from tflex_harness.config import HarnessConfig, load_config
 from tflex_harness import recipes as recipes_module
-from tflex_harness.recipes import list_recipes, run_recipe
+from tflex_harness.recipes import RecipeRegistry, list_recipes, run_recipe
+
+
+def _hash(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_list_recipes_includes_verified_baseline():
@@ -82,3 +89,56 @@ def test_run_recipe_result_exposes_source_contract(monkeypatch):
     assert result["recipe_info"]["markdown_path"].endswith("agent_workspace\\recipes\\environment_probe.md")
     assert result["recipe_info"]["source_exists"] is True
     assert result["recipe_info"]["markdown_exists"] is True
+
+
+def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):
+    recipes_dir = tmp_path / "agent_workspace" / "recipes"
+    recipes_dir.mkdir(parents=True)
+    source = recipes_dir / "demo.cs"
+    markdown = recipes_dir / "demo.md"
+    source.write_text("public class Program {}", encoding="utf-8")
+    markdown.write_text(
+        "\n".join(
+            [
+                "## Live Verification Report",
+                "Test:",
+                "Docs used:",
+                "Snippet:",
+                "Result:",
+                "Evidence:",
+                "Blockers:",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    metadata = {
+        "name": "demo",
+        "description": "Demo",
+        "args": {},
+        "verified": True,
+        "last_verified": "2026-05-24",
+        "source": "demo.cs",
+        "evidence": "demo.md",
+        "limitations": [],
+        "source_sha256": _hash(source),
+        "markdown_sha256": _hash(markdown),
+    }
+    (recipes_dir / "demo.recipe.json").write_text(json.dumps(metadata), encoding="utf-8")
+    cfg = HarnessConfig(
+        repo_dir=tmp_path,
+        docs_dir=tmp_path / "docs",
+        tflex_install_dir=tmp_path / "tflex",
+        tflex_program_dir=tmp_path / "tflex" / "Program",
+        runner_dir=tmp_path / "runner",
+        artifacts_dir=tmp_path / "artifacts",
+        logs_dir=tmp_path / "logs",
+    )
+    registry = RecipeRegistry(cfg)
+
+    assert registry.definition("demo")["verified"] is True
+    source.write_text("public class Program { static int Main(){ return 0; } }", encoding="utf-8")
+    stale = registry.definition("demo")
+
+    assert stale["verified"] is False
+    assert stale["freshness"]["status"] == "stale"
+    assert "source hash mismatch" in stale["freshness"]["reasons"]

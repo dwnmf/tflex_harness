@@ -118,6 +118,72 @@ def _read_runner_project_settings(project: Path) -> dict[str, str | None]:
     return settings
 
 
+
+class RunStore:
+    def __init__(self, config: HarnessConfig) -> None:
+        self.config = config
+        self.store = ArtifactStore(config)
+
+    def create_run(self, artifact_prefix: str) -> Path:
+        return self.store.create_run_dir(artifact_prefix)
+
+    def write_request(self, run_dir: Path, request: dict[str, Any]) -> None:
+        self.store.write_json(run_dir / "request.json", request)
+
+    def write_snippet(self, run_dir: Path, code: str) -> Path:
+        snippet = run_dir / "snippet.cs"
+        self.store.write_text(snippet, code)
+        return snippet
+
+    def write_text(self, path: Path, text: str) -> None:
+        self.store.write_text(path, text)
+
+    def write_json(self, path: Path, data: Any) -> None:
+        self.store.write_json(path, data)
+
+    def collect_artifacts(self, run_dir: Path) -> list[dict[str, Any]]:
+        return _collect_artifacts(run_dir)
+
+    def persist_result(self, run_dir: Path, result: dict[str, Any]) -> None:
+        _persist_run_result(self.config, self.store, run_dir, result)
+
+
+class CompileCache:
+    def __init__(self, config: HarnessConfig) -> None:
+        self.config = config
+
+    def key(self, code: str, refs: list[Path], csc: Path) -> str:
+        return _compile_cache_key(code, refs, csc)
+
+    def directory(self, key: str) -> Path:
+        return _cache_dir(self.config, key)
+
+
+class SnippetRunner:
+    def __init__(self, config: HarnessConfig | None = None) -> None:
+        self.config = config or load_config()
+        self.run_store = RunStore(self.config)
+        self.compile_cache = CompileCache(self.config)
+
+    def run(
+        self,
+        code: str,
+        mode: str = "run",
+        timeout_sec: int = 30,
+        references: list[str] | None = None,
+        artifact_prefix: str = "snippet",
+        environment: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        return _run_csharp_snippet_impl(
+            code=code,
+            mode=mode,
+            timeout_sec=timeout_sec,
+            references=references,
+            artifact_prefix=artifact_prefix,
+            environment=environment,
+            runner=self,
+        )
+
 def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> dict[str, Any]:
     cfg = config or load_config()
     csc = find_csc()
@@ -239,22 +305,23 @@ def _persist_run_result(cfg: HarnessConfig, store: ArtifactStore, run_dir: Path,
         pass
 
 
-def run_csharp_snippet(
+def _run_csharp_snippet_impl(
     code: str,
     mode: str = "run",
     timeout_sec: int = 30,
     references: list[str] | None = None,
     artifact_prefix: str = "snippet",
     environment: dict[str, str] | None = None,
-    config: HarnessConfig | None = None,
+    runner: SnippetRunner | None = None,
 ) -> dict[str, Any]:
-    cfg = config or load_config()
-    store = ArtifactStore(cfg)
-    run_dir = store.create_run_dir(artifact_prefix)
+    active_runner = runner or SnippetRunner()
+    cfg = active_runner.config
+    run_store = active_runner.run_store
+    store = run_store.store
+    run_dir = run_store.create_run(artifact_prefix)
     request = {"mode": mode, "timeout_sec": timeout_sec, "references": references, "artifact_prefix": artifact_prefix, "environment": environment or {}}
-    store.write_json(run_dir / "request.json", request)
-    snippet = run_dir / "snippet.cs"
-    store.write_text(snippet, code)
+    run_store.write_request(run_dir, request)
+    snippet = run_store.write_snippet(run_dir, code)
 
     if mode not in {"compile_only", "run"}:
         result = {
@@ -268,7 +335,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        _persist_run_result(cfg, store, run_dir, result)
+        run_store.persist_result(run_dir, result)
         return result
 
     csc = find_csc()
@@ -282,7 +349,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        _persist_run_result(cfg, store, run_dir, result)
+        run_store.persist_result(run_dir, result)
         return result
 
     refs = _default_references(cfg, references)
@@ -305,12 +372,12 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        _persist_run_result(cfg, store, run_dir, result)
+        run_store.persist_result(run_dir, result)
         return result
 
     exe = run_dir / "Snippet.exe"
-    cache_key = _compile_cache_key(code, refs, csc)
-    cache_dir = _cache_dir(cfg, cache_key)
+    cache_key = active_runner.compile_cache.key(code, refs, csc)
+    cache_dir = active_runner.compile_cache.directory(cache_key)
     cache_exe = cache_dir / "Snippet.exe"
     cache_build_log = cache_dir / "build.log"
     started = time.perf_counter()
@@ -359,7 +426,7 @@ def run_csharp_snippet(
                 "artifacts_dir": str(run_dir / "artifacts"),
                 "artifacts": _collect_artifacts(run_dir),
             }
-            _persist_run_result(cfg, store, run_dir, result)
+            run_store.persist_result(run_dir, result)
             return result
         build_output = (proc.stdout or "") + (proc.stderr or "")
         store.write_text(cache_build_log, build_output)
@@ -398,7 +465,7 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        _persist_run_result(cfg, store, run_dir, result)
+        run_store.persist_result(run_dir, result)
         return result
 
     if mode == "compile_only":
@@ -419,11 +486,11 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-        _persist_run_result(cfg, store, run_dir, result)
+        run_store.persist_result(run_dir, result)
         return result
     if mode != "run":
         result = {"ok": False, "stage": "request", "error": f"unsupported mode: {mode}", "run_dir": str(run_dir)}
-        _persist_run_result(cfg, store, run_dir, result)
+        run_store.persist_result(run_dir, result)
         return result
 
     _copy_runtime_dlls(run_dir, refs)
@@ -483,5 +550,24 @@ def run_csharp_snippet(
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
-    _persist_run_result(cfg, store, run_dir, result)
+    run_store.persist_result(run_dir, result)
     return result
+
+def run_csharp_snippet(
+    code: str,
+    mode: str = "run",
+    timeout_sec: int = 30,
+    references: list[str] | None = None,
+    artifact_prefix: str = "snippet",
+    environment: dict[str, str] | None = None,
+    config: HarnessConfig | None = None,
+) -> dict[str, Any]:
+    return SnippetRunner(config).run(
+        code=code,
+        mode=mode,
+        timeout_sec=timeout_sec,
+        references=references,
+        artifact_prefix=artifact_prefix,
+        environment=environment,
+    )
+

@@ -1,0 +1,16 @@
+{
+  "name": "save_document_as_temp",
+  "description": "Create a hidden 2D document and verify SaveAs to a temporary .grb artifact path.",
+  "args": {
+    "output_file": "optional absolute .grb path"
+  },
+  "verified": true,
+  "last_verified": "2026-05-22",
+  "source": "save_document_as_temp.cs",
+  "evidence": "save_document_as_temp.md",
+  "limitations": [
+    "Output path must stay under artifacts/tflex_docs."
+  ],
+  "source_sha256": "5292dc3060437729585bed36447a9ba12757614c4be43f75144e8d41ff690d33",
+  "markdown_sha256": "acc073b4ab752d4d52a81d5f2ee25cbb792df2acd7171e20f41e2fba1c9238d7"
+}

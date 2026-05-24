@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from tflex_harness.config import HarnessConfig
-from tflex_harness.runner import parse_csc_diagnostics, run_csharp_snippet, write_run_artifacts
+from tflex_harness.runner import CompileCache, RunStore, SnippetRunner, parse_csc_diagnostics, run_csharp_snippet, write_run_artifacts
 
 
 def _config(tmp_path):
@@ -81,3 +81,21 @@ def test_run_csharp_snippet_rejects_invalid_mode(tmp_path):
     assert record["event"] == "run_csharp_snippet"
     assert record["payload"]["stage"] == "input"
     assert record["payload"]["run_dir"] == result["run_dir"]
+
+
+def test_runner_exposes_internal_architecture_seams(tmp_path):
+    cfg = _config(tmp_path)
+    runner = SnippetRunner(cfg)
+
+    assert isinstance(runner.run_store, RunStore)
+    assert isinstance(runner.compile_cache, CompileCache)
+
+    result = runner.run(
+        "public class Program { public static int Main(){ return 0; } }",
+        mode="execute",
+        references=[],
+        artifact_prefix="test_runner_seams",
+    )
+
+    assert result["stage"] == "input"
+    assert Path(result["run_dir"]).exists()

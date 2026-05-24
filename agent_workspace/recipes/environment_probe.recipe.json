@@ -1,0 +1,14 @@
+{
+  "name": "environment_probe",
+  "description": "Initialize and exit a read-only minimal T-FLEX API session.",
+  "args": {},
+  "verified": true,
+  "last_verified": "2026-05-22",
+  "source": "environment_probe.cs",
+  "evidence": "environment_probe.md",
+  "limitations": [
+    "Session initialization only; no document create/edit/save."
+  ],
+  "source_sha256": "c70ce083f12668810ff538125ff7e0323280398d03368a5a125f37de77222646",
+  "markdown_sha256": "5f9572eca192dcd785db6091aaec51bdeee6b44462e45c7edaeb1b6535fd9e74"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "create_simple_2d_line",
+  "description": "Create an invisible 2D document with two free nodes and a construction line through them.",
+  "args": {
+    "output_file": "optional absolute .grb path"
+  },
+  "verified": true,
+  "last_verified": "2026-05-22",
+  "source": "create_simple_2d_line.cs",
+  "evidence": "create_simple_2d_line.md",
+  "limitations": [
+    "Output path must stay under artifacts/tflex_docs."
+  ],
+  "source_sha256": "bc83e7f0242580461ca2ec6f7df9b7a0eb64e2b9451d1a01bade38530260a05e",
+  "markdown_sha256": "a08a796cffe466fbc67dfa6de33ec0318c41750a2b19ceb23f92d88e567d0ab7"
+}

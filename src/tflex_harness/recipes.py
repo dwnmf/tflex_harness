@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -7,7 +9,17 @@ from .artifacts import ArtifactStore
 from .config import HarnessConfig, load_config
 from .runner import run_csharp_snippet
 
-_RECIPE_DEFINITIONS: tuple[dict[str, Any], ...] = (
+_REQUIRED_EVIDENCE_PHRASES = (
+    "## Live Verification Report",
+    "Test:",
+    "Docs used:",
+    "Snippet:",
+    "Result:",
+    "Evidence:",
+    "Blockers:",
+)
+
+_FALLBACK_RECIPE_DEFINITIONS: tuple[dict[str, Any], ...] = (
     {
         "name": "environment_probe",
         "description": "Initialize and exit a read-only minimal T-FLEX API session.",
@@ -41,23 +53,92 @@ _RECIPE_DEFINITIONS: tuple[dict[str, Any], ...] = (
 )
 
 
+def _sha256(path: Path) -> str | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
 def _recipe_paths(name: str, cfg: HarnessConfig) -> dict[str, str]:
     recipes_dir = cfg.repo_dir / "agent_workspace" / "recipes"
     return {
         "source_path": str(recipes_dir / f"{name}.cs"),
         "markdown_path": str(recipes_dir / f"{name}.md"),
+        "metadata_path": str(recipes_dir / f"{name}.recipe.json"),
     }
 
 
-def _recipe_definition(name: str) -> dict[str, Any]:
-    for recipe in _RECIPE_DEFINITIONS:
-        if recipe["name"] == name:
-            return dict(recipe)
-    raise KeyError(f"Unknown recipe: {name}")
+class RecipeRegistry:
+    def __init__(self, config: HarnessConfig | None = None) -> None:
+        self.config = config or load_config()
+        self.recipes_dir = self.config.repo_dir / "agent_workspace" / "recipes"
+
+    def list(self) -> list[dict[str, Any]]:
+        discovered = {path.stem.removesuffix(".recipe") for path in self.recipes_dir.glob("*.recipe.json")}
+        fallback = {str(recipe["name"]) for recipe in _FALLBACK_RECIPE_DEFINITIONS}
+        return [self.definition(name) for name in sorted(discovered | fallback)]
+
+    def known_names(self) -> list[str]:
+        return [str(recipe["name"]) for recipe in self.list()]
+
+    def definition(self, name: str) -> dict[str, Any]:
+        paths = _recipe_paths(name, self.config)
+        metadata_path = Path(paths["metadata_path"])
+        if metadata_path.exists():
+            data = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if data.get("name") != name:
+                data["verified"] = False
+                data["freshness"] = {"status": "stale", "reason": "metadata name mismatch"}
+        else:
+            data = self._fallback_definition(name)
+            data["freshness"] = {"status": "fallback", "reason": "metadata missing"}
+        data.update(paths)
+        data["source_exists"] = Path(paths["source_path"]).exists()
+        data["markdown_exists"] = Path(paths["markdown_path"]).exists()
+        self._apply_freshness(data)
+        return data
+
+    @staticmethod
+    def _fallback_definition(name: str) -> dict[str, Any]:
+        for recipe in _FALLBACK_RECIPE_DEFINITIONS:
+            if recipe["name"] == name:
+                return dict(recipe)
+        raise KeyError(f"Unknown recipe: {name}")
+
+    def _apply_freshness(self, data: dict[str, Any]) -> None:
+        source_path = Path(data["source_path"])
+        markdown_path = Path(data["markdown_path"])
+        source_hash = _sha256(source_path)
+        markdown_hash = _sha256(markdown_path)
+        stale_reasons: list[str] = []
+        if source_hash != data.get("source_sha256"):
+            stale_reasons.append("source hash mismatch")
+        if markdown_hash != data.get("markdown_sha256"):
+            stale_reasons.append("markdown hash mismatch")
+        if data.get("verified") is True and markdown_path.exists():
+            text = markdown_path.read_text(encoding="utf-8", errors="ignore")
+            missing = [phrase for phrase in _REQUIRED_EVIDENCE_PHRASES if phrase not in text]
+            stale_reasons.extend(f"missing evidence phrase: {phrase}" for phrase in missing)
+        if stale_reasons:
+            data["verified"] = False
+            data["freshness"] = {"status": "stale", "reasons": stale_reasons}
+        else:
+            data["freshness"] = {"status": "fresh"}
+        data["source_sha256_actual"] = source_hash
+        data["markdown_sha256_actual"] = markdown_hash
+
+    def source(self, name: str) -> str:
+        self.definition(name)
+        return Path(_recipe_paths(name, self.config)["source_path"]).read_text(encoding="utf-8")
 
 
-def _known_recipe_names() -> list[str]:
-    return [str(recipe["name"]) for recipe in _RECIPE_DEFINITIONS]
+def _recipe_definition(name: str, cfg: HarnessConfig | None = None) -> dict[str, Any]:
+    return RecipeRegistry(cfg).definition(name)
+
+
+def _known_recipe_names(config: HarnessConfig | None = None) -> list[str]:
+    return RecipeRegistry(config).known_names()
 
 
 def _output_root(cfg: HarnessConfig) -> Path:
@@ -73,43 +154,33 @@ def _is_under(path: Path, root: Path) -> bool:
 
 
 def list_recipes(config: HarnessConfig | None = None) -> list[dict[str, Any]]:
-    cfg = config or load_config()
-    recipes: list[dict[str, Any]] = []
-    for definition in _RECIPE_DEFINITIONS:
-        recipe = dict(definition)
-        recipe.update(_recipe_paths(recipe["name"], cfg))
-        recipe["source_exists"] = Path(recipe["source_path"]).exists()
-        recipe["markdown_exists"] = Path(recipe["markdown_path"]).exists()
-        recipes.append(recipe)
-    return recipes
+    return RecipeRegistry(config).list()
 
 
 def _recipe_source(name: str, cfg: HarnessConfig) -> str:
-    _recipe_definition(name)
-    return Path(_recipe_paths(name, cfg)["source_path"]).read_text(encoding="utf-8")
+    return RecipeRegistry(cfg).source(name)
 
 
 def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int = 60, config: HarnessConfig | None = None) -> dict[str, Any]:
     cfg = config or load_config()
+    registry = RecipeRegistry(cfg)
     args = dict(args or {})
     env: dict[str, str] = {}
     artifacts: dict[str, Any] = {}
 
-    if name not in _known_recipe_names():
+    known_names = registry.known_names()
+    if name not in known_names:
         return {
             "ok": False,
             "stage": "input",
             "error": "unknown recipe",
             "recipe": name,
-            "known_recipes": _known_recipe_names(),
+            "known_recipes": known_names,
             "recipe_args": args,
             "recipe_artifacts": {},
         }
 
-    recipe_info = _recipe_definition(name)
-    recipe_info.update(_recipe_paths(name, cfg))
-    recipe_info["source_exists"] = Path(recipe_info["source_path"]).exists()
-    recipe_info["markdown_exists"] = Path(recipe_info["markdown_path"]).exists()
+    recipe_info = registry.definition(name)
 
     if name in {"create_empty_document", "save_document_as_temp", "create_simple_2d_line", "create_simple_3d_extrusion"}:
         output = args.get("output_file")
@@ -140,7 +211,7 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         env["TFLEX_RECIPE_OUTPUT_FILE"] = str(output_file)
         artifacts["output_file"] = str(output_file)
 
-    code = _recipe_source(name, cfg)
+    code = registry.source(name)
     result = run_csharp_snippet(
         code,
         mode="run",

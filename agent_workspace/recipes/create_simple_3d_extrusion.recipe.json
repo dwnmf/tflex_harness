@@ -1,0 +1,16 @@
+{
+  "name": "create_simple_3d_extrusion",
+  "description": "Create an invisible 3D document with a circular profile and verified thicken extrusion.",
+  "args": {
+    "output_file": "optional absolute .grb path"
+  },
+  "verified": true,
+  "last_verified": "2026-05-22",
+  "source": "create_simple_3d_extrusion.cs",
+  "evidence": "create_simple_3d_extrusion.md",
+  "limitations": [
+    "Output path must stay under artifacts/tflex_docs."
+  ],
+  "source_sha256": "9c385f3fa93b964706549de94ad21eb3974ef13fafc9bc53c0f550009fd2c104",
+  "markdown_sha256": "bb15daaed31b8aaa335acead42a5575005a179b26c187c219e426e73d9c19f03"
+}

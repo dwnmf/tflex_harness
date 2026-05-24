@@ -41,8 +41,9 @@ def _preview(text: str, terms: list[str], max_chars: int = 600) -> str:
 
 
 @lru_cache(maxsize=4)
-def _load_symbols(path: str) -> tuple[dict[str, Any], ...]:
+def _load_symbols(path: str, freshness: tuple[Any, ...] | None = None) -> tuple[dict[str, Any], ...]:
     records: list[dict[str, Any]] = []
+    _ = freshness
     p = Path(path)
     if not p.exists():
         return ()
@@ -54,15 +55,89 @@ def _load_symbols(path: str) -> tuple[dict[str, Any], ...]:
     return tuple(records)
 
 
-class DocsSearch:
+def _file_freshness(path: Path) -> tuple[Any, ...]:
+    try:
+        stat = path.stat()
+    except OSError:
+        return (str(path), False)
+    return (str(path), True, stat.st_size, stat.st_mtime_ns)
+
+
+def _types_freshness(path: Path) -> tuple[Any, ...]:
+    if not path.exists():
+        return (str(path), False)
+    entries: list[tuple[str, int, int]] = []
+    for child in sorted(path.glob("*.md")):
+        try:
+            stat = child.stat()
+        except OSError:
+            continue
+        entries.append((child.name, stat.st_size, stat.st_mtime_ns))
+    return (str(path), True, tuple(entries))
+
+
+class DocsIndex:
     def __init__(self, config: HarnessConfig | None = None) -> None:
         self.config = config or load_config()
+        self._type_cache_key: tuple[Any, ...] | None = None
+        self._type_cache: tuple[dict[str, str], ...] = ()
+        self._chm_cache_key: tuple[Any, ...] | None = None
+        self._chm_cache: tuple[dict[str, Any], ...] = ()
+
+    def freshness(self) -> dict[str, Any]:
+        return {
+            "symbols": _file_freshness(self.config.symbols_jsonl),
+            "types": _types_freshness(self.config.types_dir),
+            "chm": _file_freshness(self.config.chm_pages_jsonl),
+            "manifest": _file_freshness(self.config.manifest_json),
+        }
+
+    def symbols(self) -> tuple[dict[str, Any], ...]:
+        path = self.config.symbols_jsonl
+        return _load_symbols(str(path), _file_freshness(path))
+
+    def type_pages(self) -> tuple[dict[str, str], ...]:
+        key = _types_freshness(self.config.types_dir)
+        if self._type_cache_key == key:
+            return self._type_cache
+        records: list[dict[str, str]] = []
+        if self.config.types_dir.exists():
+            for path in self.config.types_dir.glob("*.md"):
+                try:
+                    text = path.read_text(encoding="utf-8", errors="ignore")
+                except OSError:
+                    continue
+                records.append({"path": str(path), "name": path.name, "stem": path.stem, "text": text})
+        self._type_cache_key = key
+        self._type_cache = tuple(records)
+        return self._type_cache
+
+    def chm_pages(self) -> tuple[dict[str, Any], ...]:
+        path = self.config.chm_pages_jsonl
+        key = _file_freshness(path)
+        if self._chm_cache_key == key:
+            return self._chm_cache
+        records: list[dict[str, Any]] = []
+        if path.exists():
+            with path.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    if line.strip():
+                        records.append(json.loads(line))
+        self._chm_cache_key = key
+        self._chm_cache = tuple(records)
+        return self._chm_cache
+
+
+class DocsSearch:
+    def __init__(self, config: HarnessConfig | None = None) -> None:
+        self.index = DocsIndex(config)
+        self.config = self.index.config
 
     def search_symbols(self, query: str, assembly: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
         limit = normalize_limit(limit)
         terms = _terms(query)
         results: list[dict[str, Any]] = []
-        for rec in _load_symbols(str(self.config.symbols_jsonl)):
+        for rec in self.index.symbols():
             if assembly and rec.get("assembly") != assembly:
                 continue
             text = " ".join(str(rec.get(k) or "") for k in ["id", "assembly", "namespace", "type", "name", "signature", "summary", "remarks"])
@@ -91,18 +166,14 @@ class DocsSearch:
         limit = normalize_limit(limit)
         terms = _terms(query)
         results: list[dict[str, Any]] = []
-        if not self.config.types_dir.exists():
-            return results
-        for path in self.config.types_dir.glob("*.md"):
-            file_score = _text_score(path.name, terms) * 2
-            try:
-                text = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
-                continue
+        for rec in self.index.type_pages():
+            path = Path(rec["path"])
+            text = rec["text"]
+            file_score = _text_score(rec["name"], terms) * 2
             score = file_score + _text_score(text[:12000], terms)
             if score <= 0:
                 continue
-            title = text.splitlines()[0].lstrip("# ").strip() if text else path.stem
+            title = text.splitlines()[0].lstrip("# ").strip() if text else rec["stem"]
             results.append({
                 "source": "types",
                 "score": round(score, 4),
@@ -117,26 +188,19 @@ class DocsSearch:
         limit = normalize_limit(limit)
         terms = _terms(query)
         results: list[dict[str, Any]] = []
-        path = self.config.chm_pages_jsonl
-        if not path.exists():
-            return results
-        with path.open("r", encoding="utf-8") as fh:
-            for line in fh:
-                if not line.strip():
-                    continue
-                rec = json.loads(line)
-                text = " ".join([str(rec.get("title") or ""), str(rec.get("source_chm_path") or ""), str(rec.get("content") or "")])
-                score = _text_score(text, terms)
-                if score <= 0:
-                    continue
-                results.append({
-                    "source": "chm_pages.jsonl",
-                    "score": round(score, 4),
-                    "id": rec.get("id"),
-                    "title": rec.get("title"),
-                    "source_chm_path": rec.get("source_chm_path"),
-                    "preview": _preview(str(rec.get("content") or ""), terms),
-                })
+        for rec in self.index.chm_pages():
+            text = " ".join([str(rec.get("title") or ""), str(rec.get("source_chm_path") or ""), str(rec.get("content") or "")])
+            score = _text_score(text, terms)
+            if score <= 0:
+                continue
+            results.append({
+                "source": "chm_pages.jsonl",
+                "score": round(score, 4),
+                "id": rec.get("id"),
+                "title": rec.get("title"),
+                "source_chm_path": rec.get("source_chm_path"),
+                "preview": _preview(str(rec.get("content") or ""), terms),
+            })
         results.sort(key=lambda r: (-r["score"], str(r.get("id") or "")))
         return results[:limit]
 
