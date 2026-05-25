@@ -1,0 +1,18 @@
+{
+  "name": "create_3d_part_from_prototype",
+  "description": "Create a 3D part from the installed 3D part prototype, set Title, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "text_value": "new text/value where applicable; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "f089046005dafd82833e04f9c9491058e5383de86fa80f2c24859348142f5554",
+  "markdown_sha256": "d0e2a7b1dcecc57db58541ec9c79029fd65a2f7e1bb90132e399e3662389f467",
+  "last_run_dir": "artifacts/runs/20260525_213236_790332_recipe_create_3d_part_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

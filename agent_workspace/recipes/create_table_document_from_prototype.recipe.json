@@ -1,0 +1,18 @@
+{
+  "name": "create_table_document_from_prototype",
+  "description": "Create a table document from the installed gear-parameter table prototype, set one table cell, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "text_value": "new text/value where applicable; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "40e7e03e8b31a83183ba5cb38f188ec449269a264047fccc3e1102f696172bbf",
+  "markdown_sha256": "f11218e1fc2ca6fb58679ed229bfeafaa04a70454e8610f230d12d79bdf5a1e3",
+  "last_run_dir": "artifacts/runs/20260525_213238_919912_recipe_create_table_document_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

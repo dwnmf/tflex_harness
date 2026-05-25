@@ -160,6 +160,9 @@ The source `Program Files` tree is read-only input. Future prototype automation 
 - `prototype_replace_visible_text` — copies an installed `.grb` prototype, opens the copy, replaces visible `LineText`/non-table `RichText`, saves a new `.grb`, reopens it, and verifies persisted replacement.
 - `create_detail_drawing_from_prototype` — category recipe for drawings; defaults to `Чертежи/Чертёж детали с форматкой`, sets `Document.Properties.Title`, saves, reopens, and verifies.
 - `create_specification_from_prototype` — category recipe for specifications; defaults to `Спецификации/Спецификация форма 1 ГОСТ 2.106-2019`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_3d_part_from_prototype` — category recipe for 3D parts; defaults to `3D Деталь`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_table_document_from_prototype` — category recipe for table documents; defaults to `Таблицы/Таблица параметров зубчатого колеса.grb`, edits one `RichText` table cell, saves, reopens, and verifies.
+- `create_electrical_doc_from_prototype` — category recipe for electrical docs; defaults to `Электротехника/Клеммник.grb`, replaces visible text, saves, reopens, and verifies.
 
 Verified live text-variable mutation on 2026-05-25:
 
@@ -206,6 +209,18 @@ Verified live category recipes on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_212204_093117_recipe_create_specification_from_prototype`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Спецификации\Спецификация форма 1 ГОСТ 2.106-2019.grb`
 - verified stdout: `documentProperty.after.Title=Harness Specification`, `document.saved=True`, `document.outputSize=29138`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_3d_part_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_213236_790332_recipe_create_3d_part_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`
+- verified stdout: `documentProperty.after.Title=Harness 3D Part`, `document.saved=True`, `document.outputSize=28573`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_table_document_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_213238_919912_recipe_create_table_document_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Таблицы\Таблица параметров зубчатого колеса.grb`
+- verified stdout: `richText.count=1`, `table.cell.after=Harness Table Document`, `document.saved=True`, `document.outputSize=63263`, `table.cell.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_electrical_doc_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_213241_046854_recipe_create_electrical_doc_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
+- verified stdout: `visibleText.replaceCount=1`, `document.saved=True`, `document.outputSize=58724`, `visibleText.newAfter=1`, `visibleText.persisted=True`
 
 ## Document factory payloads
 

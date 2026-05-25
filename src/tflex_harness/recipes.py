@@ -54,6 +54,11 @@ _FALLBACK_RECIPE_DEFINITIONS: tuple[dict[str, Any], ...] = (
 )
 
 _CATEGORY_DOCUMENT_PROPERTY_RECIPES: dict[str, dict[str, str]] = {
+    "create_3d_part_from_prototype": {
+        "prototype_id": "3D Деталь",
+        "property_name": "Title",
+        "text_value": "Harness 3D Part",
+    },
     "create_detail_drawing_from_prototype": {
         "prototype_id": "Чертежи/Чертёж детали с форматкой",
         "property_name": "Title",
@@ -63,6 +68,22 @@ _CATEGORY_DOCUMENT_PROPERTY_RECIPES: dict[str, dict[str, str]] = {
         "prototype_id": "Спецификации/Спецификация форма 1 ГОСТ 2.106-2019",
         "property_name": "Title",
         "text_value": "Harness Specification",
+    },
+}
+
+_CATEGORY_TABLE_CELL_RECIPES: dict[str, dict[str, str]] = {
+    "create_table_document_from_prototype": {
+        "prototype_id": "Таблицы/Таблица параметров зубчатого колеса.grb",
+        "cell_index": "2",
+        "text_value": "Harness Table Document",
+    },
+}
+
+_CATEGORY_VISIBLE_TEXT_RECIPES: dict[str, dict[str, str]] = {
+    "create_electrical_doc_from_prototype": {
+        "prototype_id": "Электротехника/Клеммник.grb",
+        "search_text": "Цепь",
+        "replacement_text": "Harness Electrical Circuit",
     },
 }
 
@@ -334,6 +355,55 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         env["TFLEX_DOCUMENT_PROPERTY_TEXT"] = str(merged_args.get("text_value") or "")
         artifacts["source_path"] = str(source_path)
         artifacts["property_name"] = str(property_name)
+        artifacts["category_recipe_defaults"] = defaults
+
+    if name in _CATEGORY_TABLE_CELL_RECIPES:
+        defaults = _CATEGORY_TABLE_CELL_RECIPES[name]
+        merged_args = {**defaults, **args}
+        source_result = _resolve_prototype_source_arg(merged_args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        if "cell_index" not in merged_args:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "cell_index is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_TABLE_CELL_INDEX"] = str(merged_args.get("cell_index"))
+        env["TFLEX_TABLE_CELL_TEXT"] = str(merged_args.get("text_value") or "")
+        artifacts["source_path"] = str(source_path)
+        artifacts["cell_index"] = str(merged_args.get("cell_index"))
+        artifacts["category_recipe_defaults"] = defaults
+
+    if name in _CATEGORY_VISIBLE_TEXT_RECIPES:
+        defaults = _CATEGORY_VISIBLE_TEXT_RECIPES[name]
+        merged_args = {**defaults, **args}
+        source_result = _resolve_prototype_source_arg(merged_args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        search_text = merged_args.get("search_text")
+        if not search_text:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "search_text is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_VISIBLE_TEXT_SEARCH"] = str(search_text)
+        env["TFLEX_VISIBLE_TEXT_REPLACEMENT"] = str(merged_args.get("replacement_text") or "")
+        artifacts["source_path"] = str(source_path)
+        artifacts["search_text"] = str(search_text)
         artifacts["category_recipe_defaults"] = defaults
 
     if name == "prototype_replace_visible_text":

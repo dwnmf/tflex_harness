@@ -1,0 +1,18 @@
+{
+  "name": "create_electrical_doc_from_prototype",
+  "description": "Create an electrical document from the installed terminal-block prototype, replace visible text, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "text_value": "new text/value where applicable; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "abd6336be94bc4a6a4e78ee9a4f555b2e6b3af218586bd31309b8f94e80f1638",
+  "markdown_sha256": "64c1b30e4322136ea5d743fe7b6eb4dbb1f5b375343fcc83453d033960b66713",
+  "last_run_dir": "artifacts/runs/20260525_213241_046854_recipe_create_electrical_doc_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

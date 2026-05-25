@@ -729,18 +729,30 @@ Current Phase 5 evidence:
 
 - recipe: `create_detail_drawing_from_prototype`;
 - recipe: `create_specification_from_prototype`;
-- helper set: `easy_document_properties`;
+- recipe: `create_3d_part_from_prototype`;
+- recipe: `create_table_document_from_prototype`;
+- recipe: `create_electrical_doc_from_prototype`;
+- helper sets: `easy_document_properties`, `easy_text`;
 - live drawing command: `python -m tflex_harness.cli run-recipe create_detail_drawing_from_prototype --timeout-sec 120`;
 - live drawing run: `artifacts/runs/20260525_212201_368610_recipe_create_detail_drawing_from_prototype`;
 - live drawing evidence: `documentProperty.after.Title=Harness Detail Drawing`, `document.saved=True`, `document.outputSize=25462`, `documentProperty.persisted=True`;
 - live specification command: `python -m tflex_harness.cli run-recipe create_specification_from_prototype --timeout-sec 120`;
 - live specification run: `artifacts/runs/20260525_212204_093117_recipe_create_specification_from_prototype`;
-- live specification evidence: `documentProperty.after.Title=Harness Specification`, `document.saved=True`, `document.outputSize=29138`, `documentProperty.persisted=True`.
+- live specification evidence: `documentProperty.after.Title=Harness Specification`, `document.saved=True`, `document.outputSize=29138`, `documentProperty.persisted=True`;
+- live 3D part command: `python -m tflex_harness.cli run-recipe create_3d_part_from_prototype --timeout-sec 120`;
+- live 3D part run: `artifacts/runs/20260525_213236_790332_recipe_create_3d_part_from_prototype`;
+- live 3D part evidence: `documentProperty.after.Title=Harness 3D Part`, `document.saved=True`, `document.outputSize=28573`, `documentProperty.persisted=True`;
+- live table command: `python -m tflex_harness.cli run-recipe create_table_document_from_prototype --timeout-sec 120`;
+- live table run: `artifacts/runs/20260525_213238_919912_recipe_create_table_document_from_prototype`;
+- live table evidence: `richText.count=1`, `table.cell.after=Harness Table Document`, `document.saved=True`, `document.outputSize=63263`, `table.cell.persisted=True`;
+- live electrical command: `python -m tflex_harness.cli run-recipe create_electrical_doc_from_prototype --timeout-sec 120`;
+- live electrical run: `artifacts/runs/20260525_213241_046854_recipe_create_electrical_doc_from_prototype`;
+- live electrical evidence: `visibleText.replaceCount=1`, `document.saved=True`, `document.outputSize=58724`, `visibleText.newAfter=1`, `visibleText.persisted=True`.
 
 Remaining Phase 5 work:
 
-- category recipes for table documents, fragments, electrical docs, and 3D/assembly categories;
-- richer category-specific payload fields beyond writable document properties.
+- fragment and assembly category recipes;
+- richer category-specific payload fields beyond title/table-cell/visible-text mutation.
 
 ### Phase 6: Batch Document Factory
 
@@ -967,12 +979,11 @@ Integration/live:
 
 ## Immediate Next Work
 
-1. Analyze metadata JSON to choose mutation targets.
-2. Implement variable setting helper.
-3. Prove variable mutation on one copied prototype.
-4. Implement document property helper if API-visible.
-5. Add text/table helpers only after API proof.
-6. Create category recipes for drawings, specifications, tables, fragments, electrical docs.
+1. Add fragment category recipe from installed prototype.
+2. Add assembly category recipe from installed prototype.
+3. Add richer payload mapping per category.
+4. Add live semantic probes for unsupported prototype kinds.
+5. Promote stable live paths into recipe registry.
 
 ## Current Risks
 
