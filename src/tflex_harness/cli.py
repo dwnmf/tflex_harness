@@ -6,6 +6,7 @@ import sys
 
 from .artifacts import json_default
 from .diagnostics import get_environment
+from .document_factory_batch import create_documents_from_payload_dir
 from .document_factory import create_document_from_payload
 from .document_factory_validation import validate_document_factory_samples
 from .docs_search import DocsSearch
@@ -64,6 +65,15 @@ def main(argv: list[str] | None = None) -> int:
     factory_samples_p.add_argument("--fail-fast", action="store_true")
     factory_samples_p.add_argument("--dry-run", action="store_true")
     factory_samples_p.add_argument("--output-dir", default=None)
+
+    factory_batch_p = sub.add_parser("document-factory-batch", help="Run all document factory payload JSON files from a folder and write a matrix")
+    factory_batch_p.add_argument("--payload-dir", required=True, help="Folder containing document factory payload JSON files")
+    factory_batch_p.add_argument("--glob", default="*.json", help="Payload filename glob; default: *.json")
+    factory_batch_p.add_argument("--recursive", action="store_true")
+    factory_batch_p.add_argument("--timeout-sec", type=int, default=120)
+    factory_batch_p.add_argument("--fail-fast", action="store_true")
+    factory_batch_p.add_argument("--dry-run", action="store_true")
+    factory_batch_p.add_argument("--output-dir", default=None)
 
     state_p = sub.add_parser("state", help="Capture read-only live T-FLEX state")
     state_p.add_argument("--timeout-sec", type=int, default=60)
@@ -140,6 +150,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "document-factory-samples":
         emit(validate_document_factory_samples(timeout_sec=args.timeout_sec, dry_run=args.dry_run, fail_fast=args.fail_fast, output_dir=args.output_dir))
+        return 0
+    if args.command == "document-factory-batch":
+        emit(
+            create_documents_from_payload_dir(
+                args.payload_dir,
+                pattern=args.glob,
+                recursive=args.recursive,
+                timeout_sec=args.timeout_sec,
+                dry_run=args.dry_run,
+                fail_fast=args.fail_fast,
+                output_dir=args.output_dir,
+            )
+        )
         return 0
     if args.command == "state":
         emit(capture_tflex_state(timeout_sec=args.timeout_sec))

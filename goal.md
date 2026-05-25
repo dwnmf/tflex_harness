@@ -754,7 +754,9 @@ Current Phase 6 evidence:
 - module: `src/tflex_harness/document_factory.py`;
 - CLI: `python -m tflex_harness.cli create-document --payload input.json`;
 - sample matrix CLI: `python -m tflex_harness.cli document-factory-samples`;
+- batch payload folder CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads`;
 - dry-run support writes `input_payload.json` and `factory_plan.json` under a factory run directory;
+- batch dry-run/live support writes `document_factory_batch_matrix.json` and `.csv`;
 - dispatcher executes generated visible C# when a payload has multiple supported mutation operations;
 - single-operation payloads still dispatch to one verified recipe;
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
@@ -830,16 +832,16 @@ Current Phase 6 evidence:
 
 Remaining Phase 6 work:
 
-- polish output error classification and batch reporting around all supported formats.
+- polish output error classification around all supported formats.
 
 ### Phase 7: Enterprise Workflow
 
-Status: pending.
+Status: started.
 
 Tasks:
 
-- support batch payload folder;
-- support per-run summary CSV/JSON;
+- support batch payload folder; **implemented initial CLI**
+- support per-run summary CSV/JSON; **implemented initial batch matrix**
 - support failure classification;
 - support dry-run;
 - support “open only” audit mode;
@@ -849,6 +851,14 @@ Validation:
 
 - batch report with success/fail/unsupported buckets;
 - no silent failures.
+
+Current Phase 7 evidence:
+
+- module: `src/tflex_harness/document_factory_batch.py`;
+- CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads`;
+- supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, and `--output-dir`;
+- output files: `document_factory_batch_matrix.json`, `document_factory_batch_matrix.csv`;
+- row evidence includes payload path/name, status, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, and error.
 
 ## Helper Set Plan
 
@@ -964,3 +974,4 @@ Mitigation:
 - 2026-05-25: Added STEP output materialization to document factory. STEP export runs as separate visible C# using `EasyPrototype.OpenCopy` and `EasyExport.Step`; live solid proof produced `phase6_solid_step_export.step` size `6919` containing `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, and `ADVANCED_FACE`.
 - 2026-05-25: Added PDF output materialization to document factory. PDF export runs as separate visible C# using `new ExportToPDF(document)` and `EasyExport.Pdf`; helper copies `PDFExport.dll` locally before export. Live drawing proof produced `phase6_drawing_pdf_export.pdf` size `11109` with `%PDF-1.5` header.
 - 2026-05-25: Added DXF/DWG output materialization to document factory. ACAD exports run as separate visible C# using `Document.ExportToDXF.Export(path)` and `Document.ExportToDWG.Export(path)`. Live drawing proof produced DXF size `125193` with `AC1027` header evidence and DWG size `18220` with `AC1027` binary header.
+- 2026-05-25: Started Phase 7 enterprise workflow with `document-factory-batch`. It runs all payload JSON files from a folder, supports dry-run/fail-fast/recursive globbing, and writes JSON/CSV batch matrices.

@@ -243,3 +243,29 @@ def test_cli_document_factory_samples_dry_run(tmp_path):
     assert Path(result["matrix_path"]).exists()
     assert Path(result["csv_path"]).exists()
     assert Path(result["payload_dir"]).exists()
+
+
+def test_cli_document_factory_batch_dry_run(tmp_path):
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    payload = payload_dir / "drawing.json"
+    payload.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "2D Деталь"},
+                "document": {"properties": {"Title": "Batch Smoke"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "factory_batch"
+
+    result = _cli("document-factory-batch", "--payload-dir", str(payload_dir), "--dry-run", "--output-dir", str(out))
+
+    assert result["ok"] is True
+    assert result["summary"]["selected"] == 1
+    assert result["summary"]["passed"] == 1
+    assert result["rows"][0]["recipe"] == "prototype_set_document_property"
+    assert Path(result["matrix_path"]).exists()
+    assert Path(result["csv_path"]).exists()

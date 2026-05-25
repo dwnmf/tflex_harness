@@ -55,6 +55,7 @@ python -m tflex_harness.cli search "TFlex.Model.Document" --limit 5
 python -m tflex_harness.cli recipes
 python -m tflex_harness.cli state
 python -m tflex_harness.cli run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"
+python -m tflex_harness.cli document-factory-batch --payload-dir payloads --dry-run
 tflex-harness-mcp
 ```
 
