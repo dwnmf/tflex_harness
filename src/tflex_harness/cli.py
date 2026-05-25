@@ -6,6 +6,7 @@ import sys
 
 from .artifacts import json_default
 from .diagnostics import get_environment
+from .document_factory import create_document_from_payload
 from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
 from .prototype_metadata import capture_metadata_batch
@@ -49,6 +50,11 @@ def main(argv: list[str] | None = None) -> int:
     recipe_p.add_argument("name")
     recipe_p.add_argument("--arg", action="append", default=[], help="Recipe argument in NAME=VALUE form")
     recipe_p.add_argument("--timeout-sec", type=int, default=60)
+
+    create_doc_p = sub.add_parser("create-document", help="Create a document from a JSON payload by dispatching a verified recipe")
+    create_doc_p.add_argument("--payload", required=True, help="Path to document factory JSON payload")
+    create_doc_p.add_argument("--timeout-sec", type=int, default=120)
+    create_doc_p.add_argument("--dry-run", action="store_true")
 
     state_p = sub.add_parser("state", help="Capture read-only live T-FLEX state")
     state_p.add_argument("--timeout-sec", type=int, default=60)
@@ -119,6 +125,9 @@ def main(argv: list[str] | None = None) -> int:
             key, value = item.split("=", 1)
             recipe_args[key] = value
         emit(run_recipe(args.name, args=recipe_args, timeout_sec=args.timeout_sec))
+        return 0
+    if args.command == "create-document":
+        emit(create_document_from_payload(args.payload, timeout_sec=args.timeout_sec, dry_run=args.dry_run))
         return 0
     if args.command == "state":
         emit(capture_tflex_state(timeout_sec=args.timeout_sec))

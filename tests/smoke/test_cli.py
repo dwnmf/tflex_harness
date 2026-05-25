@@ -208,3 +208,25 @@ def test_cli_prototypes_metadata_with_empty_fake_tree(tmp_path):
     assert Path(result["index_path"]).exists()
     assert Path(result["csv_path"]).exists()
     assert Path(result["metadata_dir"]).exists()
+
+
+def test_cli_create_document_dry_run_dispatches_payload(tmp_path):
+    payload = tmp_path / "payload.json"
+    payload.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "2D Деталь"},
+                "document": {"properties": {"Title": "Smoke"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _cli("create-document", "--payload", str(payload), "--dry-run")
+
+    assert result["ok"] is True
+    assert result["stage"] == "dry_run"
+    assert result["plan"]["recipe"] == "prototype_set_document_property"
+    assert Path(result["input_payload_path"]).exists()
+    assert Path(result["plan_path"]).exists()

@@ -35,6 +35,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
+- `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
@@ -190,3 +191,31 @@ Verified live visible 2D text replacement on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_182531_611149_recipe_prototype_replace_visible_text`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
 - verified stdout: `visibleText.beforeCount=1`, `visibleText.line.after=Harness Circuit`, `visibleText.replaceCount=1`, `document.saved=True`, `visibleText.oldAfter=0`, `visibleText.newAfter=1`, `visibleText.persisted=True`
+
+## Document factory payloads
+
+Initial Phase 6 factory command:
+
+```powershell
+python -m tflex_harness.cli create-document --payload input.json --dry-run
+python -m tflex_harness.cli create-document --payload input.json --timeout-sec 120
+```
+
+Current dispatcher executes one verified recipe per payload run. Priority is:
+
+1. explicit `recipe`;
+2. `document.properties`;
+3. `document.variables`;
+4. `document.text_replacements`;
+5. `document.tables`;
+6. fallback `prototype_open_copy_save`.
+
+If multiple mutation groups are present, the factory reports the rest as `pending_operations`.
+
+Verified live factory dispatch on 2026-05-25:
+
+- command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`
+- factory run directory: `artifacts/runs/20260525_183154_667605_document_factory`
+- recipe run directory: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`
+- selected recipe: `prototype_set_document_property`
+- verified stdout: `documentProperty.after.Title=Harness Factory Live Test`, `document.saved=True`, `documentProperty.reopened=Harness Factory Live Test`, `documentProperty.persisted=True`

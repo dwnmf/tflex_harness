@@ -727,7 +727,7 @@ Validation:
 
 ### Phase 6: Batch Document Factory
 
-Status: pending.
+Status: started.
 
 Tasks:
 
@@ -748,6 +748,27 @@ Validation:
 - create drawing from prototype;
 - create specification from prototype;
 - create table document from prototype.
+
+Current Phase 6 evidence:
+
+- module: `src/tflex_harness/document_factory.py`;
+- CLI: `python -m tflex_harness.cli create-document --payload input.json`;
+- dry-run support writes `input_payload.json` and `factory_plan.json` under a factory run directory;
+- dispatcher currently executes one verified recipe per payload run;
+- supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
+- multi-group payloads report unexecuted groups as `pending_operations`.
+- live command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`;
+- live factory run: `artifacts/runs/20260525_183154_667605_document_factory`;
+- live recipe run: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`;
+- selected recipe: `prototype_set_document_property`;
+- verified stdout: `documentProperty.after.Title=Harness Factory Live Test`, `document.saved=True`, `documentProperty.reopened=Harness Factory Live Test`, `documentProperty.persisted=True`.
+
+Remaining Phase 6 work:
+
+- live factory evidence for 3D part, drawing, specification, and table categories;
+- multi-step payload execution in one copied document;
+- export target handling beyond GRB;
+- output naming contract.
 
 ### Phase 7: Enterprise Workflow
 
