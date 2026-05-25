@@ -85,6 +85,8 @@ Known helper sets:
 - `easy_3d`: session/profile/gear/solid/placement helpers
 - `easy_gears`: `TFlexEasyGears.cs` plus minimal dependencies
 - `easy_export`: session/export helpers
+- `easy_prototype`: installed `.grb` prototype copy/open/save helpers
+- `easy_variables`: prototype/session helpers plus text/real variable mutation helpers
 - `all`: every helper source
 
 For gear assemblies:

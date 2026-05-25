@@ -435,7 +435,10 @@ def _decode(value: str) -> str:
     escaped = False
     for char in value:
         if escaped:
-            result.append({"p": "|", "r": "\r", "n": "\n", "\\": "\\"}.get(char, char))
+            if char in {"p", "r", "n", "\\"}:
+                result.append({"p": "|", "r": "\r", "n": "\n", "\\": "\\"}[char])
+            else:
+                result.append("\\" + char)
             escaped = False
         elif char == "\\":
             escaped = True

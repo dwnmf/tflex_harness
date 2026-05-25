@@ -179,9 +179,14 @@ def _parse_bool(value: str) -> bool | None:
 def _decode(value: str) -> str:
     result = []
     escaped = False
+    mapping = {"p": "|", "r": "\r", "n": "\n", "\\": "\\"}
     for char in value:
         if escaped:
-            result.append({"p": "|", "r": "\r", "n": "\n", "\\": "\\"}.get(char, char))
+            if char in mapping:
+                result.append(mapping[char])
+            else:
+                result.append("\\")
+                result.append(char)
             escaped = False
         elif char == "\\":
             escaped = True

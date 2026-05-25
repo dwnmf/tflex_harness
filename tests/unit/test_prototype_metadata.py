@@ -39,6 +39,20 @@ def test_parse_metadata_stdout_extracts_counts_types_variables():
     assert metadata["variables"][0]["text_value"] == "ABC.001"
 
 
+def test_parse_metadata_stdout_preserves_unknown_backslash_escapes():
+    stdout = "\n".join(
+        [
+            r"document.fileName=C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb",
+            r"document.title=Path C:\Temp\demo.grb",
+        ]
+    )
+
+    metadata = parse_metadata_stdout(stdout)
+
+    assert metadata["document"]["fileName"] == r"C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb"
+    assert metadata["document"]["title"] == r"Path C:\Temp\demo.grb"
+
+
 def test_capture_metadata_batch_writes_index_and_per_prototype_files(tmp_path):
     root = tmp_path / "Прототипы"
     _write(root / "3D Деталь.grb", b"part")

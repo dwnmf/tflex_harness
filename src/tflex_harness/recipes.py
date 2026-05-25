@@ -213,46 +213,34 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         artifacts["output_file"] = str(output_file)
 
     if name == "prototype_open_copy_save":
-        source = args.get("source_path") or args.get("prototype_path")
-        selector = args.get("prototype_id") or args.get("prototype_selector")
-        if not source and selector:
-            try:
-                prototype = find_prototype(str(selector))
-            except KeyError as exc:
-                return {
-                    "ok": False,
-                    "stage": "input",
-                    "error": str(exc),
-                    "recipe": name,
-                    "recipe_args": args,
-                    "recipe_artifacts": {},
-                    "recipe_info": recipe_info,
-                }
-            source = prototype["path"]
-        if not source:
-            return {
-                "ok": False,
-                "stage": "input",
-                "error": "source_path or prototype_id is required",
-                "recipe": name,
-                "recipe_args": args,
-                "recipe_artifacts": {},
-                "recipe_info": recipe_info,
-            }
-        source_path = Path(str(source)).resolve()
-        if not source_path.exists():
-            return {
-                "ok": False,
-                "stage": "input",
-                "error": "source_path does not exist",
-                "recipe": name,
-                "source_path": str(source_path),
-                "recipe_args": args,
-                "recipe_artifacts": {},
-                "recipe_info": recipe_info,
-            }
+        source_result = _resolve_prototype_source_arg(args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        source_path = Path(str(source_result["source_path"])).resolve()
         env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
         artifacts["source_path"] = str(source_path)
+
+    if name == "prototype_set_text_variable":
+        source_result = _resolve_prototype_source_arg(args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        variable_name = args.get("variable_name")
+        if not variable_name:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "variable_name is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_VARIABLE_NAME"] = str(variable_name)
+        env["TFLEX_VARIABLE_TEXT_VALUE"] = str(args.get("text_value") or "")
+        artifacts["source_path"] = str(source_path)
+        artifacts["variable_name"] = str(variable_name)
 
     code = registry.source(name)
     helpers = recipe_info.get("helpers")
@@ -270,3 +258,45 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
     result["recipe_artifacts"] = artifacts
     result["recipe_info"] = recipe_info
     return result
+
+
+def _resolve_prototype_source_arg(args: dict[str, Any], recipe_name: str, recipe_info: dict[str, Any]) -> dict[str, Any]:
+    source = args.get("source_path") or args.get("prototype_path")
+    selector = args.get("prototype_id") or args.get("prototype_selector")
+    if not source and selector:
+        try:
+            prototype = find_prototype(str(selector))
+        except KeyError as exc:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": str(exc),
+                "recipe": recipe_name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source = prototype["path"]
+    if not source:
+        return {
+            "ok": False,
+            "stage": "input",
+            "error": "source_path or prototype_id is required",
+            "recipe": recipe_name,
+            "recipe_args": args,
+            "recipe_artifacts": {},
+            "recipe_info": recipe_info,
+        }
+    source_path = Path(str(source)).resolve()
+    if not source_path.exists():
+        return {
+            "ok": False,
+            "stage": "input",
+            "error": "source_path does not exist",
+            "recipe": recipe_name,
+            "source_path": str(source_path),
+            "recipe_args": args,
+            "recipe_artifacts": {},
+            "recipe_info": recipe_info,
+        }
+    return {"ok": True, "source_path": str(source_path)}
