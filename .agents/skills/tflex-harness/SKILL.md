@@ -30,6 +30,36 @@ User-facing style:
 - Architecture/status: `goal.md`
 - Local T-FLEX API docs: `D:\REALPROJECTS\tflex_api\llm`
 
+
+## Current Focus: Targeted Fixes 1-3
+
+As of 2026-05-25, `goal.md` has been reset to a compact plan. Ignore older phase sprawl unless needed for evidence lookup. Current work is only:
+
+1. **Tables/specifications**
+   - Generic `RichText` table-cell mutation works for `Таблицы/*`.
+   - Live matrix: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json`.
+   - Result: `Таблицы` selected `7`, passed `7`, persisted `7`.
+   - Same raw path is weak for `Спецификации/*`.
+   - Live matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`.
+   - Result: `Спецификации` selected `20`, passed `1`, failed `19`, persisted `1`.
+   - Next: find specification-specific API; do not keep retrying raw `RichText.GetTableByIndex(0)` as the main fix.
+
+2. **Electrical documents**
+   - Generic visible text replacement works only where `LineText` or non-table `RichText` is API-visible.
+   - Direct proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`.
+   - Batch matrix: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`.
+   - Result: `Электротехника` selected `8`, passed `4`, failed `4`, persisted `4`.
+   - Next: probe failing electrical prototypes for variables, symbol-like objects, connector metadata, or electrical-specific API.
+
+3. **Fragments/assemblies**
+   - Semantic Fragment3D LCS insertion is live-proven.
+   - Recipe: `helper_fragment_lcs_assembly`.
+   - Live run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`.
+   - Evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
+   - Next: wire this path into document factory payloads.
+
+Do not mark any of these complete without a fresh narrow live run for the exact changed path.
+
 ## Hard Rules
 
 1. Run `git status --short` before tracked edits.
@@ -90,7 +120,7 @@ Known helper sets:
 - `easy_export`: session/export helpers
 - `easy_prototype`: installed `.grb` prototype copy/open/save helpers
 - `easy_variables`: prototype/session helpers plus text/real variable mutation helpers
-- `easy_text`: prototype/session helpers plus `RichText` table cell and visible 2D text replacement helpers
+- `easy_text`: prototype/session helpers plus `RichText` table cell, visible 2D text replacement helpers, and first visible non-table text helpers
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
 - `all`: every helper source
 
@@ -224,6 +254,7 @@ Runtime facts:
   - `fragmentTargetLCSNullAfter=False`
   - `asmAfter=1`
 - Saved `.grb` files under `artifacts/tflex_docs/20260522_200532_574925_probe_fragment_lcs_fix`.
+- Newer recipe proof `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly` returned `fragmentAssembly.persisted=True`, `assembly.operationsAfter=1`, `part.outputSize=11444`, and `assembly.outputSize=9935`.
 
 ## Native Mate Status
 
