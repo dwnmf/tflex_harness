@@ -267,5 +267,32 @@ def test_cli_document_factory_batch_dry_run(tmp_path):
     assert result["summary"]["selected"] == 1
     assert result["summary"]["passed"] == 1
     assert result["rows"][0]["recipe"] == "prototype_set_document_property"
+    assert result["rows"][0]["failure_kind"] == "passed"
     assert Path(result["matrix_path"]).exists()
     assert Path(result["csv_path"]).exists()
+
+
+def test_cli_document_factory_batch_rerun_failed_dry_run(tmp_path):
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    payload = payload_dir / "bad.json"
+    payload.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "2D Деталь"},
+                "document": {"properties": {"Title": "Retry Smoke"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    matrix = tmp_path / "previous_matrix.json"
+    matrix.write_text(json.dumps({"rows": [{"ok": False, "payload_path": str(payload)}]}, ensure_ascii=False), encoding="utf-8")
+    out = tmp_path / "retry"
+
+    result = _cli("document-factory-batch", "--failed-matrix", str(matrix), "--dry-run", "--output-dir", str(out))
+
+    assert result["ok"] is True
+    assert result["selection"] == "failed_matrix"
+    assert result["summary"]["selected"] == 1
+    assert result["summary"]["buckets"]["passed"] == 1

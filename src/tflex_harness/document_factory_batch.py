@@ -14,25 +14,24 @@ FactoryRunner = Callable[[Path, int, bool], dict[str, Any]]
 
 
 def create_documents_from_payload_dir(
-    payload_dir: str | Path,
+    payload_dir: str | Path | None = None,
     *,
     pattern: str = "*.json",
     recursive: bool = False,
+    failed_matrix: str | Path | None = None,
     timeout_sec: int = 120,
     dry_run: bool = False,
     fail_fast: bool = False,
     output_dir: str | Path | None = None,
     factory_runner: FactoryRunner | None = None,
 ) -> dict[str, Any]:
-    source_dir = Path(payload_dir).resolve()
-    if not source_dir.exists():
-        return {"ok": False, "stage": "input", "error": "payload directory does not exist", "payload_dir": str(source_dir)}
-    if not source_dir.is_dir():
-        return {"ok": False, "stage": "input", "error": "payload path is not a directory", "payload_dir": str(source_dir)}
     if not pattern:
-        return {"ok": False, "stage": "input", "error": "pattern is required", "payload_dir": str(source_dir)}
+        return {"ok": False, "stage": "input", "error": "pattern is required", "payload_dir": str(Path(payload_dir).resolve()) if payload_dir else None}
+    selection = _select_payloads(payload_dir, pattern=pattern, recursive=recursive, failed_matrix=failed_matrix)
+    if selection.get("ok") is False:
+        return selection
 
-    payloads = _payload_paths(source_dir, pattern=pattern, recursive=recursive)
+    payloads = selection["payloads"]
     out = _output_dir(output_dir)
     runner = factory_runner or _factory_runner_adapter
     rows: list[dict[str, Any]] = []
@@ -48,7 +47,9 @@ def create_documents_from_payload_dir(
     matrix = {
         "ok": summary["failed"] == 0,
         "stage": "dry_run" if dry_run else "run",
-        "payload_dir": str(source_dir),
+        "payload_dir": selection.get("payload_dir"),
+        "failed_matrix": selection.get("failed_matrix"),
+        "selection": selection["selection"],
         "pattern": pattern,
         "recursive": recursive,
         "summary": summary,
@@ -65,6 +66,54 @@ def create_documents_from_payload_dir(
 
 def _factory_runner_adapter(payload_path: Path, timeout_sec: int, dry_run: bool) -> dict[str, Any]:
     return create_document_from_payload(payload_path, timeout_sec=timeout_sec, dry_run=dry_run)
+
+
+def _select_payloads(
+    payload_dir: str | Path | None,
+    *,
+    pattern: str,
+    recursive: bool,
+    failed_matrix: str | Path | None,
+) -> dict[str, Any]:
+    if failed_matrix is not None:
+        matrix_path = Path(failed_matrix).resolve()
+        if not matrix_path.exists():
+            return {"ok": False, "stage": "input", "error": "failed matrix does not exist", "failed_matrix": str(matrix_path)}
+        try:
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8-sig"))
+        except json.JSONDecodeError as exc:
+            return {"ok": False, "stage": "input", "error": "failed matrix JSON is invalid", "failed_matrix": str(matrix_path), "detail": str(exc)}
+        if not isinstance(matrix, dict) or not isinstance(matrix.get("rows"), list):
+            return {"ok": False, "stage": "input", "error": "failed matrix must contain rows array", "failed_matrix": str(matrix_path)}
+        payloads = []
+        for row in matrix["rows"]:
+            if not isinstance(row, dict) or row.get("ok") is True:
+                continue
+            payload = row.get("payload_path")
+            if payload:
+                payloads.append(Path(str(payload)).resolve())
+        return {
+            "ok": True,
+            "selection": "failed_matrix",
+            "payload_dir": None,
+            "failed_matrix": str(matrix_path),
+            "payloads": payloads,
+        }
+
+    if payload_dir is None:
+        return {"ok": False, "stage": "input", "error": "payload directory or failed matrix is required", "payload_dir": None}
+    source_dir = Path(payload_dir).resolve()
+    if not source_dir.exists():
+        return {"ok": False, "stage": "input", "error": "payload directory does not exist", "payload_dir": str(source_dir)}
+    if not source_dir.is_dir():
+        return {"ok": False, "stage": "input", "error": "payload path is not a directory", "payload_dir": str(source_dir)}
+    return {
+        "ok": True,
+        "selection": "payload_dir",
+        "payload_dir": str(source_dir),
+        "failed_matrix": None,
+        "payloads": _payload_paths(source_dir, pattern=pattern, recursive=recursive),
+    }
 
 
 def _payload_paths(source_dir: Path, *, pattern: str, recursive: bool) -> list[Path]:
@@ -91,12 +140,14 @@ def _row_from_result(index: int, payload_path: Path, result: dict[str, Any], *, 
     pdf_output = next((item for item in outputs if item.get("format") == "pdf"), {})
     dxf_output = next((item for item in outputs if item.get("format") == "dxf"), {})
     dwg_output = next((item for item in outputs if item.get("format") == "dwg"), {})
+    failure_kind = _failure_kind(result)
     return {
         "index": index,
         "payload_name": payload_path.stem,
         "payload_path": str(payload_path),
         "status": "passed" if result.get("ok") else "failed",
         "ok": bool(result.get("ok")),
+        "failure_kind": failure_kind,
         "dry_run": dry_run,
         "stage": result.get("stage"),
         "factory_run_dir": result.get("factory_run_dir"),
@@ -129,7 +180,46 @@ def _summary(rows: list[dict[str, Any]], *, selected: int, dry_run: bool) -> dic
         "attempted": attempted,
         "passed": passed,
         "failed": failed,
+        "buckets": _buckets(rows),
     }
+
+
+def _failure_kind(result: dict[str, Any]) -> str:
+    if result.get("ok") is True:
+        return "passed"
+    output_errors = result.get("output_errors") or []
+    if output_errors:
+        return "export_failed"
+    stage = str(result.get("stage") or "").lower()
+    error = str(result.get("error") or "").lower()
+    recipe_result = result.get("recipe_result") if isinstance(result.get("recipe_result"), dict) else {}
+    recipe_stage = str(recipe_result.get("stage") or "").lower()
+    if stage == "input" or recipe_stage == "input":
+        return "input_failed"
+    if stage == "timeout" or recipe_stage == "timeout" or "timeout" in error:
+        return "timeout_failed"
+    if recipe_result and recipe_result.get("ok") is False:
+        return "recipe_failed"
+    if stage in {"compile", "run"}:
+        return "run_failed"
+    return "unknown_failed"
+
+
+def _buckets(rows: list[dict[str, Any]]) -> dict[str, int]:
+    keys = [
+        "passed",
+        "input_failed",
+        "timeout_failed",
+        "export_failed",
+        "recipe_failed",
+        "run_failed",
+        "unknown_failed",
+    ]
+    buckets = {key: 0 for key in keys}
+    for row in rows:
+        kind = row.get("failure_kind") or ("passed" if row.get("ok") else "unknown_failed")
+        buckets[str(kind)] = buckets.get(str(kind), 0) + 1
+    return buckets
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -138,6 +228,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "payload_name",
         "status",
         "ok",
+        "failure_kind",
         "dry_run",
         "stage",
         "recipe",

@@ -66,8 +66,9 @@ def main(argv: list[str] | None = None) -> int:
     factory_samples_p.add_argument("--dry-run", action="store_true")
     factory_samples_p.add_argument("--output-dir", default=None)
 
-    factory_batch_p = sub.add_parser("document-factory-batch", help="Run all document factory payload JSON files from a folder and write a matrix")
-    factory_batch_p.add_argument("--payload-dir", required=True, help="Folder containing document factory payload JSON files")
+    factory_batch_p = sub.add_parser("document-factory-batch", help="Run document factory payload JSON files from a folder or rerun failed rows from a matrix")
+    factory_batch_p.add_argument("--payload-dir", default=None, help="Folder containing document factory payload JSON files")
+    factory_batch_p.add_argument("--failed-matrix", default=None, help="Previous document_factory_batch_matrix.json; rerun rows where ok=false")
     factory_batch_p.add_argument("--glob", default="*.json", help="Payload filename glob; default: *.json")
     factory_batch_p.add_argument("--recursive", action="store_true")
     factory_batch_p.add_argument("--timeout-sec", type=int, default=120)
@@ -157,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.payload_dir,
                 pattern=args.glob,
                 recursive=args.recursive,
+                failed_matrix=args.failed_matrix,
                 timeout_sec=args.timeout_sec,
                 dry_run=args.dry_run,
                 fail_fast=args.fail_fast,

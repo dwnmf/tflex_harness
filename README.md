@@ -37,7 +37,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
 - `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
 - `python -m tflex_harness.cli document-factory-samples` — runs the standard 3D/drawing/specification/table factory sample payloads and writes a JSON/CSV matrix.
-- `python -m tflex_harness.cli document-factory-batch --payload-dir payloads` — runs every payload JSON in a folder and writes a JSON/CSV batch matrix.
+- `python -m tflex_harness.cli document-factory-batch --payload-dir payloads` — runs every payload JSON in a folder, classifies failures, supports rerun-failed, and writes a JSON/CSV batch matrix.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
@@ -203,6 +203,7 @@ python -m tflex_harness.cli create-document --payload input.json --dry-run
 python -m tflex_harness.cli create-document --payload input.json --timeout-sec 120
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --dry-run
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --timeout-sec 120 --fail-fast
+python -m tflex_harness.cli document-factory-batch --failed-matrix artifacts/my_batch/document_factory_batch_matrix.json --timeout-sec 120
 ```
 
 Current dispatcher executes one generated multi-step C# snippet when a payload contains multiple supported mutation operations. Single-operation payloads dispatch to one verified recipe. Single-operation priority is:
@@ -247,8 +248,12 @@ python -m tflex_harness.cli document-factory-batch --payload-dir payloads --glob
 
 The batch command writes `document_factory_batch_matrix.json` and
 `document_factory_batch_matrix.csv` with per-payload status, recipe selection,
-output paths/sizes, export errors, and factory run directory. Use `--dry-run`
-for planning only and `--fail-fast` to stop after the first failed payload.
+output paths/sizes, export errors, failure kind, and factory run directory. The
+summary includes buckets for `passed`, `input_failed`, `timeout_failed`,
+`export_failed`, `recipe_failed`, `run_failed`, and `unknown_failed`. Use
+`--dry-run` for planning only, `--fail-fast` to stop after the first failed
+payload, and `--failed-matrix <previous-matrix.json>` to rerun only rows where
+`ok=false`.
 
 Verified live factory dispatch on 2026-05-25:
 

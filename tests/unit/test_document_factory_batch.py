@@ -49,9 +49,15 @@ def test_create_documents_from_payload_dir_writes_matrix_and_csv(tmp_path):
     )
 
     assert result["ok"] is True
-    assert result["summary"] == {"dry_run": True, "selected": 2, "attempted": 2, "passed": 2, "failed": 0}
+    assert result["summary"]["dry_run"] is True
+    assert result["summary"]["selected"] == 2
+    assert result["summary"]["attempted"] == 2
+    assert result["summary"]["passed"] == 2
+    assert result["summary"]["failed"] == 0
+    assert result["summary"]["buckets"]["passed"] == 2
     assert [row["payload_name"] for row in result["rows"]] == ["a", "b"]
     assert result["rows"][0]["recipe"] == "prototype_set_document_property"
+    assert result["rows"][0]["failure_kind"] == "passed"
     assert calls == [("a.json", 9, True), ("b.json", 9, True)]
     assert Path(result["matrix_path"]).exists()
     assert Path(result["csv_path"]).exists()
@@ -77,6 +83,8 @@ def test_create_documents_from_payload_dir_fail_fast(tmp_path):
     assert result["summary"]["selected"] == 2
     assert result["summary"]["attempted"] == 1
     assert result["summary"]["failed"] == 1
+    assert result["summary"]["buckets"]["input_failed"] == 1
+    assert result["rows"][0]["failure_kind"] == "input_failed"
     assert result["rows"][0]["error"] == "boom"
 
 
@@ -112,3 +120,61 @@ def test_create_documents_from_payload_dir_rejects_missing_dir(tmp_path):
     assert result["ok"] is False
     assert result["stage"] == "input"
     assert result["error"] == "payload directory does not exist"
+
+
+def test_create_documents_from_payload_dir_reruns_failed_matrix(tmp_path):
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    passed = payload_dir / "passed.json"
+    failed = payload_dir / "failed.json"
+    _write_payload(passed)
+    _write_payload(failed)
+    matrix = tmp_path / "matrix.json"
+    matrix.write_text(
+        json.dumps(
+            {
+                "rows": [
+                    {"ok": True, "payload_path": str(passed)},
+                    {"ok": False, "payload_path": str(failed)},
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    calls = []
+
+    def fake_runner(payload_path: Path, timeout_sec: int, dry_run: bool):
+        calls.append(payload_path.name)
+        return {"ok": True, "stage": "dry_run", "plan": {"recipe": "prototype_open_copy_save"}}
+
+    result = create_documents_from_payload_dir(
+        failed_matrix=matrix,
+        dry_run=True,
+        output_dir=tmp_path / "out",
+        factory_runner=fake_runner,
+    )
+
+    assert result["ok"] is True
+    assert result["selection"] == "failed_matrix"
+    assert result["summary"]["selected"] == 1
+    assert calls == ["failed.json"]
+
+
+def test_create_documents_from_payload_dir_classifies_export_failure(tmp_path):
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    _write_payload(payload_dir / "export.json")
+
+    def fake_runner(payload_path: Path, timeout_sec: int, dry_run: bool):
+        return {"ok": False, "stage": "run", "output_errors": ["PDF export failed"]}
+
+    result = create_documents_from_payload_dir(
+        payload_dir,
+        output_dir=tmp_path / "out",
+        factory_runner=fake_runner,
+    )
+
+    assert result["ok"] is False
+    assert result["summary"]["buckets"]["export_failed"] == 1
+    assert result["rows"][0]["failure_kind"] == "export_failed"

@@ -842,10 +842,10 @@ Tasks:
 
 - support batch payload folder; **implemented initial CLI**
 - support per-run summary CSV/JSON; **implemented initial batch matrix**
-- support failure classification;
-- support dry-run;
+- support failure classification; **implemented initial buckets**
+- support dry-run; **implemented**
 - support “open only” audit mode;
-- support rerun failed prototypes only.
+- support rerun failed prototypes only; **implemented initial `--failed-matrix`**
 
 Validation:
 
@@ -856,9 +856,11 @@ Current Phase 7 evidence:
 
 - module: `src/tflex_harness/document_factory_batch.py`;
 - CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads`;
-- supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, and `--output-dir`;
+- rerun failed CLI: `python -m tflex_harness.cli document-factory-batch --failed-matrix document_factory_batch_matrix.json`;
+- supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, `--failed-matrix`, and `--output-dir`;
 - output files: `document_factory_batch_matrix.json`, `document_factory_batch_matrix.csv`;
-- row evidence includes payload path/name, status, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, and error.
+- row evidence includes payload path/name, status, `failure_kind`, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, and error;
+- summary buckets include `passed`, `input_failed`, `timeout_failed`, `export_failed`, `recipe_failed`, `run_failed`, and `unknown_failed`.
 
 ## Helper Set Plan
 
@@ -975,3 +977,4 @@ Mitigation:
 - 2026-05-25: Added PDF output materialization to document factory. PDF export runs as separate visible C# using `new ExportToPDF(document)` and `EasyExport.Pdf`; helper copies `PDFExport.dll` locally before export. Live drawing proof produced `phase6_drawing_pdf_export.pdf` size `11109` with `%PDF-1.5` header.
 - 2026-05-25: Added DXF/DWG output materialization to document factory. ACAD exports run as separate visible C# using `Document.ExportToDXF.Export(path)` and `Document.ExportToDWG.Export(path)`. Live drawing proof produced DXF size `125193` with `AC1027` header evidence and DWG size `18220` with `AC1027` binary header.
 - 2026-05-25: Started Phase 7 enterprise workflow with `document-factory-batch`. It runs all payload JSON files from a folder, supports dry-run/fail-fast/recursive globbing, and writes JSON/CSV batch matrices.
+- 2026-05-25: Extended `document-factory-batch` with failure buckets and rerun-failed flow. Rows now include `failure_kind`; summaries include stable pass/fail buckets; `--failed-matrix` reruns only failed payload rows from a previous matrix.
