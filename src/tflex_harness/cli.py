@@ -35,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--mode", choices=["compile_only", "run"], default="run")
     run_p.add_argument("--timeout-sec", type=int, default=30)
     run_p.add_argument("--reference", action="append", choices=TFLEX_DOC_ASSEMBLIES, dest="references", default=None)
+    run_p.add_argument("--helper", action="append", dest="helpers", default=None, help="C# helper set or helper source name to compile with the snippet")
     run_p.add_argument("--artifact-prefix", default="cli_snippet")
     run_p.add_argument("--env", action="append", default=[], help="Extra runtime environment variable in NAME=VALUE form")
 
@@ -67,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error(f"--env must be NAME=VALUE, got {item!r}")
             key, value = item.split("=", 1)
             extra_env[key] = value
-        emit(run_csharp_snippet(args.code, mode=args.mode, timeout_sec=args.timeout_sec, references=args.references, artifact_prefix=args.artifact_prefix, environment=extra_env))
+        emit(run_csharp_snippet(args.code, mode=args.mode, timeout_sec=args.timeout_sec, references=args.references, helpers=args.helpers, artifact_prefix=args.artifact_prefix, environment=extra_env))
         return 0
     if args.command == "recipes":
         emit({"recipes": list_recipes()})

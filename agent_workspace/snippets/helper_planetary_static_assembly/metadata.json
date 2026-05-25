@@ -1,0 +1,18 @@
+{
+  "name": "helper_planetary_static_assembly",
+  "status": "promoted",
+  "promotion_rule": "Promote to agent_workspace/recipes only after docs evidence, compile diagnostics, live run evidence, and documented assumptions/limitations.",
+  "latest_recipe_run": "artifacts/runs/20260525_124700_025877_recipe_helper_planetary_static_assembly",
+  "metadata": {
+    "helpers": [
+      "all"
+    ],
+    "uses": [
+      "TFlexEasyGears.cs",
+      "direct-XY gear profiles",
+      "clearanced trapezoid teeth"
+    ],
+    "status": "promoted"
+  }
+}
+

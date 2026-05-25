@@ -1,0 +1,18 @@
+{
+  "name": "helper_environment_probe",
+  "description": "Initialize and dispose a T-FLEX 3D session through TFlexEasySession.",
+  "args": {},
+  "verified": true,
+  "last_verified": "2026-05-25",
+  "source": "helper_environment_probe.cs",
+  "evidence": "helper_environment_probe.md",
+  "helpers": [
+    "all"
+  ],
+  "limitations": [
+    "Requires helper source set all.",
+    "Writes output artifacts under the per-run artifacts directory."
+  ],
+  "source_sha256": "67110084a5c93463540bac8b44dcf6f3b2c4ed689a6c3c24cc95dc9b80f441e6",
+  "markdown_sha256": "b1c80defde5832e819fcdf192fad77a64f5621abc2cdfe0673732ffbf694a545"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "helper_step_export",
+  "description": "Create a simple helper-backed 3D body and export STEP artifact evidence.",
+  "args": {},
+  "verified": true,
+  "last_verified": "2026-05-25",
+  "source": "helper_step_export.cs",
+  "evidence": "helper_step_export.md",
+  "helpers": [
+    "all"
+  ],
+  "limitations": [
+    "Requires helper source set all.",
+    "Writes output artifacts under the per-run artifacts directory."
+  ],
+  "source_sha256": "9287e932135a5b442b13129205f21514043c320df30359ceb1a29788d72c3104",
+  "markdown_sha256": "4036071f1d703c33132004d09ca2c0c2c71702fedea31c0712f74d22e548ecc1"
+}

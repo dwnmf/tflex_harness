@@ -212,12 +212,14 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         artifacts["output_file"] = str(output_file)
 
     code = registry.source(name)
+    helpers = recipe_info.get("helpers")
     result = run_csharp_snippet(
         code,
         mode="run",
         timeout_sec=timeout_sec,
         artifact_prefix=f"recipe_{name}",
         environment=env,
+        helpers=helpers if isinstance(helpers, list) else None,
         config=cfg,
     )
     result["recipe"] = name

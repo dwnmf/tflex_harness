@@ -1,0 +1,19 @@
+{
+  "name": "helper_planetary_static_assembly",
+  "description": "Create the simplified clearanced planetary gear GRB and STEP assembly using gear helper source libraries.",
+  "args": {},
+  "verified": true,
+  "last_verified": "2026-05-25",
+  "source": "helper_planetary_static_assembly.cs",
+  "evidence": "helper_planetary_static_assembly.md",
+  "helpers": [
+    "all"
+  ],
+  "limitations": [
+    "Requires helper source set all, including TFlexEasyGears.cs.",
+    "Uses simplified clearanced trapezoid teeth, not true involute teeth.",
+    "Writes output artifacts under the per-run artifacts directory."
+  ],
+  "source_sha256": "08843d0101ede19409d5f7cb11bed061dc562fa568c6af27918338bd7ed95110",
+  "markdown_sha256": "0d4ee70d2db4696900a8510954fd4d4d2253a3ebb4af2957cfffb1d2c6642882"
+}

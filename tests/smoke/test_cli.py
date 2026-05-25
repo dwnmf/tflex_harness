@@ -93,3 +93,47 @@ def test_cli_run_csharp_accepts_known_reference():
 
     assert result["ok"] is True, result
     assert result["resolved_references"][0]["name"] == "TFlexAPI"
+
+
+def test_cli_run_csharp_compile_only_accepts_helpers():
+    code = 'using TFlexEasy; public class Program { public static int Main(){ System.Console.WriteLine(EasyUnits.F(EasyUnits.ModelToMm(0.042))); return 0; } }'
+    result = _cli(
+        "run-csharp",
+        "--mode",
+        "compile_only",
+        "--timeout-sec",
+        "30",
+        "--artifact-prefix",
+        "test_cli_compile_helpers",
+        "--helper",
+        "easy_core",
+        "--code",
+        code,
+        timeout=90,
+    )
+
+    assert result["ok"] is True, result
+    assert result["stage"] == "compile"
+    assert [helper["name"] for helper in result["helper_sources"]] == ["TFlexEasyUnits.cs", "TFlexEasyDiagnostics.cs"]
+
+
+def test_cli_run_csharp_compile_only_accepts_all_helpers():
+    code = 'using TFlexEasy; public class Program { public static int Main(){ System.Console.WriteLine(EasyUnits.F(1.0)); return 0; } }'
+    result = _cli(
+        "run-csharp",
+        "--mode",
+        "compile_only",
+        "--timeout-sec",
+        "60",
+        "--artifact-prefix",
+        "test_cli_compile_all_helpers",
+        "--helper",
+        "all",
+        "--code",
+        code,
+        timeout=90,
+    )
+
+    assert result["ok"] is True, result
+    assert result["stage"] == "compile"
+    assert len(result["helper_sources"]) == 8

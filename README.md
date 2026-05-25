@@ -43,6 +43,30 @@ Snippet runs receive:
 Timeouts are structured as `stage: "timeout"` with `phase: "compile"` or `phase: "run"`.
 Each `run-csharp` / `run_csharp_tflex` call also appends a compact event to `logs/events.jsonl` with stage, phase, run directory, cache info, diagnostic count, and artifact count.
 
+## C# snippet helpers
+
+Reusable helper source files live under `src/tflex_harness/csharp_helpers`.
+They are compiled as C# source together with the visible snippet, not hidden behind a precompiled CAD wrapper.
+
+Use helper sets with CLI:
+
+```powershell
+python -m tflex_harness.cli run-csharp --mode compile_only --helper easy_core --code "using TFlexEasy; public class Program { public static int Main(){ System.Console.WriteLine(EasyUnits.F(1)); return 0; } }"
+```
+
+Initial helper sets:
+
+- `easy_core` — `TFlexEasyUnits.cs`, `TFlexEasyDiagnostics.cs`
+- `easy_session` — core helpers plus `TFlexEasySession.cs`
+- `easy_3d` — session/profile/gear/solid/placement helpers
+- `easy_gears` — direct-XY trapezoid gear helpers, tooth phase helpers, and gear clearance diagnostics
+- `easy_export` — session/export helpers
+- `all` — all helper source files
+
+Every helper run copies helper `.cs` files into the run directory under `helpers/`, includes helper source content in the compile cache key, and records helper paths plus SHA256 hashes in `result.json`.
+
+For gear assemblies, prefer `TFlexEasyGears.cs` direct-XY profile helpers over creating centered profiles and moving the resulting gear bodies. Direct-XY gear profiles make saved `.grb`/STEP artifacts easier to inspect and avoid ambiguous visual placement from body transformations. Use explicit tooth phases such as `EasyGears.PhaseForGapAtAxisDeg(...)` and `EasyGears.PlanetToothFacingSunPhaseDeg(...)` instead of hand-guessing rotations.
+
 ## Verified recipes
 
 - `environment_probe` — initializes and exits a minimal read-only API session.

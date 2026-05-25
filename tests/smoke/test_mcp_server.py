@@ -46,6 +46,7 @@ def test_mcp_server_lists_core_tools_and_schemas():
     assert runner_schema["properties"]["timeout_sec"]["default"] == 30
     references_schema = runner_schema["properties"]["references"]["anyOf"][0]["items"]
     assert references_schema["enum"] == ["TFlexAPI", "TFlexAPI3D", "TFlexAPIData", "TFlexCommandAPI"]
+    assert "helpers" in runner_schema["properties"]
 
     recipe_schema = by_name["run_tflex_recipe"].inputSchema
     assert "recipe" in recipe_schema["required"]

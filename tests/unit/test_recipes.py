@@ -17,6 +17,24 @@ def test_list_recipes_includes_verified_baseline():
     assert "save_document_as_temp" in names
     assert "create_simple_2d_line" in names
     assert "create_simple_3d_extrusion" in names
+    assert "helper_environment_probe" in names
+    assert "helper_simple_extrusion" in names
+    assert "helper_step_export" in names
+    assert "helper_planetary_static_assembly" in names
+
+
+def test_helper_recipes_are_fresh_and_use_all_helpers():
+    recipes = {recipe["name"]: recipe for recipe in list_recipes()}
+    for name in {
+        "helper_environment_probe",
+        "helper_simple_extrusion",
+        "helper_step_export",
+        "helper_planetary_static_assembly",
+    }:
+        recipe = recipes[name]
+        assert recipe["verified"] is True
+        assert recipe["freshness"]["status"] == "fresh"
+        assert recipe["helpers"] == ["all"]
 
 
 def test_each_verified_recipe_has_markdown_and_csharp_source():
@@ -89,6 +107,21 @@ def test_run_recipe_result_exposes_source_contract(monkeypatch):
     assert result["recipe_info"]["markdown_path"].endswith("agent_workspace\\recipes\\environment_probe.md")
     assert result["recipe_info"]["source_exists"] is True
     assert result["recipe_info"]["markdown_exists"] is True
+
+
+def test_run_recipe_passes_helper_metadata(monkeypatch):
+    calls = []
+
+    def fake_run_csharp_snippet(*args, **kwargs):
+        calls.append(kwargs)
+        return {"ok": True, "stage": "run", "stdout": "helper=true", "artifacts": []}
+
+    monkeypatch.setattr(recipes_module, "run_csharp_snippet", fake_run_csharp_snippet)
+
+    result = run_recipe("helper_environment_probe", timeout_sec=1)
+
+    assert result["ok"] is True
+    assert calls[-1]["helpers"] == ["all"]
 
 
 def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):

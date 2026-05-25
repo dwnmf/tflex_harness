@@ -60,6 +60,21 @@ def _copy_runtime_dlls(run_dir: Path, references: list[Path]) -> None:
             shutil.copy2(ref, target)
 
 
+def _copy2_with_retry(src: Path, dst: Path, attempts: int = 5) -> None:
+    last_exc: OSError | None = None
+    for attempt in range(attempts):
+        try:
+            shutil.copy2(src, dst)
+            return
+        except OSError as exc:
+            last_exc = exc
+            if attempt == attempts - 1:
+                break
+            time.sleep(0.2)
+    if last_exc is not None:
+        raise last_exc
+
+
 def _runtime_env(cfg: HarnessConfig) -> dict[str, str]:
     env = os.environ.copy()
     program = str(cfg.tflex_program_dir)
@@ -85,12 +100,113 @@ def _collect_artifacts(run_dir: Path) -> list[dict[str, Any]]:
     return artifacts
 
 
-def _compile_cache_key(code: str, refs: list[Path], csc: Path) -> str:
+HELPER_SETS: dict[str, tuple[str, ...]] = {
+    "easy_core": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+    ),
+    "easy_session": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasySession.cs",
+    ),
+    "easy_3d": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasySession.cs",
+        "TFlexEasyProfiles.cs",
+        "TFlexEasyGears.cs",
+        "TFlexEasySolids.cs",
+        "TFlexEasyPlacement.cs",
+    ),
+    "easy_gears": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasyPlacement.cs",
+        "TFlexEasyGears.cs",
+    ),
+    "easy_export": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasySession.cs",
+        "TFlexEasyExport.cs",
+    ),
+    "all": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasySession.cs",
+        "TFlexEasyProfiles.cs",
+        "TFlexEasyGears.cs",
+        "TFlexEasySolids.cs",
+        "TFlexEasyPlacement.cs",
+        "TFlexEasyExport.cs",
+    ),
+}
+
+
+def _helper_dir(cfg: HarnessConfig) -> Path:
+    return cfg.repo_dir / "src" / "tflex_harness" / "csharp_helpers"
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _helper_payload(path: Path, copied_path: Path | None = None) -> dict[str, Any]:
+    data = path.read_bytes()
+    payload: dict[str, Any] = {
+        "name": path.name,
+        "path": str(path),
+        "sha256": _sha256_bytes(data),
+        "size": len(data),
+    }
+    if copied_path is not None:
+        payload["copied_path"] = str(copied_path)
+    return payload
+
+
+def resolve_csharp_helpers(cfg: HarnessConfig, helpers: list[str] | None) -> tuple[list[Path], list[str]]:
+    if not helpers:
+        return [], []
+
+    helper_dir = _helper_dir(cfg)
+    requested: list[str] = []
+    seen: set[str] = set()
+    unknown: list[str] = []
+
+    for item in helpers:
+        name = str(item).strip()
+        if not name:
+            continue
+        if name in HELPER_SETS:
+            expanded = HELPER_SETS[name]
+        else:
+            file_name = name if name.endswith(".cs") else f"{name}.cs"
+            expanded = (file_name,)
+        for file_name in expanded:
+            if file_name in seen:
+                continue
+            seen.add(file_name)
+            path = helper_dir / file_name
+            if not path.exists() or path.suffix.lower() != ".cs":
+                unknown.append(file_name)
+            else:
+                requested.append(file_name)
+
+    return [helper_dir / file_name for file_name in requested], unknown
+
+
+def _compile_cache_key(code: str, refs: list[Path], csc: Path, helper_sources: list[Path] | None = None) -> str:
     digest = hashlib.sha256()
-    digest.update(b"tflex_harness.csc.v1\0")
+    digest.update(b"tflex_harness.csc.v2\0")
     digest.update(str(csc).encode("utf-8", errors="replace"))
     digest.update(b"\0/platform:x64\0/target:exe\0")
     digest.update(code.encode("utf-8"))
+    for helper in helper_sources or []:
+        digest.update(b"\0helper\0")
+        digest.update(helper.name.encode("utf-8", errors="replace"))
+        digest.update(b"\0")
+        digest.update(helper.read_bytes())
     for ref in refs:
         stat = ref.stat()
         digest.update(b"\0ref\0")
@@ -152,8 +268,8 @@ class CompileCache:
     def __init__(self, config: HarnessConfig) -> None:
         self.config = config
 
-    def key(self, code: str, refs: list[Path], csc: Path) -> str:
-        return _compile_cache_key(code, refs, csc)
+    def key(self, code: str, refs: list[Path], csc: Path, helper_sources: list[Path] | None = None) -> str:
+        return _compile_cache_key(code, refs, csc, helper_sources)
 
     def directory(self, key: str) -> Path:
         return _cache_dir(self.config, key)
@@ -173,6 +289,7 @@ class SnippetRunner:
         references: list[str] | None = None,
         artifact_prefix: str = "snippet",
         environment: dict[str, str] | None = None,
+        helpers: list[str] | None = None,
     ) -> dict[str, Any]:
         return _run_csharp_snippet_impl(
             code=code,
@@ -181,6 +298,7 @@ class SnippetRunner:
             references=references,
             artifact_prefix=artifact_prefix,
             environment=environment,
+            helpers=helpers,
             runner=self,
         )
 
@@ -296,6 +414,7 @@ def _persist_run_result(cfg: HarnessConfig, store: ArtifactStore, run_dir: Path,
                 "snippet_path": result.get("snippet_path"),
                 "cache_key": result.get("cache_key"),
                 "cache_hit": result.get("cache_hit"),
+                "helper_count": len(result.get("helper_sources") or []),
                 "diagnostic_count": len(result.get("diagnostics") or []),
                 "artifact_count": len(result.get("artifacts") or []),
             },
@@ -312,6 +431,7 @@ def _run_csharp_snippet_impl(
     references: list[str] | None = None,
     artifact_prefix: str = "snippet",
     environment: dict[str, str] | None = None,
+    helpers: list[str] | None = None,
     runner: SnippetRunner | None = None,
 ) -> dict[str, Any]:
     active_runner = runner or SnippetRunner()
@@ -319,7 +439,7 @@ def _run_csharp_snippet_impl(
     run_store = active_runner.run_store
     store = run_store.store
     run_dir = run_store.create_run(artifact_prefix)
-    request = {"mode": mode, "timeout_sec": timeout_sec, "references": references, "artifact_prefix": artifact_prefix, "environment": environment or {}}
+    request = {"mode": mode, "timeout_sec": timeout_sec, "references": references, "helpers": helpers or [], "artifact_prefix": artifact_prefix, "environment": environment or {}}
     run_store.write_request(run_dir, request)
     snippet = run_store.write_snippet(run_dir, code)
 
@@ -338,6 +458,31 @@ def _run_csharp_snippet_impl(
         run_store.persist_result(run_dir, result)
         return result
 
+    helper_sources, unknown_helpers = resolve_csharp_helpers(cfg, helpers)
+    if unknown_helpers:
+        result = {
+            "ok": False,
+            "stage": "input",
+            "error": "unknown helpers",
+            "unknown_helpers": unknown_helpers,
+            "known_helper_sets": sorted(HELPER_SETS),
+            "run_dir": str(run_dir),
+            "snippet_path": str(snippet),
+            "artifacts_dir": str(run_dir / "artifacts"),
+            "artifacts": _collect_artifacts(run_dir),
+        }
+        run_store.persist_result(run_dir, result)
+        return result
+
+    run_helper_dir = run_dir / "helpers"
+    helper_payloads: list[dict[str, Any]] = []
+    if helper_sources:
+        run_helper_dir.mkdir(parents=True, exist_ok=True)
+        for helper in helper_sources:
+            copied = run_helper_dir / helper.name
+            shutil.copy2(helper, copied)
+            helper_payloads.append(_helper_payload(helper, copied))
+
     csc = find_csc()
     if not csc:
         result = {
@@ -346,6 +491,7 @@ def _run_csharp_snippet_impl(
             "error": "csc.exe not found",
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "helper_sources": helper_payloads,
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
@@ -369,6 +515,7 @@ def _run_csharp_snippet_impl(
             "resolved_references": resolved_references,
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "helper_sources": helper_payloads,
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
         }
@@ -376,30 +523,40 @@ def _run_csharp_snippet_impl(
         return result
 
     exe = run_dir / "Snippet.exe"
-    cache_key = active_runner.compile_cache.key(code, refs, csc)
+    cache_key = active_runner.compile_cache.key(code, refs, csc, helper_sources)
     cache_dir = active_runner.compile_cache.directory(cache_key)
     cache_exe = cache_dir / "Snippet.exe"
     cache_build_log = cache_dir / "build.log"
     started = time.perf_counter()
     cache_hit = cache_exe.exists()
+    cache_store_error: str | None = None
     if cache_hit:
         cache_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(cache_exe, exe)
+        _copy2_with_retry(cache_exe, exe)
         build_output = cache_build_log.read_text(encoding="utf-8") if cache_build_log.exists() else ""
         compile_ms = 0
     else:
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_snippet = cache_dir / "Snippet.cs"
         store.write_text(cache_snippet, code)
+        cache_helper_paths: list[Path] = []
+        if helper_sources:
+            cache_helper_dir = cache_dir / "helpers"
+            cache_helper_dir.mkdir(parents=True, exist_ok=True)
+            for helper in helper_sources:
+                copied = cache_helper_dir / helper.name
+                shutil.copy2(helper, copied)
+                cache_helper_paths.append(copied)
         cmd = [
             str(csc),
             "/nologo",
             "/platform:x64",
             "/target:exe",
-            f"/out:{cache_exe}",
+            f"/out:{exe}",
         ]
         cmd.extend(f"/reference:{ref}" for ref in refs)
         cmd.append(str(cache_snippet))
+        cmd.extend(str(path) for path in cache_helper_paths)
         try:
             proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout_sec)
         except subprocess.TimeoutExpired as exc:
@@ -422,6 +579,7 @@ def _run_csharp_snippet_impl(
                 "stderr": exc.stderr if isinstance(exc.stderr, str) else "",
                 "run_dir": str(run_dir),
                 "snippet_path": str(snippet),
+                "helper_sources": helper_payloads,
                 "build_log": str(run_dir / "build.log"),
                 "artifacts_dir": str(run_dir / "artifacts"),
                 "artifacts": _collect_artifacts(run_dir),
@@ -436,12 +594,16 @@ def _run_csharp_snippet_impl(
                 "cache_key": cache_key,
                 "csc": str(csc),
                 "references": [str(ref) for ref in refs],
+                "helper_sources": [_helper_payload(helper) for helper in helper_sources],
                 "platform": "x64",
                 "target": "exe",
             },
         )
         if proc.returncode == 0:
-            shutil.copy2(cache_exe, exe)
+            try:
+                _copy2_with_retry(exe, cache_exe)
+            except OSError as exc:
+                cache_store_error = str(exc)
     compile_ms = int((time.perf_counter() - started) * 1000)
     store.write_text(run_dir / "build.log", build_output)
     diagnostics = parse_csc_diagnostics(build_output)
@@ -455,12 +617,14 @@ def _run_csharp_snippet_impl(
             "duration_ms": compile_ms,
             "cache_key": cache_key,
             "cache_hit": False,
+            "cache_store_error": cache_store_error,
             "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "stdout": proc.stdout,
             "stderr": proc.stderr,
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "helper_sources": helper_payloads,
             "build_log": str(run_dir / "build.log"),
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
@@ -477,10 +641,12 @@ def _run_csharp_snippet_impl(
             "duration_ms": compile_ms,
             "cache_key": cache_key,
             "cache_hit": cache_hit,
+            "cache_store_error": cache_store_error,
             "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "helper_sources": helper_payloads,
             "executable": str(exe),
             "build_log": str(run_dir / "build.log"),
             "artifacts_dir": str(run_dir / "artifacts"),
@@ -516,12 +682,14 @@ def _run_csharp_snippet_impl(
             "run_duration_ms": run_ms,
             "cache_key": cache_key,
             "cache_hit": cache_hit,
+            "cache_store_error": cache_store_error,
             "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "stdout": run_proc.stdout,
             "stderr": run_proc.stderr,
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "helper_sources": helper_payloads,
             "executable": str(exe),
             "build_log": str(run_dir / "build.log"),
             "stdout_path": str(run_dir / "stdout.txt"),
@@ -540,12 +708,14 @@ def _run_csharp_snippet_impl(
             "compile_duration_ms": compile_ms,
             "cache_key": cache_key,
             "cache_hit": cache_hit,
+            "cache_store_error": cache_store_error,
             "resolved_references": resolved_references,
             "diagnostics": diagnostics,
             "stdout": exc.stdout if isinstance(exc.stdout, str) else "",
             "stderr": exc.stderr if isinstance(exc.stderr, str) else "",
             "run_dir": str(run_dir),
             "snippet_path": str(snippet),
+            "helper_sources": helper_payloads,
             "executable": str(exe),
             "artifacts_dir": str(run_dir / "artifacts"),
             "artifacts": _collect_artifacts(run_dir),
@@ -560,6 +730,7 @@ def run_csharp_snippet(
     references: list[str] | None = None,
     artifact_prefix: str = "snippet",
     environment: dict[str, str] | None = None,
+    helpers: list[str] | None = None,
     config: HarnessConfig | None = None,
 ) -> dict[str, Any]:
     return SnippetRunner(config).run(
@@ -569,5 +740,6 @@ def run_csharp_snippet(
         references=references,
         artifact_prefix=artifact_prefix,
         environment=environment,
+        helpers=helpers,
     )
 

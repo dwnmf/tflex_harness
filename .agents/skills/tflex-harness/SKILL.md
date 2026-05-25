@@ -25,6 +25,7 @@ User-facing style:
 - Generated run dirs: `artifacts/runs`
 - Generated T-FLEX files: `artifacts/tflex_docs`
 - Snippet candidates: `agent_workspace/snippets`
+- C# helper sources: `src/tflex_harness/csharp_helpers`
 - Event log: `logs/events.jsonl`
 - Architecture/status: `goal.md`
 - Local T-FLEX API docs: `D:\REALPROJECTS\tflex_api\llm`
@@ -71,7 +72,35 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 python -c "from tflex_harness.runner import run_csharp_snippet; result = run_csharp_snippet(code='public class Program { public static int Main(){ return 0; } }', mode='run', timeout_sec=30, references=[], artifact_prefix='manual_probe'); print(result)"
 ```
 
-For generated `.grb` outputs, prefer `ArtifactStore(...).create_tflex_doc_dir(...)` and pass the path through snippet environment variables.
+For snippet-generated outputs, write under `TFLEX_HARNESS_ARTIFACTS_DIR` / `EasySession.ArtifactPath(...)`. Do not write `.grb`/STEP files into random repo or user folders.
+
+## C# Helper Source Policy
+
+Use helper `.cs` files when they prevent repeated T-FLEX API mistakes. They are source files compiled with the visible snippet, not a hidden wrapper DLL.
+
+Known helper sets:
+
+- `easy_core`: `TFlexEasyUnits.cs`, `TFlexEasyDiagnostics.cs`
+- `easy_session`: core plus `TFlexEasySession.cs`
+- `easy_3d`: session/profile/gear/solid/placement helpers
+- `easy_gears`: `TFlexEasyGears.cs` plus minimal dependencies
+- `easy_export`: session/export helpers
+- `all`: every helper source
+
+For gear assemblies:
+
+1. Prefer `TFlexEasyGears.cs` direct-XY profile helpers:
+   - `EasyGears.ExternalTrapezoidGearAt(...)`
+   - `EasyGears.ExternalTrapezoidGearWithBoreAt(...)`
+   - `EasyGears.InternalTrapezoidGearRingAt(...)`
+   - `EasyGears.CircleAt(...)`
+2. Do not build centered gear profiles and then rely on body `MoveMm` unless the task specifically needs transformed bodies.
+3. Use explicit tooth phase helpers:
+   - `EasyGears.PhaseForGapAtAxisDeg(teeth, axisDeg)`
+   - `EasyGears.PhaseForToothAtAxisDeg(teeth, axisDeg)`
+   - `EasyGears.PlanetToothFacingSunPhaseDeg(planetAxisDeg)`
+4. For simplified trapezoid gear visuals, start with `EasyGearToothStyle.Clearanced`; use `Wide` only if the user wants chunky schematic teeth.
+5. Print mesh evidence with radial clearances and planet center radii. BBox alone is not enough for gear mesh quality.
 
 ## Validation Ladder
 
@@ -138,6 +167,8 @@ Use `Object3D.Transformations.AddBaseTransfGroup()` with:
 - `TransformationGroup.AddRotateTransf(TransformationCoordinate.X/Y/Z, Parameter)`
 
 Do not use `Object3D.VolatileTransformations` in new snippets. Live T-FLEX CAD 17 can throw: `Property VolatileTransformation is obsolete. Use Transformations property instead`.
+
+For flat gear profiles, prefer direct XY profile coordinates from `TFlexEasyGears.cs` over body transforms. Live evidence on 2026-05-25 showed direct-XY planetary gears reopened from `.grb` with three planets still at R42; transformed-centered gear bodies were visually confusing in CAD inspection.
 
 ## Verified Fragment3D + LCS Path
 
