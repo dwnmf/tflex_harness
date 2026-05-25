@@ -175,3 +175,21 @@ def test_cli_prototypes_scan_list_info(tmp_path):
     info = _cli("prototypes-info", "Спецификации/Спецификация форма 1", "--root", str(root))
     assert info["ok"] is True
     assert info["prototype"]["name"] == "Спецификация форма 1.grb"
+
+
+def test_cli_prototypes_open_save_batch_dry_run(tmp_path):
+    root = tmp_path / "Прототипы"
+    root.mkdir()
+    (root / "3D Деталь.grb").write_bytes(b"root-grb")
+    drawings = root / "Чертежи"
+    drawings.mkdir()
+    (drawings / "Чертёж детали.grb").write_bytes(b"drawing-grb")
+    out = tmp_path / "batch"
+
+    result = _cli("prototypes-open-save-batch", "--root", str(root), "--dry-run", "--output-dir", str(out))
+
+    assert result["ok"] is True
+    assert result["summary"]["selected"] == 2
+    assert result["summary"]["passed"] == 2
+    assert Path(result["matrix_path"]).exists()
+    assert Path(result["csv_path"]).exists()

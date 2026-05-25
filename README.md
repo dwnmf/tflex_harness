@@ -33,6 +33,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-scan` — scans the installed T-FLEX prototype corpus, preserves Cyrillic relative paths, computes SHA256 hashes, and writes `catalog.json`.
 - `python -m tflex_harness.cli prototypes-list` — lists prototypes by category and extension.
 - `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
+- `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
@@ -101,6 +102,7 @@ Scan them with:
 python -m tflex_harness.cli prototypes-scan
 python -m tflex_harness.cli prototypes-list --category Чертежи
 python -m tflex_harness.cli prototypes-info "Чертежи/Чертёж детали с форматкой"
+python -m tflex_harness.cli prototypes-open-save-batch --dry-run
 ```
 
 Verified local scan on 2026-05-25:
@@ -111,6 +113,16 @@ Verified local scan on 2026-05-25:
 - `.txt=1`
 - `.xml=1`
 - output: `artifacts/prototype_catalog/current_probe/catalog.json`
+
+Verified live open/copy/save batch on 2026-05-25:
+
+- command: `python -m tflex_harness.cli prototypes-open-save-batch --timeout-sec 120 --output-dir artifacts/prototype_validation/live_all_20260525`
+- selected `.grb`: `50`
+- attempted: `50`
+- passed: `50`
+- failed: `0`
+- matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`
+- csv: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.csv`
 
 The source `Program Files` tree is read-only input. Future prototype automation must copy selected `.grb` files into a run artifact directory before opening or saving.
 

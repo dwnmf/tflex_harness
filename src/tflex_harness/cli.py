@@ -9,6 +9,7 @@ from .diagnostics import get_environment
 from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
 from .prototypes import list_prototypes, prototype_info, scan_and_write_catalog
+from .prototype_validation import validate_open_copy_save_batch
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
 from .schemas import DOCS_SEARCH_SCOPES, TFLEX_DOC_ASSEMBLIES
@@ -74,6 +75,15 @@ def main(argv: list[str] | None = None) -> int:
     proto_info_p.add_argument("selector")
     proto_info_p.add_argument("--root", default=None)
 
+    proto_batch_p = sub.add_parser("prototypes-open-save-batch", help="Batch copy/open/save .grb prototypes and write validation matrix")
+    proto_batch_p.add_argument("--root", default=None)
+    proto_batch_p.add_argument("--category", default=None)
+    proto_batch_p.add_argument("--limit", type=int, default=None)
+    proto_batch_p.add_argument("--timeout-sec", type=int, default=120)
+    proto_batch_p.add_argument("--fail-fast", action="store_true")
+    proto_batch_p.add_argument("--dry-run", action="store_true")
+    proto_batch_p.add_argument("--output-dir", default=None)
+
     args = parser.parse_args(argv)
     if args.command == "env":
         emit(get_environment())
@@ -120,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "prototypes-info":
         emit(prototype_info(args.selector, root=args.root))
+        return 0
+    if args.command == "prototypes-open-save-batch":
+        emit(validate_open_copy_save_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir))
         return 0
     parser.error(f"unknown command {args.command}")
     return 2

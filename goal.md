@@ -601,7 +601,7 @@ Evidence:
 
 ### Phase 2: Open/Copy/Save All Prototypes
 
-Status: started.
+Status: implemented.
 
 Tasks:
 
@@ -610,7 +610,8 @@ Tasks:
 - add runner helper set `easy_prototype`;
 - add verified recipe `prototype_open_copy_save`;
 - run one prototype live;
-- batch-run all 50 `.grb`.
+- batch-run all 50 `.grb`;
+- write JSON/CSV validation matrix.
 
 Validation:
 
@@ -624,7 +625,9 @@ Evidence:
 - one-prototype live run passed: `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`;
 - source SHA equals copy SHA for `3D Деталь.grb`;
 - output `.grb` size non-zero;
-- batch 50 is not done yet.
+- full live batch matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`;
+- full live batch CSV: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.csv`;
+- live batch summary: `selected=50`, `attempted=50`, `passed=50`, `failed=0`.
 
 ### Phase 3: Metadata Extraction
 
@@ -800,13 +803,12 @@ Integration/live:
 
 ## Immediate Next Work
 
-1. Implement prototype catalog.
-2. Add CLI scan/list/info.
-3. Add `TFlexEasyPrototype.cs`.
-4. Create visible open/copy/save probe.
-5. Run one root prototype live.
-6. Batch-run all 50 prototypes.
-7. Write validation matrix.
+1. Implement metadata extraction probe.
+2. Inspect API-visible variables/pages/text/tables for representative prototypes.
+3. Write JSON metadata per prototype.
+4. Add document variable/property helpers after live proof.
+5. Add text/table helpers only after API proof.
+6. Create category recipes for drawings, specifications, tables, fragments, electrical docs.
 
 ## Current Risks
 
@@ -828,3 +830,4 @@ Mitigation:
 - 2026-05-25: Rewrote `goal.md` from helper-only target into prototype-driven document factory plan. Target source root: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы`. Observed 50 `.grb` prototypes across root, specifications, tables, tech cards, photorealism, fragments, drawings, and electrical groups.
 - 2026-05-25: Implemented Phase 1 prototype catalog. Added `src/tflex_harness/prototypes.py`, CLI commands `prototypes-scan`, `prototypes-list`, `prototypes-info`, unit/smoke tests, and real installed corpus scan evidence: `file_count=57`, `grb_count=50`, catalog at `artifacts/prototype_catalog/current_probe/catalog.json`.
 - 2026-05-25: Started Phase 2. Added `TFlexEasyPrototype.cs`, helper set `easy_prototype`, recipe `prototype_open_copy_save`, and live proof for `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`: run `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`, `document.opened=True`, `document.saved=True`, `document.closed=True`, output size `28544`.
+- 2026-05-25: Completed Phase 2 baseline. Added `src/tflex_harness/prototype_validation.py` and CLI `prototypes-open-save-batch`. Live batch opened, saved, and closed all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`.
