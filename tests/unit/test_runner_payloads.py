@@ -115,6 +115,24 @@ def test_resolve_csharp_helpers_expands_easy_gears(tmp_path):
     ]
 
 
+def test_resolve_csharp_helpers_expands_easy_prototype(tmp_path):
+    cfg = _config(tmp_path)
+    helper_dir = tmp_path / "src" / "tflex_harness" / "csharp_helpers"
+    helper_dir.mkdir(parents=True)
+    for name in ["TFlexEasyUnits.cs", "TFlexEasyDiagnostics.cs", "TFlexEasySession.cs", "TFlexEasyPrototype.cs"]:
+        (helper_dir / name).write_text("namespace TFlexEasy {}", encoding="utf-8")
+
+    helpers, unknown = resolve_csharp_helpers(cfg, ["easy_prototype"])
+
+    assert unknown == []
+    assert [path.name for path in helpers] == [
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasySession.cs",
+        "TFlexEasyPrototype.cs",
+    ]
+
+
 def test_compile_cache_key_includes_helper_content(tmp_path):
     cfg = _config(tmp_path)
     csc = tmp_path / "csc.exe"

@@ -1,0 +1,17 @@
+{
+  "name": "prototype_open_copy_save",
+  "description": "Copy/open/save one installed T-FLEX .grb prototype through live T-FLEX from an artifact copy.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_prototype"
+  ],
+  "source_sha256": "54f843af866cec61cc031d04b228d773aa8cb252e10589373c22e48d1cb958ee",
+  "markdown_sha256": "1b1d6db81d6141f2cda46df9275dd2931e26acb1fb500318e9d9c35f26880324",
+  "last_run_dir": "artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part",
+  "last_verified_at": "2026-05-25"
+}

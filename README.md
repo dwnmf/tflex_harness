@@ -30,6 +30,9 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `capture_tflex_state` / `python -m tflex_harness.cli state` — captures read-only live session/document state, document list, aggregate 2D/3D/variable counts, observed 2D/3D type counts, 3D operation bounding boxes when documents are open, empty selection, and run artifacts.
 - `save_tflex_snippet_candidate` / `python -m tflex_harness.cli save-snippet` — saves a visible C# candidate under `agent_workspace/snippets` for later docs review, compile/run evidence, and promotion to a verified recipe.
 - `python -m tflex_harness.cli reverse-evidence` — turns GRB contour evidence JSON into a semantic model and readable parametric C# where shapes are recognized.
+- `python -m tflex_harness.cli prototypes-scan` — scans the installed T-FLEX prototype corpus, preserves Cyrillic relative paths, computes SHA256 hashes, and writes `catalog.json`.
+- `python -m tflex_harness.cli prototypes-list` — lists prototypes by category and extension.
+- `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
@@ -62,6 +65,7 @@ Initial helper sets:
 - `easy_3d` — session/profile/gear/solid/placement helpers
 - `easy_gears` — direct-XY trapezoid gear helpers, tooth phase helpers, and gear clearance diagnostics
 - `easy_export` — session/export helpers
+- `easy_prototype` — safe copy/open/save helpers for installed `.grb` prototypes
 - `all` — all helper source files
 
 Every helper run copies helper `.cs` files into the run directory under `helpers/`, includes helper source content in the compile cache key, and records helper paths plus SHA256 hashes in `result.json`.
@@ -83,6 +87,33 @@ python -m tflex_harness.cli reverse-evidence agent_workspace/snippets/grb_revers
 
 This is not full design-intent decompilation. Recognized shapes become helper calls; unknown geometry should fall back to raw contour reconstruction.
 
+## T-FLEX prototype corpus
+
+Installed T-FLEX document prototypes are treated as a reference corpus:
+
+```text
+C:\Program Files\T-FLEX CAD 17\Program\Прототипы
+```
+
+Scan them with:
+
+```powershell
+python -m tflex_harness.cli prototypes-scan
+python -m tflex_harness.cli prototypes-list --category Чертежи
+python -m tflex_harness.cli prototypes-info "Чертежи/Чертёж детали с форматкой"
+```
+
+Verified local scan on 2026-05-25:
+
+- `file_count=57`
+- `.grb=50`
+- `.ico=5`
+- `.txt=1`
+- `.xml=1`
+- output: `artifacts/prototype_catalog/current_probe/catalog.json`
+
+The source `Program Files` tree is read-only input. Future prototype automation must copy selected `.grb` files into a run artifact directory before opening or saving.
+
 ## Verified recipes
 
 - `environment_probe` — initializes and exits a minimal read-only API session.
@@ -90,3 +121,4 @@ This is not full design-intent decompilation. Recognized shapes become helper ca
 - `save_document_as_temp` — creates a hidden temporary 2D document, verifies `SaveAs` to a `.grb` artifact path, writes a snippet artifact marker, closes the document, and exits the session.
 - `create_simple_2d_line` — creates two free 2D nodes, a construction line through them, verifies `Get2DObjects()` count/types, saves `.grb`, closes the document, and exits the session.
 - `create_simple_3d_extrusion` — creates a hidden 3D document, builds a circular area profile on a standard workplane, verifies one `ThickenExtrusion` operation with non-null body/geometry and positive bounding box, saves `.grb`, closes the document, and exits the session.
+- `prototype_open_copy_save` — copies an installed `.grb` prototype to the run artifact directory, opens the copy, saves a new `.grb`, closes it, and prints source/copy/output SHA evidence. Use `--arg source_path=...` or `--arg prototype_id=...`.

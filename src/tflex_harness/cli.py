@@ -8,6 +8,7 @@ from .artifacts import json_default
 from .diagnostics import get_environment
 from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
+from .prototypes import list_prototypes, prototype_info, scan_and_write_catalog
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
 from .schemas import DOCS_SEARCH_SCOPES, TFLEX_DOC_ASSEMBLIES
@@ -59,6 +60,20 @@ def main(argv: list[str] | None = None) -> int:
     reverse_p.add_argument("evidence_json")
     reverse_p.add_argument("--output-dir", required=True)
 
+    proto_scan_p = sub.add_parser("prototypes-scan", help="Scan installed T-FLEX prototype corpus")
+    proto_scan_p.add_argument("--root", default=None, help="Prototype root override; defaults to TFLEX_PROTOTYPES_DIR or T-FLEX Program\\Прототипы")
+    proto_scan_p.add_argument("--output-dir", default=None, help="Where to write catalog.json; defaults to artifacts/prototype_catalog/<stamp>")
+
+    proto_list_p = sub.add_parser("prototypes-list", help="List indexed T-FLEX prototypes")
+    proto_list_p.add_argument("--root", default=None)
+    proto_list_p.add_argument("--category", default=None)
+    proto_list_p.add_argument("--extension", default=".grb", help="Filter extension; use empty string for all supported files")
+    proto_list_p.add_argument("--limit", type=int, default=None)
+
+    proto_info_p = sub.add_parser("prototypes-info", help="Show one prototype by id, relative path, absolute path, or name")
+    proto_info_p.add_argument("selector")
+    proto_info_p.add_argument("--root", default=None)
+
     args = parser.parse_args(argv)
     if args.command == "env":
         emit(get_environment())
@@ -95,6 +110,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "reverse-evidence":
         emit(write_semantic_outputs(args.evidence_json, args.output_dir))
+        return 0
+    if args.command == "prototypes-scan":
+        emit(scan_and_write_catalog(root=args.root, output_dir=args.output_dir))
+        return 0
+    if args.command == "prototypes-list":
+        extension = args.extension if args.extension else None
+        emit(list_prototypes(root=args.root, category=args.category, extension=extension, limit=args.limit))
+        return 0
+    if args.command == "prototypes-info":
+        emit(prototype_info(args.selector, root=args.root))
         return 0
     parser.error(f"unknown command {args.command}")
     return 2

@@ -1,526 +1,830 @@
 # T-FLEX Harness Goal
 
-Date: 2026-05-25. Scope: helper-library implementation plan and progress tracker.
+Date: 2026-05-25.
+
+Scope: make `tflex_harness` able to create, inspect, fill, validate, and export T-FLEX documents from the installed prototype library:
+
+```text
+C:\Program Files\T-FLEX CAD 17\Program\Прототипы
+```
+
+This file is the active project plan. It replaces the old helper-only goal. Helpers stay, but the larger target is now a **prototype-driven document factory**.
 
 ## Mission
 
-Build **C# helper libraries for snippets** so agents can spend attention on engineering geometry, not repeated T-FLEX API ceremony.
+Use the official T-FLEX CAD 17 `.grb` prototypes as trusted seeds, and drive them through our harness with visible C# snippets, source helpers, live CAD runs, and evidence artifacts.
 
-Python remains the harness/control plane. C# remains the CAD execution boundary. The new helpers are C# source files compiled together with each visible snippet, not broad Python CAD tools.
+The harness should let an agent or user say:
 
-## User Decision
+> create this kind of T-FLEX document using this prototype, fill these fields/tables/model data, validate it, and export artifacts.
 
-The desired direction is explicit:
+The system must work for the whole installed prototype set, not only gear/3D examples.
 
-- create helper libraries;
-- use them from snippets;
-- reduce boilerplate around units, sessions, profiles, extrusion, placement, export, and diagnostics;
-- keep evidence-driven compile/run/live validation.
+## Current Prototype Corpus
 
-This supersedes the previous “no helpers” planning stance in this file.
+Observed source root:
 
-## Helper Model
+```text
+C:\Program Files\T-FLEX CAD 17\Program\Прототипы
+```
 
-Canonical helper source lives in:
+Observed top-level content:
+
+```text
+2D Деталь.grb
+2D Сборка.grb
+3D Деталь.grb
+3D Сборка.grb
+Листовая Деталь.grb
+Спецификации\
+Таблицы\
+Техкарты\
+Фотореализм\
+Фрагменты\
+Чертежи\
+Электротехника\
+Library.ico
+Order.txt
+TemplateSettings.xml
+```
+
+Observed file counts:
+
+```text
+.grb  50
+.ico   5
+.txt   1
+.xml   1
+```
+
+Observed prototype groups:
+
+```text
+Спецификации   21 files
+Таблицы         7 files
+Техкарты        2 files
+Фотореализм     3 files
+Фрагменты       3 files
+Чертежи         5 files
+Электротехника  8 files
+root            5 GRB prototypes
+```
+
+Important rule: the source directory under `Program Files` is read-only input. Never modify prototypes in place.
+
+## Definition Of Done
+
+The harness can be called with:
+
+- prototype selector: exact path, relative path, category/name, or catalog id;
+- input payload: JSON/YAML with variables, title-block fields, table rows, metadata, model references, export targets;
+- visible C# snippet or recipe name;
+- helper set names;
+- validation contract.
+
+It produces:
+
+- copied working `.grb`;
+- modified output `.grb`;
+- optional exports: STEP, PDF, image, DXF/DWG, neutral files when supported;
+- stdout evidence;
+- `request.json`;
+- `result.json`;
+- prototype hash evidence;
+- helper source hash evidence;
+- validation report;
+- run directory under `artifacts/runs/...`.
+
+## Core Architecture
+
+Python remains orchestration.
+
+C# remains CAD execution.
+
+Helpers are C# source files compiled with visible snippets. They are not hidden DLL magic.
+
+Canonical source helpers live here:
 
 ```text
 src/tflex_harness/csharp_helpers/
 ```
 
-Initial files:
+Prototype and document automation should use this pattern:
 
 ```text
-src/tflex_harness/csharp_helpers/
-  TFlexEasyUnits.cs
-  TFlexEasySession.cs
-  TFlexEasyProfiles.cs
-  TFlexEasySolids.cs
-  TFlexEasyPlacement.cs
-  TFlexEasyExport.cs
-  TFlexEasyDiagnostics.cs
+user payload
+  -> Python catalog/runner
+  -> visible C# snippet
+  -> helper source files
+  -> live T-FLEX CAD
+  -> artifacts/runs/<timestamp>_<prefix>/
 ```
 
-Snippets use helpers like normal C#:
+## Hard Invariants
 
-```csharp
-using TFlexEasy;
-
-public class Program {
-  public static int Main() {
-    using (var sess = EasySession.Start3D()) {
-      var doc = sess.New3DDocument(visible: false);
-      var profile = EasyProfiles.ExternalTrapezoidGear(doc, teeth: 24, rootDiaMm: 42, outerDiaMm: 54);
-      var sun = EasySolids.ExtrudeMm(doc, profile, zMinMm: 0, heightMm: 8, name: "sun");
-      EasyDiagnostics.PrintBodyBoxMm("sun", sun);
-      return EasyExport.Step(doc, sess.ArtifactPath("planetary.step")) ? 0 : 20;
-    }
-  }
-}
-```
-
-## Visibility Rule
-
-Helpers are libraries, but not invisible magic.
-
-For every run:
-
-- helper `.cs` files are copied into the run directory;
-- helper file paths and SHA256 hashes are written to `request.json` and `result.json`;
-- `build.log` reflects compilation with snippet plus helper source files;
-- source remains inspectable and editable in the repo;
-- compile cache key includes helper content.
-
-Default mode: compile helper **source** with the snippet.
-
-Optional later mode: precompiled helper DLL only if source hash, version, and exact DLL evidence are persisted. Not first.
-
-## Current Runner Gap
-
-Current `SnippetRunner` writes and compiles one source file:
-
-- run source: `snippet.cs`;
-- cache source: `Snippet.cs`;
-- compile command appends only that one source file.
-
-Needed change:
-
-- accept helper include names or helper set names;
-- resolve helper source files;
-- copy helper files to run dir;
-- copy helper files to cache dir;
-- compile all `.cs` files in one `csc.exe` invocation;
-- include helper source content in cache key;
-- persist helper metadata in result.
+- Do not edit `C:\Program Files\T-FLEX CAD 17\Program\Прототипы` in place.
+- Always copy the selected `.grb` to the run artifact directory before modification.
+- Preserve Cyrillic paths and names.
+- Print evidence, not vibes.
+- Every prototype run records:
+  - original path;
+  - copied path;
+  - output path;
+  - file size;
+  - SHA256;
+  - document type guess;
+  - helper files and hashes;
+  - export files and sizes.
+- Every claim about T-FLEX API behavior needs compile/live evidence.
+- Helpers may reduce boilerplate, but source must stay visible.
+- If a prototype cannot be semantically modified yet, the harness must still open/copy/save/export it and report why semantic filling was skipped.
 
 ## Non-Goals
 
-- Do not add public CAD-specific MCP tools like `create_gear` or `export_step`.
-- Do not move CAD execution to Python/COM.
-- Do not make long-lived T-FLEX sessions default.
-- Do not hide helper source behind an unexplained binary.
-- Do not claim helper correctness without compile and live evidence.
+- No opaque Python CAD SDK replacing T-FLEX API.
+- No silent mutation of installed templates.
+- No broad “do everything” helper that hides real API calls.
+- No fake success based only on file existence.
+- No name-based reward hacking when geometry/table/document evidence is available.
+- No long-lived T-FLEX session as default.
 
-## Helper Quality Contract
+## Main Capabilities To Build
 
-Each helper method must have:
+### 1. Prototype Catalog
 
-- clear C# signature;
-- unit semantics in method name or XML/doc comment;
-- narrow responsibility;
-- no silent document saves outside artifact paths;
-- no swallowed T-FLEX errors without diagnostic output;
-- compile-only test snippet;
-- live probe snippet when behavior touches T-FLEX runtime;
-- stdout evidence for dimensions, paths, counts, and bbox when relevant.
-
-## Initial Helper APIs
-
-### `TFlexEasyUnits.cs`
-
-Purpose: eliminate recurring unit mistakes.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public static class EasyUnits {
-    public static double MmToModel(double mm);
-    public static double ModelToMm(double model);
-    public static double DegToRad(double deg);
-    public static string F(double value);
-  }
-}
-```
-
-Evidence needed:
-
-- compile-only;
-- live transform probe proving `AddMoveTransf` offsets behave as intended for mm-to-model conversion.
-
-### `TFlexEasySession.cs`
-
-Purpose: verified T-FLEX session lifecycle.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public sealed class EasySession : System.IDisposable {
-    public static EasySession Start3D();
-    public static EasySession Start2D();
-    public TFlex.Model.Document New3DDocument(bool visible);
-    public TFlex.Model.Document New2DDocument(bool visible);
-    public string ArtifactPath(string fileName);
-    public void Dispose();
-  }
-}
-```
-
-Evidence needed:
-
-- session init/exit stdout;
-- close document in `Dispose`;
-- no stale T-FLEX session after run.
-
-### `TFlexEasyProfiles.cs`
-
-Purpose: make profile creation deterministic.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public static class EasyProfiles {
-    public static TFlex.Model.Model3D.AreaProfile Circle(
-      TFlex.Model.Document doc,
-      double diameterMm,
-      string name = "circle_profile");
-
-    public static TFlex.Model.Model3D.AreaProfile Ring(
-      TFlex.Model.Document doc,
-      double outerDiaMm,
-      double innerDiaMm,
-      string name = "ring_profile");
-
-    public static TFlex.Model.Model3D.AreaProfile ExternalTrapezoidGear(
-      TFlex.Model.Document doc,
-      int teeth,
-      double rootDiaMm,
-      double outerDiaMm,
-      string name = "external_gear_profile");
-
-    public static TFlex.Model.Model3D.AreaProfile InternalTrapezoidGearRing(
-      TFlex.Model.Document doc,
-      int teeth,
-      double outerDiaMm,
-      double internalRootDiaMm,
-      double toothTipDiaMm,
-      string name = "internal_gear_ring_profile");
-  }
-}
-```
-
-Evidence needed:
-
-- generated tooth count;
-- radial min/max from source points;
-- bbox checks after extrusion.
-
-### `TFlexEasySolids.cs`
-
-Purpose: verified solid creation.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public static class EasySolids {
-    public static TFlex.Model.Model3D.ThickenExtrusion ExtrudeMm(
-      TFlex.Model.Document doc,
-      TFlex.Model.Model3D.AreaProfile profile,
-      double zMinMm,
-      double heightMm,
-      string name);
-
-    public static TFlex.Model.Model3D.Cylinder CylinderMm(
-      TFlex.Model.Document doc,
-      double diameterMm,
-      double zMinMm,
-      double heightMm,
-      string name);
-  }
-}
-```
-
-Evidence needed:
-
-- exact bbox Z span in mm;
-- exact bbox X/Y for simple circle/cylinder;
-- known `ThickenExtrusion` limitations documented.
-
-### `TFlexEasyPlacement.cs`
-
-Purpose: deterministic placement.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public struct EasyPoint2 {
-    public double XMm;
-    public double YMm;
-  }
-
-  public static class EasyPlacement {
-    public static EasyPoint2 PolarMm(double radiusMm, double angleDeg);
-    public static void MoveMm(TFlex.Model.Model3D.Object3D obj, double xMm, double yMm, double zMm, string name = "move_mm");
-    public static void RotateZDeg(TFlex.Model.Model3D.Object3D obj, double angleDeg, string name = "rotate_z_deg");
-  }
-}
-```
-
-Evidence needed:
-
-- live bbox center shift check;
-- degree/radian distinction documented.
-
-### `TFlexEasyExport.cs`
-
-Purpose: verified STEP export path.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public static class EasyExport {
-    public static bool Grb(TFlex.Model.Document doc, string path);
-    public static bool Step(TFlex.Model.Document doc, string path);
-  }
-}
-```
-
-Evidence needed:
-
-- `.grb` save evidence;
-- `.step` or `.stp` export evidence;
-- file exists and non-zero size;
-- exact T-FLEX export API documented.
-
-### `TFlexEasyDiagnostics.cs`
-
-Purpose: standard stdout evidence and assertions.
-
-Proposed API:
-
-```csharp
-namespace TFlexEasy {
-  public static class EasyDiagnostics {
-    public static void Print(string key, object value);
-    public static BodyBoxMm PrintBodyBoxMm(string label, TFlex.Model.Model3D.Operation op);
-    public static int FailIf(bool condition, int code, string message);
-    public static bool Near(double actual, double expected, double tolerance);
-  }
-
-  public struct BodyBoxMm {
-    public bool Valid;
-    public double MinX, MinY, MinZ;
-    public double MaxX, MaxY, MaxZ;
-    public double SpanX, SpanY, SpanZ;
-  }
-}
-```
-
-Evidence needed:
-
-- stdout shape stable;
-- asserts return explicit exit codes;
-- no exception masking.
-
-## Runner Implementation Plan
-
-### Iteration 1: Helper Source Discovery
-
-Status: implemented.
-
-Tasks:
-
-- Add helper directory discovery under `src/tflex_harness/csharp_helpers`.
-- Add allowlist of helper set names, for example `easy_core`, `easy_3d`, `easy_export`.
-- Reject unknown helper names.
-- Keep default behavior unchanged when no helpers requested.
-
-Validation:
-
-- unit test path resolution;
-- unit test unknown helper rejection.
-
-### Iteration 2: Compile Multiple Source Files
-
-Status: implemented.
-
-Tasks:
-
-- Extend runner API with `helpers: list[str] | None`.
-- Extend CLI with `--helper`.
-- Extend MCP schema if needed.
-- Copy selected helpers into run dir, e.g. `helpers/TFlexEasyUnits.cs`.
-- Copy selected helpers into cache dir.
-- Compile `Snippet.cs` plus helper `.cs` files.
-- Include helper source content in compile cache key.
-
-Validation:
-
-- compile-only snippet using `using TFlexEasy;`;
-- cache key changes when helper source changes;
-- run dir includes helper source copies.
-
-### Iteration 3: Metadata And Evidence
-
-Status: implemented.
-
-Tasks:
-
-- Persist `helpers` in `request.json`.
-- Persist `helper_sources` in `result.json`.
-- Include helper path, copied path, SHA256, and size.
-- Include helpers in event log summary.
-
-Validation:
-
-- unit tests for `result.json` shape;
-- smoke compile-only run.
-
-### Iteration 4: `TFlexEasyUnits` And `TFlexEasyDiagnostics`
-
-Status: implemented and compile-verified.
-
-Tasks:
-
-- Implement no-CAD helper files first.
-- Compile with trivial snippet.
-- Add small tests.
-
-Validation:
-
-- compile-only pass;
-- no live T-FLEX needed.
-
-### Iteration 5: `TFlexEasySession`
-
-Status: implemented and live-verified.
-
-Tasks:
-
-- Move known-good session pattern into source helper.
-- Ensure `Dispose` closes document and exits session.
-- Print explicit diagnostics.
-
-Validation:
-
-- live environment probe using helper;
-- stdout contains init/exit evidence.
-
-### Iteration 6: `TFlexEasyProfiles` And `TFlexEasyPlacement`
-
-Status: implemented; profile compile verified, extrusion/profile path live-verified.
-
-Tasks:
-
-- Implement point generation and profile creation.
-- Implement polar placement and transform helpers.
-- Keep methods small and readable.
-
-Validation:
-
-- compile-only profile creation snippet;
-- live bbox placement probe.
-
-### Iteration 7: `TFlexEasySolids`
-
-Status: implemented and live-verified for simple one-sided extrusion.
-
-Tasks:
-
-- Implement extrusion and cylinder creation.
-- Probe `ThickenExtrusion` exact Z behavior.
-- Adjust API if T-FLEX behavior differs from expectation.
-
-Validation:
-
-- live bbox Z checks;
-- saved `.grb` evidence.
-
-### Iteration 8: `TFlexEasyExport`
-
-Status: implemented and live-verified for `.grb` and `.step` artifacts.
-
-Tasks:
-
-- Search local docs for exact STEP export API.
-- Implement `.grb` first, STEP second.
-- Print file evidence.
-
-Validation:
-
-- live STEP export probe;
-- artifact file exists and non-zero size.
-
-### Iteration 9: Planetary Gear Snippet Using Helpers
-
-Status: implemented as snippet candidate and live-verified once.
-
-Goal:
-
-Build the prompt planetary assembly using helper libraries.
-
-Snippet should be short and focused on the engineering spec:
-
-- sun gear: 24 teeth, root 42, outside 54, bore 10;
-- three planet gears: 18 teeth, root 31, outside 41, centers R42;
-- ring: 60 internal teeth, outside 140, internal root 126, tooth-tip 114;
-- carrier: circular plate Ø105, Z -5..-1;
-- pins: three Ø6, height 14;
-- gears: thickness 8;
-- export STEP.
-
-Validation:
-
-- compile-only;
-- live run;
-- stdout expected-vs-actual checks;
-- STEP artifact.
-
-## Recipe Promotion Plan
-
-Helpers themselves are not recipes. They are reusable C# source libraries.
-
-Status: implemented for the four initial helper-backed recipes.
-
-Promote helper-backed snippets to recipes when useful:
+Create a catalog module:
 
 ```text
-agent_workspace/recipes/
-  helper_environment_probe.cs
-  helper_simple_extrusion.cs
-  helper_step_export.cs
-  helper_planetary_static_assembly.cs
+src/tflex_harness/prototypes.py
 ```
 
-Each recipe records:
+Responsibilities:
 
-- helper set used;
-- helper hashes;
-- live run dir;
-- stdout evidence;
-- artifact paths;
-- limitations.
+- scan `C:\Program Files\T-FLEX CAD 17\Program\Прототипы`;
+- support override root via env var `TFLEX_PROTOTYPES_DIR`;
+- index all `.grb`, `.xml`, `.txt`, `.ico`;
+- preserve relative paths;
+- compute SHA256 and size;
+- detect category from directory;
+- generate stable ids;
+- write catalog JSON under artifacts.
 
-## Guardrails
-
-- Helper source must stay small enough for agents to inspect.
-- Prefer source inclusion over precompiled DLL.
-- Do not silently change physical units.
-- Every helper touching T-FLEX runtime gets live evidence.
-- If helper behavior is uncertain, print uncertainty and fail contract checks.
-- Do not use helpers to hide failed geometry checks.
-- For flat gear assemblies, prefer `TFlexEasyGears.cs` direct-XY profile helpers and explicit tooth phase helpers over centered profiles plus body transforms.
-
-## Immediate Next Commands
-
-Use when implementation starts:
+Planned CLI:
 
 ```powershell
-rg -n "cache_key|Snippet.cs|cmd.append" src/tflex_harness/runner.py
-python -m pytest tests/unit/test_runner_payloads.py -v
-python -m tflex_harness.cli run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"
+python -m tflex_harness.cli prototypes-scan
+python -m tflex_harness.cli prototypes-list
+python -m tflex_harness.cli prototypes-info "Чертежи/Чертёж детали с форматкой"
 ```
+
+Evidence:
+
+- catalog count equals observed 50 `.grb`;
+- paths with Cyrillic round-trip correctly;
+- hashes are stable.
+
+### 2. Prototype Open/Copy/Save Probe
+
+Create a minimal live C# probe that:
+
+- receives prototype path;
+- copies it to run dir;
+- opens copy in T-FLEX;
+- prints document metadata;
+- saves as output `.grb`;
+- closes document cleanly.
+
+This is the first required live milestone.
+
+Planned helper:
+
+```text
+src/tflex_harness/csharp_helpers/TFlexEasyPrototype.cs
+```
+
+Initial API:
+
+```csharp
+namespace TFlexEasy {
+  public static class EasyPrototype {
+    public static string CopyToArtifact(string sourcePath, string artifactPath);
+    public static TFlex.Model.Document OpenCopy(string copiedPath, bool visible);
+    public static bool SaveAsGrb(TFlex.Model.Document doc, string outputPath);
+    public static void PrintPrototypeEvidence(string label, string sourcePath, string copiedPath, string outputPath);
+  }
+}
+```
+
+Validation:
+
+- compile-only;
+- live run against one root prototype;
+- live batch against all 50 `.grb` prototypes in open/copy/save mode.
+
+### 3. Document Metadata Probe
+
+Create a read-only C# probe for any opened prototype:
+
+- document name;
+- document path;
+- page count if available;
+- 2D/3D operation counts if available;
+- variables;
+- text objects if available;
+- table-like objects if available;
+- fragments/references if available;
+- document parameters/properties if available.
+
+Output format:
+
+```text
+prototype.id=...
+document.opened=True
+document.pages=...
+document.variables.count=...
+document.operations3d.count=...
+document.text.count=...
+document.tables.count=...
+```
+
+Artifacts:
+
+```text
+artifacts/prototype_catalog/<date>/metadata/<prototype-id>.json
+artifacts/runs/<run>/stdout.txt
+```
+
+Purpose:
+
+- classify prototypes by actual API-visible content, not by filename only;
+- discover which document types need which helpers.
+
+### 4. Document Mutation Helpers
+
+Add narrow source helpers only after probes prove API behavior.
+
+Planned helper files:
+
+```text
+src/tflex_harness/csharp_helpers/TFlexEasyDocuments.cs
+src/tflex_harness/csharp_helpers/TFlexEasyVariables.cs
+src/tflex_harness/csharp_helpers/TFlexEasyText.cs
+src/tflex_harness/csharp_helpers/TFlexEasyTables.cs
+src/tflex_harness/csharp_helpers/TFlexEasyDrawings.cs
+src/tflex_harness/csharp_helpers/TFlexEasySpecs.cs
+src/tflex_harness/csharp_helpers/TFlexEasyElectrical.cs
+```
+
+Rules:
+
+- each helper does one small class of mutation;
+- each helper prints what it changed;
+- each helper can run in dry-run mode;
+- each helper has compile test;
+- each helper has at least one live prototype test.
+
+Initial desired APIs:
+
+```csharp
+EasyVariables.Set(doc, "Designation", "ABC.001");
+EasyVariables.SetIfExists(doc, "Material", "Steel 20");
+EasyText.ReplaceAll(doc, "{{DESIGNATION}}", "ABC.001");
+EasyTables.SetCell(doc, tableSelector, row, column, value);
+EasyDocuments.SetProperty(doc, "Author", "tflex_harness");
+EasyDocuments.PrintSummary(doc);
+```
+
+No helper is accepted without evidence.
+
+### 5. Payload Contract
+
+Standard input payload for document generation:
+
+```json
+{
+  "prototype": {
+    "id": "drawings/detail-format",
+    "path": null
+  },
+  "output": {
+    "name": "ABC.001_detail",
+    "exports": ["grb", "pdf"]
+  },
+  "document": {
+    "properties": {
+      "Author": "tflex_harness"
+    },
+    "variables": {
+      "Designation": "ABC.001",
+      "Name": "Корпус",
+      "Material": "Сталь 20"
+    },
+    "text_replacements": {
+      "{{DESIGNATION}}": "ABC.001",
+      "{{NAME}}": "Корпус"
+    },
+    "tables": []
+  },
+  "validation": {
+    "require_open": true,
+    "require_save": true,
+    "require_exports": ["grb"]
+  }
+}
+```
+
+Payload lives in run dir as `input_payload.json`.
+
+### 6. Document Recipe System
+
+A document recipe is:
+
+- prototype id;
+- input payload schema;
+- visible C# snippet;
+- helper set;
+- validation expectations;
+- last live evidence.
+
+Recipe examples:
+
+```text
+agent_workspace/recipes/prototype_open_copy_save/
+agent_workspace/recipes/create_3d_part_from_prototype/
+agent_workspace/recipes/create_3d_assembly_from_prototype/
+agent_workspace/recipes/create_detail_drawing_from_prototype/
+agent_workspace/recipes/create_assembly_drawing_with_spec/
+agent_workspace/recipes/create_gost_specification/
+agent_workspace/recipes/create_parameter_table/
+agent_workspace/recipes/create_electrical_scheme/
+```
+
+Each recipe must be runnable by harness and must state limitations.
+
+### 7. Batch Validation Matrix
+
+Build a prototype validation matrix.
+
+Columns:
+
+- prototype id;
+- path;
+- category;
+- hash;
+- opens;
+- saves copy;
+- exports GRB;
+- exports PDF if 2D/document;
+- exports STEP if 3D/model;
+- metadata extracted;
+- variables writable;
+- text writable;
+- tables writable;
+- known limitations;
+- last run dir.
+
+Expected first target:
+
+```text
+50 / 50 prototypes open from copied path
+50 / 50 prototypes save as GRB copy
+0 source prototypes modified
+```
+
+Semantic mutation can come later per category.
+
+### 8. Export Layer
+
+Current helper exists:
+
+```text
+TFlexEasyExport.cs
+```
+
+Extend carefully with evidence:
+
+```csharp
+EasyExport.Grb(doc, path);
+EasyExport.Step(doc, path);
+EasyExport.Pdf(doc, path);
+EasyExport.Image(doc, path);
+EasyExport.Dxf(doc, path);
+EasyExport.Dwg(doc, path);
+```
+
+Rules:
+
+- every export method checks file exists;
+- every export method prints file size;
+- unsupported export returns false with diagnostic reason;
+- no export method overwrites outside artifact dir unless explicitly allowed.
+
+### 9. Category-Specific Tracks
+
+#### Root 3D/2D Prototypes
+
+Targets:
+
+- `2D Деталь.grb`
+- `2D Сборка.grb`
+- `3D Деталь.grb`
+- `3D Сборка.grb`
+- `Листовая Деталь.grb`
+
+Capabilities:
+
+- open/copy/save;
+- set variables/properties;
+- create simple geometry or insert generated model;
+- export GRB;
+- export STEP for 3D;
+- export PDF/image for 2D when supported.
+
+#### Drawings
+
+Group:
+
+```text
+Чертежи\
+```
+
+Targets:
+
+- detail drawing with format;
+- assembly drawing with format;
+- assembly drawing with specification;
+- text document with format.
+
+Capabilities:
+
+- fill title block;
+- set designation/name/material;
+- update sheet metadata;
+- insert or reference model if API allows;
+- export PDF;
+- validate page count and visible text.
+
+#### Specifications
+
+Group:
+
+```text
+Спецификации\
+```
+
+Capabilities:
+
+- fill rows from payload;
+- preserve GOST form layout;
+- print row/column evidence;
+- export GRB/PDF;
+- validate required columns.
+
+#### Tables
+
+Group:
+
+```text
+Таблицы\
+```
+
+Capabilities:
+
+- fill parameter table rows;
+- fill gear parameter table;
+- fill chain parameter table;
+- fill weld table;
+- validate row count and non-empty cells.
+
+#### Tech Cards
+
+Group:
+
+```text
+Техкарты\
+```
+
+Capabilities:
+
+- fill operation/process fields;
+- export PDF;
+- validate required operation rows.
+
+#### Fragments
+
+Group:
+
+```text
+Фрагменты\
+```
+
+Capabilities:
+
+- open/save fragment prototypes;
+- create fragment outputs;
+- use fragment outputs in assemblies later;
+- preserve fragment LCS evidence.
+
+#### Electrical
+
+Group:
+
+```text
+Электротехника\
+```
+
+Capabilities:
+
+- open/copy/save all electrical prototypes;
+- inspect symbols/components/tables if API-visible;
+- fill component properties where API permits;
+- export PDF/GRB;
+- document unsupported API gaps explicitly.
+
+#### Photorealism
+
+Group:
+
+```text
+Фотореализм\
+```
+
+Capabilities:
+
+- open/copy/save;
+- inspect scene/camera/light objects if API-visible;
+- render/export image only after live API proof.
+
+## Implementation Phases
+
+### Phase 0: Preserve Current Work
+
+Status: pending.
+
+Tasks:
+
+- keep existing helper/gears/GRB reverse work intact;
+- do not regress `run-csharp --helper`;
+- do not regress `reverse-evidence`;
+- do not commit generated heavy artifacts unless explicitly requested.
+
+Validation:
+
+```powershell
+python -m pytest tests/unit/test_grb_reverse.py tests/smoke/test_cli.py -v
+```
+
+### Phase 1: Catalog Installed Prototypes
+
+Status: implemented.
+
+Tasks:
+
+- implement `src/tflex_harness/prototypes.py`;
+- add CLI scan/list/info;
+- add tests with a temp fake prototype tree;
+- scan real installed tree.
+
+Validation:
+
+```powershell
+python -m pytest tests/unit/test_prototypes.py tests/smoke/test_cli.py -v
+python -m tflex_harness.cli prototypes-scan
+```
+
+Evidence:
+
+- `tests/unit/test_prototypes.py` and `tests/smoke/test_cli.py` passed;
+- real catalog JSON: `artifacts/prototype_catalog/current_probe/catalog.json`;
+- real scan: `file_count=57`, `grb_count=50`;
+- Cyrillic paths preserved.
+
+### Phase 2: Open/Copy/Save All Prototypes
+
+Status: started.
+
+Tasks:
+
+- implement `TFlexEasyPrototype.cs`;
+- implement one visible C# probe;
+- add runner helper set `easy_prototype`;
+- add verified recipe `prototype_open_copy_save`;
+- run one prototype live;
+- batch-run all 50 `.grb`.
+
+Validation:
+
+```powershell
+python -m tflex_harness.cli run-csharp --mode compile_only --helper easy_prototype --code "<probe>"
+python scripts/prototype_batch_open_save.py
+```
+
+Evidence:
+
+- one-prototype live run passed: `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`;
+- source SHA equals copy SHA for `3D Деталь.grb`;
+- output `.grb` size non-zero;
+- batch 50 is not done yet.
+
+### Phase 3: Metadata Extraction
+
+Status: pending.
+
+Tasks:
+
+- create metadata probe;
+- inspect API docs for document/page/text/table/variable access;
+- extract common fields;
+- write JSON per prototype.
+
+Validation:
+
+- one root 3D prototype;
+- one drawing prototype;
+- one specification prototype;
+- one electrical prototype;
+- then full batch.
+
+### Phase 4: Minimal Mutation
+
+Status: pending.
+
+Tasks:
+
+- implement variable setting helper;
+- implement document property helper;
+- implement text replacement helper if API-visible;
+- prove on one drawing/spec/table prototype.
+
+Validation:
+
+- stdout says before/after;
+- reopen output and verify persisted value;
+- export PDF when supported.
+
+### Phase 5: Category Recipes
+
+Status: pending.
+
+Tasks:
+
+- create one recipe per category;
+- give each recipe a payload schema;
+- record live evidence;
+- document limitations.
+
+Validation:
+
+- recipe registry lists all category recipes;
+- each recipe has at least one live run.
+
+### Phase 6: Batch Document Factory
+
+Status: pending.
+
+Tasks:
+
+- add CLI command that takes payload and prototype id;
+- chooses recipe/helper set;
+- runs live T-FLEX;
+- emits output GRB and requested exports.
+
+Planned CLI:
+
+```powershell
+python -m tflex_harness.cli create-document --payload input.json
+```
+
+Validation:
+
+- create 3D part from prototype;
+- create drawing from prototype;
+- create specification from prototype;
+- create table document from prototype.
+
+### Phase 7: Enterprise Workflow
+
+Status: pending.
+
+Tasks:
+
+- support batch payload folder;
+- support per-run summary CSV/JSON;
+- support failure classification;
+- support dry-run;
+- support “open only” audit mode;
+- support rerun failed prototypes only.
+
+Validation:
+
+- batch report with success/fail/unsupported buckets;
+- no silent failures.
+
+## Helper Set Plan
+
+Existing useful helper sets stay:
+
+```text
+easy_core
+easy_session
+easy_3d
+easy_gears
+easy_export
+all
+```
+
+Add new sets:
+
+```text
+easy_prototype
+easy_documents
+easy_tables
+easy_drawings
+easy_specs
+easy_electrical
+```
+
+`all` must include them only after they compile cleanly.
+
+## Evidence Schema
+
+Every prototype/document run should print stable keys:
+
+```text
+prototype.sourcePath=...
+prototype.sourceSha256=...
+prototype.copyPath=...
+prototype.copySize=...
+document.opened=True
+document.saved=True
+document.outputPath=...
+document.outputSize=...
+export.pdf.path=...
+export.pdf.size=...
+validation.failures=0
+```
+
+`result.json` should include structured equivalents.
+
+## Safety Rules
+
+- Default output directory is artifact run dir.
+- Writing outside artifacts requires explicit user path.
+- Program Files prototype tree is never a write target.
+- Batch jobs must have timeout per prototype.
+- Failed prototype does not stop full batch unless `--fail-fast`.
+- All failures include stdout/stderr/result path.
+
+## Test Plan
+
+Unit:
+
+- catalog path handling;
+- Cyrillic relative ids;
+- SHA256;
+- payload parsing;
+- CLI argument validation.
+
+Smoke:
+
+- `prototypes-scan`;
+- compile `easy_prototype`;
+- fake payload to dry-run.
+
+Integration/live:
+
+- open/copy/save one prototype;
+- batch open/copy/save all prototypes;
+- mutate one variable/text/table where supported;
+- export real outputs.
+
+## Immediate Next Work
+
+1. Implement prototype catalog.
+2. Add CLI scan/list/info.
+3. Add `TFlexEasyPrototype.cs`.
+4. Create visible open/copy/save probe.
+5. Run one root prototype live.
+6. Batch-run all 50 prototypes.
+7. Write validation matrix.
+
+## Current Risks
+
+- T-FLEX document APIs for tables/specifications/electrical objects may differ by document type.
+- Some prototypes may require UI/interactive state to fully initialize.
+- Export APIs may vary by document type.
+- Cyrillic paths can expose encoding bugs.
+- Some `.grb` prototypes may be protected or depend on environment files.
+
+Mitigation:
+
+- start with open/copy/save;
+- probe metadata before mutation;
+- write narrow helpers only after live evidence;
+- keep unsupported states explicit.
 
 ## Plan Iteration Log
 
-- 2026-05-25: Replaced no-helper plan with explicit C# source helper library plan. Next target: helper source discovery and multi-source compile support in `SnippetRunner`.
-- 2026-05-25: Implemented helper source discovery, multi-source compile, helper metadata, CLI/MCP `helpers`, recipe metadata passthrough, initial `TFlexEasy*` helper files, and README docs. Verified `easy_core` compile, all helpers compile, `EasySession` live, exact `ValueNo` extrusion bbox `20x20x8 mm`, and STEP export artifact `154986` bytes.
-- 2026-05-25: Added `agent_workspace/snippets/helper_planetary_static_assembly/candidate.cs`. Live run `artifacts/runs/20260525_115830_457318_helper_planetary_static_live` passed with `operations=9`, contract checks `0`, and STEP artifact `helper_planetary_static_assembly.step` size `1530324` bytes.
-- 2026-05-25: Promoted helper-backed recipes under `agent_workspace/recipes`: `helper_environment_probe`, `helper_simple_extrusion`, `helper_step_export`, and `helper_planetary_static_assembly`. `RecipeRegistry` reports all four `verified=True` and `freshness.status=fresh`.
-- 2026-05-25: Live recipe runs passed: `artifacts/runs/20260525_120310_990914_recipe_helper_environment_probe`, `artifacts/runs/20260525_120312_702012_recipe_helper_simple_extrusion`, `artifacts/runs/20260525_120314_679135_recipe_helper_step_export`, and `artifacts/runs/20260525_120316_864653_recipe_helper_planetary_static_assembly`.
-- 2026-05-25: Added live integration coverage in `tests/integration/test_tflex_helper_recipes.py`; all four helper recipe tests passed.
-- 2026-05-25: Added `TFlexEasyGears.cs`, `easy_gears` helper set, clearanced direct-XY trapezoid gear profiles, explicit sun/ring/planet phase helpers, and radial clearance diagnostics. Updated `helper_planetary_static_assembly` to write both `.grb` and STEP. Live run `artifacts/runs/20260525_124302_419108_recipe_helper_planetary_static_assembly` passed with `operations=9`, `contractFailCode=0`, `mesh.sunRadialClearanceMm=0.5`, `mesh.ringRadialClearanceMm=0.5`, GRB size `617088`, and STEP size `1955262`.
+- 2026-05-25: Rewrote `goal.md` from helper-only target into prototype-driven document factory plan. Target source root: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы`. Observed 50 `.grb` prototypes across root, specifications, tables, tech cards, photorealism, fragments, drawings, and electrical groups.
+- 2026-05-25: Implemented Phase 1 prototype catalog. Added `src/tflex_harness/prototypes.py`, CLI commands `prototypes-scan`, `prototypes-list`, `prototypes-info`, unit/smoke tests, and real installed corpus scan evidence: `file_count=57`, `grb_count=50`, catalog at `artifacts/prototype_catalog/current_probe/catalog.json`.
+- 2026-05-25: Started Phase 2. Added `TFlexEasyPrototype.cs`, helper set `easy_prototype`, recipe `prototype_open_copy_save`, and live proof for `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`: run `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`, `document.opened=True`, `document.saved=True`, `document.closed=True`, output size `28544`.

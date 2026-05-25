@@ -136,7 +136,7 @@ def test_cli_run_csharp_compile_only_accepts_all_helpers():
 
     assert result["ok"] is True, result
     assert result["stage"] == "compile"
-    assert len(result["helper_sources"]) == 8
+    assert len(result["helper_sources"]) == 9
 
 
 def test_cli_reverse_evidence_writes_semantic_outputs(tmp_path):
@@ -151,3 +151,27 @@ def test_cli_reverse_evidence_writes_semantic_outputs(tmp_path):
     assert result["recognized_count"] == 9
     assert (tmp_path / "semantic_model.json").exists()
     assert (tmp_path / "parametric_candidate.cs").exists()
+
+
+def test_cli_prototypes_scan_list_info(tmp_path):
+    root = tmp_path / "Прототипы"
+    root.mkdir()
+    (root / "3D Деталь.grb").write_bytes(b"root-grb")
+    specs = root / "Спецификации"
+    specs.mkdir()
+    (specs / "Спецификация форма 1.grb").write_bytes(b"spec-grb")
+    out = tmp_path / "catalog"
+
+    scan = _cli("prototypes-scan", "--root", str(root), "--output-dir", str(out))
+
+    assert scan["ok"] is True
+    assert scan["grb_count"] == 2
+    assert Path(scan["catalog_path"]).exists()
+
+    listed = _cli("prototypes-list", "--root", str(root), "--category", "Спецификации")
+    assert listed["count"] == 1
+    assert listed["files"][0]["id"] == "Спецификации/Спецификация форма 1"
+
+    info = _cli("prototypes-info", "Спецификации/Спецификация форма 1", "--root", str(root))
+    assert info["ok"] is True
+    assert info["prototype"]["name"] == "Спецификация форма 1.grb"

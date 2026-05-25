@@ -21,6 +21,7 @@ def test_list_recipes_includes_verified_baseline():
     assert "helper_simple_extrusion" in names
     assert "helper_step_export" in names
     assert "helper_planetary_static_assembly" in names
+    assert "prototype_open_copy_save" in names
 
 
 def test_helper_recipes_are_fresh_and_use_all_helpers():
@@ -35,6 +36,15 @@ def test_helper_recipes_are_fresh_and_use_all_helpers():
         assert recipe["verified"] is True
         assert recipe["freshness"]["status"] == "fresh"
         assert recipe["helpers"] == ["all"]
+
+
+def test_prototype_recipe_is_fresh_and_uses_prototype_helpers():
+    recipes = {recipe["name"]: recipe for recipe in list_recipes()}
+    recipe = recipes["prototype_open_copy_save"]
+
+    assert recipe["verified"] is True
+    assert recipe["freshness"]["status"] == "fresh"
+    assert recipe["helpers"] == ["easy_prototype"]
 
 
 def test_each_verified_recipe_has_markdown_and_csharp_source():
@@ -122,6 +132,19 @@ def test_run_recipe_passes_helper_metadata(monkeypatch):
 
     assert result["ok"] is True
     assert calls[-1]["helpers"] == ["all"]
+
+
+def test_prototype_recipe_requires_source_or_catalog_id(monkeypatch):
+    def fake_run_csharp_snippet(*args, **kwargs):
+        raise AssertionError("run should not start without a source")
+
+    monkeypatch.setattr(recipes_module, "run_csharp_snippet", fake_run_csharp_snippet)
+
+    result = run_recipe("prototype_open_copy_save", timeout_sec=1)
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "source_path or prototype_id is required"
 
 
 def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):

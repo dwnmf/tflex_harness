@@ -7,6 +7,7 @@ from typing import Any
 
 from .artifacts import ArtifactStore
 from .config import HarnessConfig, load_config
+from .prototypes import find_prototype
 from .runner import run_csharp_snippet
 
 _REQUIRED_EVIDENCE_PHRASES = (
@@ -210,6 +211,48 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
             output_file = doc_dir / output_name
         env["TFLEX_RECIPE_OUTPUT_FILE"] = str(output_file)
         artifacts["output_file"] = str(output_file)
+
+    if name == "prototype_open_copy_save":
+        source = args.get("source_path") or args.get("prototype_path")
+        selector = args.get("prototype_id") or args.get("prototype_selector")
+        if not source and selector:
+            try:
+                prototype = find_prototype(str(selector))
+            except KeyError as exc:
+                return {
+                    "ok": False,
+                    "stage": "input",
+                    "error": str(exc),
+                    "recipe": name,
+                    "recipe_args": args,
+                    "recipe_artifacts": {},
+                    "recipe_info": recipe_info,
+                }
+            source = prototype["path"]
+        if not source:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "source_path or prototype_id is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source)).resolve()
+        if not source_path.exists():
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "source_path does not exist",
+                "recipe": name,
+                "source_path": str(source_path),
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        artifacts["source_path"] = str(source_path)
 
     code = registry.source(name)
     helpers = recipe_info.get("helpers")
