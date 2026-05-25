@@ -112,7 +112,7 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
             "output": output_contract["output"],
             "limitations": [
                 "Phase 6 multi-step factory uses generated visible C# with checked-in helper sources.",
-                "GRB, STEP, and PDF output materialization are implemented in this phase.",
+                "GRB, STEP, PDF, DXF, and DWG output materialization are implemented in this phase.",
             ],
             "pending_operations": [],
         }
@@ -368,14 +368,14 @@ def _output_contract(output: Any) -> dict[str, Any]:
     for item in exports:
         if item and item not in normalized:
             normalized.append(item)
-    unsupported = sorted({item for item in normalized if item not in {"grb", "step", "pdf"}})
+    unsupported = sorted({item for item in normalized if item not in {"grb", "step", "pdf", "dxf", "dwg"}})
     if unsupported:
         return {
             "ok": False,
             "stage": "input",
             "error": "unsupported output export format",
             "unsupported_exports": unsupported,
-            "supported_exports": ["grb", "step", "pdf"],
+            "supported_exports": ["grb", "step", "pdf", "dxf", "dwg"],
         }
     return {"ok": True, "output": {"name": stem, "exports": normalized or ["grb"]}}
 
@@ -430,6 +430,32 @@ def _materialize_requested_outputs(
         else:
             errors.append("PDF export failed")
             errors.append(str(pdf_result.get("error") or pdf_result.get("stage") or "unknown"))
+    if "dxf" in exports:
+        dxf_result = _export_acad_from_grb(
+            source,
+            target_dir / f"{output.get('name') or 'document'}.dxf",
+            factory_dir=factory_dir,
+            format_name="dxf",
+            timeout_sec=timeout_sec,
+            config=config,
+        )
+        if dxf_result["ok"]:
+            outputs.append(dxf_result["record"])
+        else:
+            errors.extend(dxf_result["errors"])
+    if "dwg" in exports:
+        dwg_result = _export_acad_from_grb(
+            source,
+            target_dir / f"{output.get('name') or 'document'}.dwg",
+            factory_dir=factory_dir,
+            format_name="dwg",
+            timeout_sec=timeout_sec,
+            config=config,
+        )
+        if dwg_result["ok"]:
+            outputs.append(dwg_result["record"])
+        else:
+            errors.extend(dwg_result["errors"])
     return {"outputs": outputs, "errors": errors}
 
 
@@ -533,6 +559,74 @@ public class Program {
     )
 
 
+def _export_acad_from_grb(
+    source_grb: Path,
+    target: Path,
+    *,
+    factory_dir: Path,
+    format_name: str,
+    timeout_sec: int,
+    config: HarnessConfig,
+) -> dict[str, Any]:
+    export_result = _run_acad_export_from_grb(source_grb, target, format_name=format_name, timeout_sec=timeout_sec, config=config)
+    if export_result.get("ok") is True and target.exists() and target.stat().st_size > 0:
+        record = _output_record(format_name, target, factory_dir, source_path=source_grb)
+        record["export_run_dir"] = export_result.get("run_dir")
+        return {"ok": True, "record": record, "errors": []}
+    return {
+        "ok": False,
+        "record": None,
+        "errors": [f"{format_name.upper()} export failed", str(export_result.get("error") or export_result.get("stage") or "unknown")],
+    }
+
+
+def _run_acad_export_from_grb(source_grb: Path, target: Path, *, format_name: str, timeout_sec: int, config: HarnessConfig) -> dict[str, Any]:
+    method = "Dxf" if format_name == "dxf" else "Dwg"
+    env_target = "TFLEX_FACTORY_EXPORT_TARGET_" + format_name.upper()
+    code = '''using System;
+using TFlex.Model;
+using TFlexEasy;
+
+public class Program {
+  public static int Main(){
+    string source = Environment.GetEnvironmentVariable("TFLEX_FACTORY_EXPORT_SOURCE_GRB");
+    string target = Environment.GetEnvironmentVariable("''' + env_target + '''");
+    if (String.IsNullOrWhiteSpace(source)) {
+      EasyDiagnostics.Print("factory.''' + format_name + '''Export.error", "TFLEX_FACTORY_EXPORT_SOURCE_GRB is required");
+      return 2;
+    }
+    if (String.IsNullOrWhiteSpace(target)) {
+      EasyDiagnostics.Print("factory.''' + format_name + '''Export.error", "''' + env_target + ''' is required");
+      return 3;
+    }
+    Document doc = null;
+    using (var sess = EasySession.Start3D()) {
+      try {
+        doc = EasyPrototype.OpenCopy(source, visible: false);
+        bool exported = EasyExport.''' + method + '''(doc, target);
+        EasyDiagnostics.Print("factory.''' + format_name + '''Export.saved", exported);
+        return exported ? 0 : 20;
+      } finally {
+        EasyPrototype.Close(doc);
+      }
+    }
+  }
+}
+'''
+    return run_csharp_snippet(
+        code,
+        mode="run",
+        timeout_sec=timeout_sec,
+        helpers=["easy_prototype", "easy_export"],
+        environment={
+            "TFLEX_FACTORY_EXPORT_SOURCE_GRB": str(source_grb),
+            env_target: str(target),
+        },
+        artifact_prefix=f"factory_{format_name}_export",
+        config=config,
+    )
+
+
 def _select_primary_grb(recipe_result: dict[str, Any]) -> Path | None:
     artifact_output = (recipe_result.get("recipe_artifacts") or {}).get("output_file")
     candidates: list[Path] = []
@@ -560,7 +654,7 @@ def _plan(recipe: str, args: dict[str, str], payload: dict[str, Any], *, selecti
         "limitations": [
             "Phase 6 factory currently dispatches one verified recipe per payload run.",
             "Single-recipe plans execute one mutation group; multi-group payloads use generated visible C# when possible.",
-            "GRB, STEP, and PDF output materialization are implemented in this phase.",
+            "GRB, STEP, PDF, DXF, and DWG output materialization are implemented in this phase.",
         ],
         "pending_operations": pending,
     }

@@ -60,7 +60,7 @@ def test_plan_document_creation_preserves_cyrillic_output_name():
 def test_plan_document_creation_rejects_unsupported_export():
     payload = {
         "prototype": {"id": "2D Деталь"},
-        "output": {"name": "Demo", "exports": ["grb", "dxf"]},
+        "output": {"name": "Demo", "exports": ["grb", "svg"]},
         "document": {"properties": {"Title": "Demo"}},
     }
 
@@ -68,7 +68,7 @@ def test_plan_document_creation_rejects_unsupported_export():
 
     assert plan["ok"] is False
     assert plan["error"] == "unsupported output export format"
-    assert plan["unsupported_exports"] == ["dxf"]
+    assert plan["unsupported_exports"] == ["svg"]
 
 
 def test_plan_document_creation_accepts_step_export():
@@ -95,6 +95,19 @@ def test_plan_document_creation_accepts_pdf_export():
 
     assert plan["ok"] is True
     assert plan["output"] == {"name": "Drawing", "exports": ["grb", "pdf"]}
+
+
+def test_plan_document_creation_accepts_acad_exports():
+    payload = {
+        "prototype": {"id": "Чертежи/Чертёж детали с форматкой"},
+        "output": {"name": "Drawing", "exports": ["grb", "dxf", "dwg"]},
+        "document": {"properties": {"Title": "Demo"}},
+    }
+
+    plan = plan_document_creation(payload)
+
+    assert plan["ok"] is True
+    assert plan["output"] == {"name": "Drawing", "exports": ["grb", "dxf", "dwg"]}
 
 
 def test_plan_document_creation_uses_multi_step_for_multiple_groups():
@@ -307,3 +320,48 @@ def test_create_document_from_payload_materializes_pdf_output(tmp_path, monkeypa
     assert result["outputs"][1]["relative_path"] == "artifacts/outputs/Pdf Output.pdf"
     assert result["outputs"][1]["size"] == 4
     assert result["outputs"][1]["export_run_dir"] == "artifacts/runs/pdf"
+
+
+def test_create_document_from_payload_materializes_acad_outputs(tmp_path, monkeypatch):
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "Чертежи/Чертёж детали с форматкой"},
+                "output": {"name": "Acad Output", "exports": ["grb", "dxf", "dwg"]},
+                "document": {"properties": {"Title": "Demo"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    recipe_run = tmp_path / "recipe_run"
+    recipe_artifacts = recipe_run / "artifacts"
+    recipe_artifacts.mkdir(parents=True)
+    saved = recipe_artifacts / "document_saved.grb"
+    saved.write_bytes(b"grb")
+
+    def fake_runner(name, args, timeout_sec, config):
+        return {
+            "ok": True,
+            "stage": "run",
+            "run_dir": str(recipe_run),
+            "artifacts": [{"path": str(saved), "relative_path": "artifacts/document_saved.grb", "size": 3}],
+        }
+
+    def fake_acad(source_grb, target, format_name, timeout_sec, config):
+        target.write_bytes(format_name.encode("ascii"))
+        return {"ok": True, "run_dir": f"artifacts/runs/{format_name}"}
+
+    monkeypatch.setattr(document_factory, "_run_acad_export_from_grb", fake_acad)
+
+    result = create_document_from_payload(payload_path, timeout_sec=7, recipe_runner=fake_runner)
+
+    assert result["ok"] is True
+    assert [item["format"] for item in result["outputs"]] == ["grb", "dxf", "dwg"]
+    assert result["outputs"][1]["relative_path"] == "artifacts/outputs/Acad Output.dxf"
+    assert result["outputs"][1]["size"] == 3
+    assert result["outputs"][1]["export_run_dir"] == "artifacts/runs/dxf"
+    assert result["outputs"][2]["relative_path"] == "artifacts/outputs/Acad Output.dwg"
+    assert result["outputs"][2]["size"] == 3
+    assert result["outputs"][2]["export_run_dir"] == "artifacts/runs/dwg"

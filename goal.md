@@ -760,11 +760,12 @@ Current Phase 6 evidence:
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
 - multi-step runs apply supported operations to one copied `.grb`, save once, reopen, and validate all mutations;
 - output contract now accepts `output.name` and `output.exports`;
-- supported output formats: `grb`, `step`, `pdf`;
+- supported output formats: `grb`, `step`, `pdf`, `dxf`, `dwg`;
 - named GRB output is copied into the factory run as `artifacts/outputs/<sanitized-name>.grb`;
 - named STEP output is exported from the saved `.grb` through a separate visible C# run and recorded as `artifacts/outputs/<sanitized-name>.step`;
 - named PDF output is exported from the saved `.grb` through a separate visible C# run and recorded as `artifacts/outputs/<sanitized-name>.pdf`;
-- unsupported formats such as `dxf`/`dwg` are rejected at plan time instead of being silently skipped.
+- named DXF/DWG output is exported from the saved `.grb` through separate visible C# runs and recorded as `artifacts/outputs/<sanitized-name>.dxf` / `.dwg`;
+- unsupported formats are rejected at plan time instead of being silently skipped.
 - live command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`;
 - live factory run: `artifacts/runs/20260525_183154_667605_document_factory`;
 - live recipe run: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`;
@@ -793,6 +794,15 @@ Current Phase 6 evidence:
 - live PDF header evidence: `%PDF-1.5`;
 - live PDF stdout evidence: `easy.pdfModuleSource=C:\Program Files\T-FLEX CAD 17\Program\PDFExport.dll`, `easy.pdfModuleLocalExists=True`, `easy.pdfExportResult=True`, `easy.pdfSaved=True`, `factory.pdfExport.saved=True`;
 - PDF runtime note: `ExportToPDF` must be constructed with `new ExportToPDF(document)`; `Document.ExportToPDF` is not present in T-FLEX CAD 17. Live evidence also showed `PDFExport.dll` must be copied from the T-FLEX program directory to the snippet cwd before export.
+- live DXF/DWG command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_drawing_acad_payload.json --timeout-sec 120`;
+- live DXF/DWG factory run: `artifacts/runs/20260525_193001_690605_document_factory`;
+- live DXF export run: `artifacts/runs/20260525_193003_794702_factory_dxf_export`;
+- live DWG export run: `artifacts/runs/20260525_193005_958846_factory_dwg_export`;
+- live DXF output: `artifacts/runs/20260525_193001_690605_document_factory/artifacts/outputs/phase6_drawing_acad_export.dxf`, size `125193`;
+- live DWG output: `artifacts/runs/20260525_193001_690605_document_factory/artifacts/outputs/phase6_drawing_acad_export.dwg`, size `18220`;
+- DXF/DWG header evidence: DXF contains `SECTION`, `$ACADVER`, `AC1027`; DWG starts with bytes `41 43 31 30 32 37` (`AC1027`);
+- DXF/DWG stdout evidence: `easy.dxfExportResult=True`, `easy.dxfSaved=True`, `factory.dxfExport.saved=True`, `easy.dwgExportResult=True`, `easy.dwgSaved=True`, `factory.dwgExport.saved=True`;
+- ACAD runtime note: `EasyExport.Dxf` wraps `Document.ExportToDXF.Export(path)` and `EasyExport.Dwg` wraps `Document.ExportToDWG.Export(path)`.
 - live multi-step command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`;
 - live multi-step factory run: `artifacts/runs/20260525_183813_757471_document_factory`;
 - generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`;
@@ -812,10 +822,15 @@ Current Phase 6 evidence:
 - live sample matrix with PDF: `artifacts/document_factory_validation/live_samples_pdf_20260525/document_factory_samples_matrix.json`;
 - live sample matrix with PDF summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
 - live sample matrix with PDF drawing row: `output_formats=["grb","pdf"]`, `pdf_output_size=11109`.
+- live sample matrix with PDF+DXF+DWG command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_acad_20260525`;
+- live sample matrix with PDF+DXF+DWG: `artifacts/document_factory_validation/live_samples_acad_20260525/document_factory_samples_matrix.json`;
+- live sample matrix with PDF+DXF+DWG csv: `artifacts/document_factory_validation/live_samples_acad_20260525/document_factory_samples_matrix.csv`;
+- live sample matrix with PDF+DXF+DWG summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
+- live sample matrix with PDF+DXF+DWG drawing row: `output_formats=["grb","pdf","dxf","dwg"]`, `pdf_output_size=11109`, `dxf_output_size=125189`, `dwg_output_size=18220`.
 
 Remaining Phase 6 work:
 
-- export target handling beyond GRB/STEP/PDF, especially DXF/DWG where supported.
+- polish output error classification and batch reporting around all supported formats.
 
 ### Phase 7: Enterprise Workflow
 
@@ -948,3 +963,4 @@ Mitigation:
 - 2026-05-25: Added `document-factory-samples` CLI and live sample matrix for 3D part, drawing, specification, and table prototype payloads. Live matrix passed `4/4` and produced named GRB outputs for all samples.
 - 2026-05-25: Added STEP output materialization to document factory. STEP export runs as separate visible C# using `EasyPrototype.OpenCopy` and `EasyExport.Step`; live solid proof produced `phase6_solid_step_export.step` size `6919` containing `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, and `ADVANCED_FACE`.
 - 2026-05-25: Added PDF output materialization to document factory. PDF export runs as separate visible C# using `new ExportToPDF(document)` and `EasyExport.Pdf`; helper copies `PDFExport.dll` locally before export. Live drawing proof produced `phase6_drawing_pdf_export.pdf` size `11109` with `%PDF-1.5` header.
+- 2026-05-25: Added DXF/DWG output materialization to document factory. ACAD exports run as separate visible C# using `Document.ExportToDXF.Export(path)` and `Document.ExportToDWG.Export(path)`. Live drawing proof produced DXF size `125193` with `AC1027` header evidence and DWG size `18220` with `AC1027` binary header.

@@ -213,26 +213,28 @@ Current dispatcher executes one generated multi-step C# snippet when a payload c
 
 Multi-step runs apply all supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
 
-Payload `output` currently supports named GRB, STEP, and PDF materialization:
+Payload `output` currently supports named GRB, STEP, PDF, DXF, and DWG materialization:
 
 ```json
 {
   "output": {
     "name": "customer_document.grb",
-    "exports": ["grb", "step", "pdf"]
+    "exports": ["grb", "step", "pdf", "dxf", "dwg"]
   }
 }
 ```
 
 The factory copies the recipe/snippet saved `.grb` into the factory run as
 `artifacts/outputs/<sanitized-name>.grb` and records it in the top-level
-`outputs` array. For `step`, it opens the saved `.grb` in a separate visible
-C# export run using `Document.ExportToSTEP.Export(...)` via `TFlexEasyExport.cs`,
-then records `artifacts/outputs/<sanitized-name>.step`. Other export formats
-are rejected for now instead of being silently ignored. For `pdf`, it uses
-`new ExportToPDF(document).Export(...)`; the helper copies `PDFExport.dll` from
-the T-FLEX program directory to the snippet run directory first because live
-evidence showed the PDF module loader requires a local module copy.
+`outputs` array. For `step`, `pdf`, `dxf`, and `dwg`, it opens the saved `.grb`
+in a separate visible C# export run via `TFlexEasyExport.cs`, then records
+`artifacts/outputs/<sanitized-name>.<format>`. `step` uses
+`Document.ExportToSTEP.Export(...)`. `dxf` and `dwg` use
+`Document.ExportToDXF.Export(...)` and `Document.ExportToDWG.Export(...)`.
+For `pdf`, it uses `new ExportToPDF(document).Export(...)`; the helper copies
+`PDFExport.dll` from the T-FLEX program directory to the snippet run directory
+first because live evidence showed the PDF module loader requires a local
+module copy. Unsupported export formats are rejected at plan time.
 
 Verified live factory dispatch on 2026-05-25:
 
@@ -272,6 +274,16 @@ Verified live PDF output on 2026-05-25:
 - PDF header evidence: `%PDF-1.5`
 - stdout evidence: `easy.pdfModuleSource=C:\Program Files\T-FLEX CAD 17\Program\PDFExport.dll`, `easy.pdfModuleLocalExists=True`, `easy.pdfExportResult=True`, `easy.pdfSaved=True`, `factory.pdfExport.saved=True`
 
+Verified live DXF/DWG output on 2026-05-25:
+
+- command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_drawing_acad_payload.json --timeout-sec 120`
+- factory run: `artifacts/runs/20260525_193001_690605_document_factory`
+- DXF export run: `artifacts/runs/20260525_193003_794702_factory_dxf_export`
+- DWG export run: `artifacts/runs/20260525_193005_958846_factory_dwg_export`
+- DXF output: `artifacts/outputs/phase6_drawing_acad_export.dxf`, size `125193`, header `SECTION` / `$ACADVER` / `AC1027`
+- DWG output: `artifacts/outputs/phase6_drawing_acad_export.dwg`, size `18220`, header bytes `41 43 31 30 32 37` (`AC1027`)
+- stdout evidence: `easy.dxfExportResult=True`, `easy.dxfSaved=True`, `factory.dxfExport.saved=True`, `easy.dwgExportResult=True`, `easy.dwgSaved=True`, `factory.dwgExport.saved=True`
+
 Verified live multi-step factory payload on 2026-05-25:
 
 - command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`
@@ -305,3 +317,12 @@ Updated matrix with PDF requested for the drawing sample:
 - summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
 - drawing row output formats: `grb`, `pdf`
 - drawing row PDF output: `factory_drawing.pdf`, size `11109`
+
+Updated matrix with PDF+DXF+DWG requested for the drawing sample:
+
+- command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_acad_20260525`
+- matrix: `artifacts/document_factory_validation/live_samples_acad_20260525/document_factory_samples_matrix.json`
+- csv: `artifacts/document_factory_validation/live_samples_acad_20260525/document_factory_samples_matrix.csv`
+- summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
+- drawing row output formats: `grb`, `pdf`, `dxf`, `dwg`
+- drawing row outputs: `factory_drawing.pdf` size `11109`, `factory_drawing.dxf` size `125189`, `factory_drawing.dwg` size `18220`

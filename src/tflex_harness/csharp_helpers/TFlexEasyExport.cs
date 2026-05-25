@@ -48,6 +48,38 @@ namespace TFlexEasy {
       return ok;
     }
 
+    public static bool Dxf(Document doc, string path) {
+      string dir = Path.GetDirectoryName(path);
+      if (!System.String.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
+      var exporter = doc.ExportToDXF;
+      bool exportResult = exporter.Export(path);
+      bool exists = File.Exists(path);
+      long size = exists ? new FileInfo(path).Length : 0;
+      bool ok = exists && size > 0;
+      EasyDiagnostics.Print("easy.dxfExportResult", exportResult);
+      EasyDiagnostics.Print("easy.dxfSaved", ok);
+      EasyDiagnostics.Print("easy.dxfExists", exists);
+      EasyDiagnostics.Print("easy.dxfPath", path);
+      if (exists) EasyDiagnostics.Print("easy.dxfSize", size);
+      return ok;
+    }
+
+    public static bool Dwg(Document doc, string path) {
+      string dir = Path.GetDirectoryName(path);
+      if (!System.String.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
+      var exporter = doc.ExportToDWG;
+      bool exportResult = exporter.Export(path);
+      bool exists = File.Exists(path);
+      long size = exists ? new FileInfo(path).Length : 0;
+      bool ok = exists && size > 0;
+      EasyDiagnostics.Print("easy.dwgExportResult", exportResult);
+      EasyDiagnostics.Print("easy.dwgSaved", ok);
+      EasyDiagnostics.Print("easy.dwgExists", exists);
+      EasyDiagnostics.Print("easy.dwgPath", path);
+      if (exists) EasyDiagnostics.Print("easy.dwgSize", size);
+      return ok;
+    }
+
     static void EnsurePdfExportModule() {
       try {
         string target = Path.Combine(Directory.GetCurrentDirectory(), "PDFExport.dll");

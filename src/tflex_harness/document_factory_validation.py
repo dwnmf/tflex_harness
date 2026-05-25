@@ -28,7 +28,7 @@ DEFAULT_FACTORY_SAMPLES: tuple[dict[str, Any], ...] = (
         "category": "drawing",
         "payload": {
             "prototype": {"id": "Чертежи/Чертёж детали с форматкой"},
-            "output": {"name": "factory_drawing", "exports": ["grb", "pdf"]},
+            "output": {"name": "factory_drawing", "exports": ["grb", "pdf", "dxf", "dwg"]},
             "document": {"properties": {"Title": "Harness Drawing Factory"}},
         },
     },
@@ -128,6 +128,8 @@ def _result_to_row(result: dict[str, Any]) -> dict[str, Any]:
     first_output = outputs[0] if outputs else {}
     step_output = next((item for item in outputs if item.get("format") == "step"), {})
     pdf_output = next((item for item in outputs if item.get("format") == "pdf"), {})
+    dxf_output = next((item for item in outputs if item.get("format") == "dxf"), {})
+    dwg_output = next((item for item in outputs if item.get("format") == "dwg"), {})
     return {
         "status": "passed" if result.get("ok") else "failed",
         "ok": bool(result.get("ok")),
@@ -143,6 +145,10 @@ def _result_to_row(result: dict[str, Any]) -> dict[str, Any]:
         "step_output_size": step_output.get("size"),
         "pdf_output_path": pdf_output.get("path"),
         "pdf_output_size": pdf_output.get("size"),
+        "dxf_output_path": dxf_output.get("path"),
+        "dxf_output_size": dxf_output.get("size"),
+        "dwg_output_path": dwg_output.get("path"),
+        "dwg_output_size": dwg_output.get("size"),
         "output_errors": result.get("output_errors") or [],
         "error": result.get("error") or recipe_result.get("error"),
     }
@@ -177,6 +183,10 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "step_output_size",
         "pdf_output_path",
         "pdf_output_size",
+        "dxf_output_path",
+        "dxf_output_size",
+        "dwg_output_path",
+        "dwg_output_size",
         "factory_run_dir",
         "payload_path",
         "error",
