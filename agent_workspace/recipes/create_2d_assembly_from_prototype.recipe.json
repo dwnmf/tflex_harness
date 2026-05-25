@@ -1,0 +1,19 @@
+{
+  "name": "create_2d_assembly_from_prototype",
+  "description": "Create a 2D assembly from the installed 2D assembly prototype, set Title, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "6075e5cccb211273e771833367971474df188d1913a0b127c6747a368e577cfb",
+  "markdown_sha256": "0d1e0b9ab918f75ce2dd362d4fa15cbbff3f163e9331d2bebbd94d0eccaee835",
+  "last_run_dir": "artifacts/runs/20260525_214103_281473_recipe_create_2d_assembly_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

@@ -59,6 +59,36 @@ _CATEGORY_DOCUMENT_PROPERTY_RECIPES: dict[str, dict[str, str]] = {
         "property_name": "Title",
         "text_value": "Harness 3D Part",
     },
+    "create_3d_assembly_from_prototype": {
+        "prototype_id": "3D Сборка",
+        "property_name": "Title",
+        "text_value": "Harness 3D Assembly",
+    },
+    "create_2d_assembly_from_prototype": {
+        "prototype_id": "2D Сборка",
+        "property_name": "Title",
+        "text_value": "Harness 2D Assembly",
+    },
+    "create_fragment_3d_part_from_prototype": {
+        "prototype_id": "Фрагменты/3D Деталь.grb",
+        "property_name": "Title",
+        "text_value": "Harness Fragment 3D Part",
+    },
+    "create_fragment_3d_assembly_from_prototype": {
+        "prototype_id": "Фрагменты/3D Сборка.grb",
+        "property_name": "Title",
+        "text_value": "Harness Fragment 3D Assembly",
+    },
+    "create_fragment_sheet_metal_part_from_prototype": {
+        "prototype_id": "Фрагменты/Листовая Деталь.grb",
+        "property_name": "Title",
+        "text_value": "Harness Fragment Sheet Metal Part",
+    },
+    "create_assembly_drawing_from_prototype": {
+        "prototype_id": "Чертежи/Сборочный чертёж с форматкой.grb",
+        "property_name": "Title",
+        "text_value": "Harness Assembly Drawing",
+    },
     "create_detail_drawing_from_prototype": {
         "prototype_id": "Чертежи/Чертёж детали с форматкой",
         "property_name": "Title",

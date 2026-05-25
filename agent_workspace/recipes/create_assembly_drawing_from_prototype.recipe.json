@@ -1,0 +1,19 @@
+{
+  "name": "create_assembly_drawing_from_prototype",
+  "description": "Create an assembly drawing from the installed assembly drawing prototype, set Title, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "6075e5cccb211273e771833367971474df188d1913a0b127c6747a368e577cfb",
+  "markdown_sha256": "af4f3c27b42cdb27164c47ed257d39087364a3a612f4bb447a906a81066e2a54",
+  "last_run_dir": "artifacts/runs/20260525_214112_134234_recipe_create_assembly_drawing_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

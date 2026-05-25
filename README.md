@@ -163,6 +163,12 @@ The source `Program Files` tree is read-only input. Future prototype automation 
 - `create_3d_part_from_prototype` — category recipe for 3D parts; defaults to `3D Деталь`, sets `Document.Properties.Title`, saves, reopens, and verifies.
 - `create_table_document_from_prototype` — category recipe for table documents; defaults to `Таблицы/Таблица параметров зубчатого колеса.grb`, edits one `RichText` table cell, saves, reopens, and verifies.
 - `create_electrical_doc_from_prototype` — category recipe for electrical docs; defaults to `Электротехника/Клеммник.grb`, replaces visible text, saves, reopens, and verifies.
+- `create_3d_assembly_from_prototype` — category recipe for 3D assemblies; defaults to `3D Сборка`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_2d_assembly_from_prototype` — category recipe for 2D assemblies; defaults to `2D Сборка`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_fragment_3d_part_from_prototype` — category recipe for 3D part fragments; defaults to `Фрагменты/3D Деталь.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_fragment_3d_assembly_from_prototype` — category recipe for 3D assembly fragments; defaults to `Фрагменты/3D Сборка.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_fragment_sheet_metal_part_from_prototype` — category recipe for sheet-metal fragments; defaults to `Фрагменты/Листовая Деталь.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_assembly_drawing_from_prototype` — category recipe for assembly drawings; defaults to `Чертежи/Сборочный чертёж с форматкой.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
 
 Verified live text-variable mutation on 2026-05-25:
 
@@ -221,6 +227,30 @@ Verified live category recipes on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_213241_046854_recipe_create_electrical_doc_from_prototype`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
 - verified stdout: `visibleText.replaceCount=1`, `document.saved=True`, `document.outputSize=58724`, `visibleText.newAfter=1`, `visibleText.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_3d_assembly_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214100_314774_recipe_create_3d_assembly_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Сборка.grb`
+- verified stdout: `documentProperty.after.Title=Harness 3D Assembly`, `document.saved=True`, `document.outputSize=28657`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_2d_assembly_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214103_281473_recipe_create_2d_assembly_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Сборка.grb`
+- verified stdout: `documentProperty.after.Title=Harness 2D Assembly`, `document.saved=True`, `document.outputSize=22489`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_fragment_3d_part_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214105_435010_recipe_create_fragment_3d_part_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Фрагменты\3D Деталь.grb`
+- verified stdout: `documentProperty.after.Title=Harness Fragment 3D Part`, `document.saved=True`, `document.outputSize=27850`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_fragment_3d_assembly_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214107_547016_recipe_create_fragment_3d_assembly_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Фрагменты\3D Сборка.grb`
+- verified stdout: `documentProperty.after.Title=Harness Fragment 3D Assembly`, `document.saved=True`, `document.outputSize=23888`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_fragment_sheet_metal_part_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214109_723882_recipe_create_fragment_sheet_metal_part_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Фрагменты\Листовая Деталь.grb`
+- verified stdout: `documentProperty.after.Title=Harness Fragment Sheet Metal Part`, `document.saved=True`, `document.outputSize=27593`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_assembly_drawing_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214112_134234_recipe_create_assembly_drawing_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Сборочный чертёж с форматкой.grb`
+- verified stdout: `documentProperty.after.Title=Harness Assembly Drawing`, `document.saved=True`, `document.outputSize=25809`, `documentProperty.persisted=True`
 
 ## Document factory payloads
 

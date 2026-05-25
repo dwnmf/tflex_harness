@@ -747,12 +747,31 @@ Current Phase 5 evidence:
 - live table evidence: `richText.count=1`, `table.cell.after=Harness Table Document`, `document.saved=True`, `document.outputSize=63263`, `table.cell.persisted=True`;
 - live electrical command: `python -m tflex_harness.cli run-recipe create_electrical_doc_from_prototype --timeout-sec 120`;
 - live electrical run: `artifacts/runs/20260525_213241_046854_recipe_create_electrical_doc_from_prototype`;
-- live electrical evidence: `visibleText.replaceCount=1`, `document.saved=True`, `document.outputSize=58724`, `visibleText.newAfter=1`, `visibleText.persisted=True`.
+- live electrical evidence: `visibleText.replaceCount=1`, `document.saved=True`, `document.outputSize=58724`, `visibleText.newAfter=1`, `visibleText.persisted=True`;
+- recipe: `create_3d_assembly_from_prototype`;
+- live `create_3d_assembly_from_prototype` run: `artifacts/runs/20260525_214100_314774_recipe_create_3d_assembly_from_prototype`;
+- live `create_3d_assembly_from_prototype` evidence: `documentProperty.after.Title=Harness 3D Assembly`, `document.saved=True`, `document.outputSize=28657`, `documentProperty.persisted=True`;
+- recipe: `create_2d_assembly_from_prototype`;
+- live `create_2d_assembly_from_prototype` run: `artifacts/runs/20260525_214103_281473_recipe_create_2d_assembly_from_prototype`;
+- live `create_2d_assembly_from_prototype` evidence: `documentProperty.after.Title=Harness 2D Assembly`, `document.saved=True`, `document.outputSize=22489`, `documentProperty.persisted=True`;
+- recipe: `create_fragment_3d_part_from_prototype`;
+- live `create_fragment_3d_part_from_prototype` run: `artifacts/runs/20260525_214105_435010_recipe_create_fragment_3d_part_from_prototype`;
+- live `create_fragment_3d_part_from_prototype` evidence: `documentProperty.after.Title=Harness Fragment 3D Part`, `document.saved=True`, `document.outputSize=27850`, `documentProperty.persisted=True`;
+- recipe: `create_fragment_3d_assembly_from_prototype`;
+- live `create_fragment_3d_assembly_from_prototype` run: `artifacts/runs/20260525_214107_547016_recipe_create_fragment_3d_assembly_from_prototype`;
+- live `create_fragment_3d_assembly_from_prototype` evidence: `documentProperty.after.Title=Harness Fragment 3D Assembly`, `document.saved=True`, `document.outputSize=23888`, `documentProperty.persisted=True`;
+- recipe: `create_fragment_sheet_metal_part_from_prototype`;
+- live `create_fragment_sheet_metal_part_from_prototype` run: `artifacts/runs/20260525_214109_723882_recipe_create_fragment_sheet_metal_part_from_prototype`;
+- live `create_fragment_sheet_metal_part_from_prototype` evidence: `documentProperty.after.Title=Harness Fragment Sheet Metal Part`, `document.saved=True`, `document.outputSize=27593`, `documentProperty.persisted=True`;
+- recipe: `create_assembly_drawing_from_prototype`;
+- live `create_assembly_drawing_from_prototype` run: `artifacts/runs/20260525_214112_134234_recipe_create_assembly_drawing_from_prototype`;
+- live `create_assembly_drawing_from_prototype` evidence: `documentProperty.after.Title=Harness Assembly Drawing`, `document.saved=True`, `document.outputSize=25809`, `documentProperty.persisted=True`.
 
 Remaining Phase 5 work:
 
-- fragment and assembly category recipes;
-- richer category-specific payload fields beyond title/table-cell/visible-text mutation.
+- scan remaining installed prototype categories for any uncovered category-level recipes;
+- richer category-specific payload fields beyond title/table-cell/visible-text mutation;
+- semantic fragment/assembly operations beyond safe prototype open/mutate/save/reopen.
 
 ### Phase 6: Batch Document Factory
 
@@ -979,10 +998,10 @@ Integration/live:
 
 ## Immediate Next Work
 
-1. Add fragment category recipe from installed prototype.
-2. Add assembly category recipe from installed prototype.
+1. Audit installed prototype catalog for uncovered categories.
+2. Add remaining category recipes where safe.
 3. Add richer payload mapping per category.
-4. Add live semantic probes for unsupported prototype kinds.
+4. Add semantic fragment/assembly live probes.
 5. Promote stable live paths into recipe registry.
 
 ## Current Risks
