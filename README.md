@@ -69,6 +69,7 @@ Initial helper sets:
 - `easy_export` — session/export helpers
 - `easy_prototype` — safe copy/open/save helpers for installed `.grb` prototypes
 - `easy_variables` — prototype/session helpers plus text/real variable mutation helpers
+- `easy_text` — prototype/session helpers plus `RichText` table cell mutation helpers
 - `all` — all helper source files
 
 Every helper run copies helper `.cs` files into the run directory under `helpers/`, includes helper source content in the compile cache key, and records helper paths plus SHA256 hashes in `result.json`.
@@ -150,6 +151,7 @@ The source `Program Files` tree is read-only input. Future prototype automation 
 - `prototype_open_copy_save` — copies an installed `.grb` prototype to the run artifact directory, opens the copy, saves a new `.grb`, closes it, and prints source/copy/output SHA evidence. Use `--arg source_path=...` or `--arg prototype_id=...`.
 - `prototype_set_text_variable` — copies an installed `.grb` prototype, opens the copy, sets one existing text variable, saves a new `.grb`, reopens it, and verifies persisted `TextValue`. Use single quotes around PowerShell args containing `$`, for example `--arg 'variable_name=$Наименование'`.
 - `prototype_set_real_variable` — copies an installed `.grb` prototype, opens the copy, sets one existing real-number variable, saves a new `.grb`, reopens it, and verifies persisted `RealValue`.
+- `prototype_set_table_cell` — copies an installed table prototype, opens the copy, edits one cell in the first `RichText` table, saves a new `.grb`, reopens it, and verifies persisted cell text.
 
 Verified live text-variable mutation on 2026-05-25:
 
@@ -164,3 +166,10 @@ Verified live real-variable mutation on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_180343_657081_recipe_prototype_set_real_variable`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
 - verified stdout: `variable.exists=True`, `variable.expression.Nomer_Shem=42`, `variable.set=True`, `document.saved=True`, `variable.reopened=42`, `variable.persisted=True`
+
+Verified live table-cell mutation on 2026-05-25:
+
+- command: `python -m tflex_harness.cli run-recipe prototype_set_table_cell --arg 'prototype_id=Таблицы/Таблица параметров зубчатого колеса.grb' --arg 'cell_index=2' --arg 'text_value=Harness Table Test' --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_181242_346840_recipe_prototype_set_table_cell`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Таблицы\Таблица параметров зубчатого колеса.grb`
+- verified stdout: `richText.count=1`, `table.cell.after=Harness Table Test`, `table.cell.set=True`, `document.saved=True`, `table.cell.reopened=Harness Table Test`, `table.cell.persisted=True`

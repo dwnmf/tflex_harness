@@ -144,6 +144,13 @@ HELPER_SETS: dict[str, tuple[str, ...]] = {
         "TFlexEasyPrototype.cs",
         "TFlexEasyVariables.cs",
     ),
+    "easy_text": (
+        "TFlexEasyUnits.cs",
+        "TFlexEasyDiagnostics.cs",
+        "TFlexEasySession.cs",
+        "TFlexEasyPrototype.cs",
+        "TFlexEasyText.cs",
+    ),
     "all": (
         "TFlexEasyUnits.cs",
         "TFlexEasyDiagnostics.cs",
@@ -155,6 +162,7 @@ HELPER_SETS: dict[str, tuple[str, ...]] = {
         "TFlexEasyExport.cs",
         "TFlexEasyPrototype.cs",
         "TFlexEasyVariables.cs",
+        "TFlexEasyText.cs",
     ),
 }
 

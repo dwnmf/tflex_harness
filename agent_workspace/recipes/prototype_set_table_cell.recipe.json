@@ -1,0 +1,19 @@
+{
+  "name": "prototype_set_table_cell",
+  "description": "Copy/open a prototype, set one cell in the first RichText table, save, reopen, and verify persistence.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "cell_index": "required zero-based uint cell index",
+    "text_value": "new cell text, defaults to empty string"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "40e7e03e8b31a83183ba5cb38f188ec449269a264047fccc3e1102f696172bbf",
+  "markdown_sha256": "d7b2cf06a0ed823ad9d86ee4ad1defe32a2b90951d55416545c0a7918fc7b4e3",
+  "last_run_dir": "artifacts/runs/20260525_181242_346840_recipe_prototype_set_table_cell",
+  "last_verified_at": "2026-05-25"
+}

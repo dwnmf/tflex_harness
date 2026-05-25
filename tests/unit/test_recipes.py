@@ -24,6 +24,7 @@ def test_list_recipes_includes_verified_baseline():
     assert "prototype_open_copy_save" in names
     assert "prototype_set_text_variable" in names
     assert "prototype_set_real_variable" in names
+    assert "prototype_set_table_cell" in names
 
 
 def test_helper_recipes_are_fresh_and_use_all_helpers():
@@ -57,6 +58,11 @@ def test_prototype_recipe_is_fresh_and_uses_prototype_helpers():
     assert real_mutation["verified"] is True
     assert real_mutation["freshness"]["status"] == "fresh"
     assert real_mutation["helpers"] == ["easy_variables"]
+
+    table_mutation = recipes["prototype_set_table_cell"]
+    assert table_mutation["verified"] is True
+    assert table_mutation["freshness"]["status"] == "fresh"
+    assert table_mutation["helpers"] == ["easy_text"]
 
 
 def test_each_verified_recipe_has_markdown_and_csharp_source():
@@ -205,6 +211,22 @@ def test_prototype_set_real_variable_requires_real_value(tmp_path, monkeypatch):
     assert result["ok"] is False
     assert result["stage"] == "input"
     assert result["error"] == "real_value is required"
+
+
+def test_prototype_set_table_cell_requires_cell_index(tmp_path, monkeypatch):
+    source = tmp_path / "demo.grb"
+    source.write_bytes(b"demo")
+
+    def fake_run_csharp_snippet(*args, **kwargs):
+        raise AssertionError("run should not start without cell index")
+
+    monkeypatch.setattr(recipes_module, "run_csharp_snippet", fake_run_csharp_snippet)
+
+    result = run_recipe("prototype_set_table_cell", args={"source_path": str(source), "text_value": "x"}, timeout_sec=1)
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "cell_index is required"
 
 
 def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):

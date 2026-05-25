@@ -680,14 +680,19 @@ Current evidence:
 
 - C# helper source: `src/tflex_harness/csharp_helpers/TFlexEasyVariables.cs`;
 - helper set: `easy_variables`;
+- helper set: `easy_text`;
 - recipe: `prototype_set_text_variable`;
 - recipe: `prototype_set_real_variable`;
+- recipe: `prototype_set_table_cell`;
 - live command: `python -m tflex_harness.cli run-recipe prototype_set_text_variable --arg 'prototype_id=2D Деталь' --arg 'variable_name=$Наименование' --arg 'text_value=Harness Recipe Test' --timeout-sec 120`;
 - live run: `artifacts/runs/20260525_175508_317973_recipe_prototype_set_text_variable`;
 - verified stdout: `variable.exists=True`, `variable.set=True`, `document.saved=True`, `variable.reopened=Harness Recipe Test`, `variable.persisted=True`;
 - live command: `python -m tflex_harness.cli run-recipe prototype_set_real_variable --arg 'prototype_id=2D Деталь' --arg 'variable_name=Nomer_Shem' --arg 'real_value=42' --timeout-sec 120`;
 - live run: `artifacts/runs/20260525_180343_657081_recipe_prototype_set_real_variable`;
 - verified stdout: `variable.exists=True`, `variable.expression.Nomer_Shem=42`, `variable.set=True`, `document.saved=True`, `variable.reopened=42`, `variable.persisted=True`;
+- live command: `python -m tflex_harness.cli run-recipe prototype_set_table_cell --arg 'prototype_id=Таблицы/Таблица параметров зубчатого колеса.grb' --arg 'cell_index=2' --arg 'text_value=Harness Table Test' --timeout-sec 120`;
+- live run: `artifacts/runs/20260525_181242_346840_recipe_prototype_set_table_cell`;
+- verified stdout: `richText.count=1`, `table.cell.after=Harness Table Test`, `table.cell.set=True`, `document.saved=True`, `table.cell.reopened=Harness Table Test`, `table.cell.persisted=True`;
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`;
 - saved copies: `artifacts/variable_mutation_copy.grb`, `artifacts/variable_mutation_saved.grb`.
 
@@ -695,7 +700,6 @@ Remaining Phase 4 work:
 
 - document property mutation;
 - visible 2D text replacement;
-- table/specification cell mutation if API-visible;
 - category coverage beyond `2D Деталь.grb`.
 
 ### Phase 5: Category Recipes
