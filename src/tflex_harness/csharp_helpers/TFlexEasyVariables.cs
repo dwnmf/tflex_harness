@@ -56,10 +56,11 @@ namespace TFlexEasy {
         return false;
       }
       EasyDiagnostics.Print("variable.before." + name, variable.RealValue);
-      variable.RealValue = value;
+      string expression = EasyUnits.F(value);
+      variable.Expression = expression;
       EasyDiagnostics.Print("variable.after." + name, variable.RealValue);
       EasyDiagnostics.Print("variable.expression." + name, variable.Expression);
-      return Math.Abs(variable.RealValue - value) < 1e-9;
+      return variable.Expression == expression || Math.Abs(variable.RealValue - value) < 1e-9;
     }
 
     public static string TextExpression(string value) {

@@ -149,6 +149,7 @@ The source `Program Files` tree is read-only input. Future prototype automation 
 - `create_simple_3d_extrusion` — creates a hidden 3D document, builds a circular area profile on a standard workplane, verifies one `ThickenExtrusion` operation with non-null body/geometry and positive bounding box, saves `.grb`, closes the document, and exits the session.
 - `prototype_open_copy_save` — copies an installed `.grb` prototype to the run artifact directory, opens the copy, saves a new `.grb`, closes it, and prints source/copy/output SHA evidence. Use `--arg source_path=...` or `--arg prototype_id=...`.
 - `prototype_set_text_variable` — copies an installed `.grb` prototype, opens the copy, sets one existing text variable, saves a new `.grb`, reopens it, and verifies persisted `TextValue`. Use single quotes around PowerShell args containing `$`, for example `--arg 'variable_name=$Наименование'`.
+- `prototype_set_real_variable` — copies an installed `.grb` prototype, opens the copy, sets one existing real-number variable, saves a new `.grb`, reopens it, and verifies persisted `RealValue`.
 
 Verified live text-variable mutation on 2026-05-25:
 
@@ -156,3 +157,10 @@ Verified live text-variable mutation on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_175508_317973_recipe_prototype_set_text_variable`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
 - verified stdout: `variable.exists=True`, `variable.set=True`, `document.saved=True`, `variable.reopened=Harness Recipe Test`, `variable.persisted=True`
+
+Verified live real-variable mutation on 2026-05-25:
+
+- command: `python -m tflex_harness.cli run-recipe prototype_set_real_variable --arg 'prototype_id=2D Деталь' --arg 'variable_name=Nomer_Shem' --arg 'real_value=42' --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_180343_657081_recipe_prototype_set_real_variable`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
+- verified stdout: `variable.exists=True`, `variable.expression.Nomer_Shem=42`, `variable.set=True`, `document.saved=True`, `variable.reopened=42`, `variable.persisted=True`

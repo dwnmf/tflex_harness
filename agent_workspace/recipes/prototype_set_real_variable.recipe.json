@@ -1,0 +1,19 @@
+{
+  "name": "prototype_set_real_variable",
+  "description": "Copy/open a prototype, set one existing real-number variable, save, reopen, and verify persistence.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "variable_name": "required existing real variable name",
+    "real_value": "required new invariant-culture number"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_variables"
+  ],
+  "source_sha256": "3d20213d6c72d85f69780ae801d7b2c7da7bbb30a4f91c957b4c4df02ee821cc",
+  "markdown_sha256": "bf167b8b958c52bfd23d47dee0939f6f010a82189da6e8ef563721bef9993782",
+  "last_run_dir": "artifacts/runs/20260525_180343_657081_recipe_prototype_set_real_variable",
+  "last_verified_at": "2026-05-25"
+}

@@ -220,7 +220,7 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
         artifacts["source_path"] = str(source_path)
 
-    if name == "prototype_set_text_variable":
+    if name in {"prototype_set_text_variable", "prototype_set_real_variable"}:
         source_result = _resolve_prototype_source_arg(args, name, recipe_info)
         if source_result.get("ok") is False:
             return source_result
@@ -238,7 +238,20 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         source_path = Path(str(source_result["source_path"])).resolve()
         env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
         env["TFLEX_VARIABLE_NAME"] = str(variable_name)
-        env["TFLEX_VARIABLE_TEXT_VALUE"] = str(args.get("text_value") or "")
+        if name == "prototype_set_text_variable":
+            env["TFLEX_VARIABLE_TEXT_VALUE"] = str(args.get("text_value") or "")
+        else:
+            if "real_value" not in args:
+                return {
+                    "ok": False,
+                    "stage": "input",
+                    "error": "real_value is required",
+                    "recipe": name,
+                    "recipe_args": args,
+                    "recipe_artifacts": {},
+                    "recipe_info": recipe_info,
+                }
+            env["TFLEX_VARIABLE_REAL_VALUE"] = str(args.get("real_value"))
         artifacts["source_path"] = str(source_path)
         artifacts["variable_name"] = str(variable_name)
 
