@@ -753,6 +753,7 @@ Current Phase 6 evidence:
 
 - module: `src/tflex_harness/document_factory.py`;
 - CLI: `python -m tflex_harness.cli create-document --payload input.json`;
+- sample matrix CLI: `python -m tflex_harness.cli document-factory-samples`;
 - dry-run support writes `input_payload.json` and `factory_plan.json` under a factory run directory;
 - dispatcher executes generated visible C# when a payload has multiple supported mutation operations;
 - single-operation payloads still dispatch to one verified recipe;
@@ -777,10 +778,15 @@ Current Phase 6 evidence:
 - generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`;
 - live multi-step snippet run: `artifacts/runs/20260525_183813_840239_factory_multi_step`;
 - verified stdout: `documentProperty.after.Title=Harness Multi Step Test`, `visibleText.line.after=Harness Circuit Multi`, `factory.allSet=True`, `document.saved=True`, `factory.property.0=Harness Multi Step Test`, `factory.visibleText.oldAfter.1=0`, `factory.visibleText.newAfter.1=1`, `factory.allValid=True`.
+- live sample matrix command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_20260525_fix`;
+- live sample matrix: `artifacts/document_factory_validation/live_samples_20260525_fix/document_factory_samples_matrix.json`;
+- live sample matrix csv: `artifacts/document_factory_validation/live_samples_20260525_fix/document_factory_samples_matrix.csv`;
+- live sample matrix summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
+- live sample matrix categories: `3d_part`, `drawing`, `specification`, `table`;
+- live sample matrix outputs: `factory_3d_part.grb` size `28542`, `factory_drawing.grb` size `25465`, `factory_specification.grb` size `29101`, `factory_table.grb` size `63297`.
 
 Remaining Phase 6 work:
 
-- live factory evidence for 3D part, drawing, specification, and table categories;
 - export target handling beyond GRB.
 
 ### Phase 7: Enterprise Workflow
@@ -911,3 +917,4 @@ Mitigation:
 - 2026-05-25: Completed Phase 2 baseline. Added `src/tflex_harness/prototype_validation.py` and CLI `prototypes-open-save-batch`. Live batch opened, saved, and closed all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`.
 - 2026-05-25: Completed Phase 3 baseline. Added `src/tflex_harness/prototype_metadata.py` and CLI `prototypes-metadata`. Live batch extracted metadata for all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Index: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`.
 - 2026-05-25: Extended Phase 6 document factory output contract. Payloads can request `output.name` with `exports: ["grb"]`; factory materializes a named `.grb` under the factory run `artifacts/outputs/` and rejects unsupported export formats explicitly.
+- 2026-05-25: Added `document-factory-samples` CLI and live sample matrix for 3D part, drawing, specification, and table prototype payloads. Live matrix passed `4/4` and produced named GRB outputs for all samples.

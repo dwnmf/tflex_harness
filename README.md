@@ -36,6 +36,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
 - `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
+- `python -m tflex_harness.cli document-factory-samples` — runs the standard 3D/drawing/specification/table factory sample payloads and writes a JSON/CSV matrix.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
@@ -252,3 +253,12 @@ Verified live multi-step factory payload on 2026-05-25:
 - snippet run directory: `artifacts/runs/20260525_183813_840239_factory_multi_step`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
 - verified stdout: `documentProperty.after.Title=Harness Multi Step Test`, `visibleText.line.after=Harness Circuit Multi`, `factory.allSet=True`, `document.saved=True`, `factory.property.0=Harness Multi Step Test`, `factory.visibleText.oldAfter.1=0`, `factory.visibleText.newAfter.1=1`, `factory.allValid=True`
+
+Verified live factory sample matrix on 2026-05-25:
+
+- command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_20260525_fix`
+- matrix: `artifacts/document_factory_validation/live_samples_20260525_fix/document_factory_samples_matrix.json`
+- csv: `artifacts/document_factory_validation/live_samples_20260525_fix/document_factory_samples_matrix.csv`
+- summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
+- covered categories: `3d_part`, `drawing`, `specification`, `table`
+- output files: `factory_3d_part.grb` size `28542`, `factory_drawing.grb` size `25465`, `factory_specification.grb` size `29101`, `factory_table.grb` size `63297`

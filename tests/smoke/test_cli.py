@@ -230,3 +230,16 @@ def test_cli_create_document_dry_run_dispatches_payload(tmp_path):
     assert result["plan"]["recipe"] == "prototype_set_document_property"
     assert Path(result["input_payload_path"]).exists()
     assert Path(result["plan_path"]).exists()
+
+
+def test_cli_document_factory_samples_dry_run(tmp_path):
+    out = tmp_path / "factory_samples"
+
+    result = _cli("document-factory-samples", "--dry-run", "--output-dir", str(out))
+
+    assert result["ok"] is True
+    assert result["summary"]["selected"] == 4
+    assert result["summary"]["passed"] == 4
+    assert Path(result["matrix_path"]).exists()
+    assert Path(result["csv_path"]).exists()
+    assert Path(result["payload_dir"]).exists()

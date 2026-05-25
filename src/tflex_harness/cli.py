@@ -7,6 +7,7 @@ import sys
 from .artifacts import json_default
 from .diagnostics import get_environment
 from .document_factory import create_document_from_payload
+from .document_factory_validation import validate_document_factory_samples
 from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
 from .prototype_metadata import capture_metadata_batch
@@ -57,6 +58,12 @@ def main(argv: list[str] | None = None) -> int:
     create_doc_p.add_argument("--payload", required=True, help="Path to document factory JSON payload")
     create_doc_p.add_argument("--timeout-sec", type=int, default=120)
     create_doc_p.add_argument("--dry-run", action="store_true")
+
+    factory_samples_p = sub.add_parser("document-factory-samples", help="Run standard document factory sample payloads and write a matrix")
+    factory_samples_p.add_argument("--timeout-sec", type=int, default=120)
+    factory_samples_p.add_argument("--fail-fast", action="store_true")
+    factory_samples_p.add_argument("--dry-run", action="store_true")
+    factory_samples_p.add_argument("--output-dir", default=None)
 
     state_p = sub.add_parser("state", help="Capture read-only live T-FLEX state")
     state_p.add_argument("--timeout-sec", type=int, default=60)
@@ -130,6 +137,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "create-document":
         emit(create_document_from_payload(args.payload, timeout_sec=args.timeout_sec, dry_run=args.dry_run))
+        return 0
+    if args.command == "document-factory-samples":
+        emit(validate_document_factory_samples(timeout_sec=args.timeout_sec, dry_run=args.dry_run, fail_fast=args.fail_fast, output_dir=args.output_dir))
         return 0
     if args.command == "state":
         emit(capture_tflex_state(timeout_sec=args.timeout_sec))
