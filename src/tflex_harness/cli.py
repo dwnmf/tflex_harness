@@ -20,6 +20,8 @@ from .workspace import save_snippet_candidate
 
 
 def emit(data: object) -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     print(json.dumps(data, ensure_ascii=False, indent=2, default=json_default))
 
 

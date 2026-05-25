@@ -754,19 +754,24 @@ Current Phase 6 evidence:
 - module: `src/tflex_harness/document_factory.py`;
 - CLI: `python -m tflex_harness.cli create-document --payload input.json`;
 - dry-run support writes `input_payload.json` and `factory_plan.json` under a factory run directory;
-- dispatcher currently executes one verified recipe per payload run;
+- dispatcher executes generated visible C# when a payload has multiple supported mutation operations;
+- single-operation payloads still dispatch to one verified recipe;
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
-- multi-group payloads report unexecuted groups as `pending_operations`.
+- multi-step runs apply supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
 - live command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`;
 - live factory run: `artifacts/runs/20260525_183154_667605_document_factory`;
 - live recipe run: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`;
 - selected recipe: `prototype_set_document_property`;
 - verified stdout: `documentProperty.after.Title=Harness Factory Live Test`, `document.saved=True`, `documentProperty.reopened=Harness Factory Live Test`, `documentProperty.persisted=True`.
+- live multi-step command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`;
+- live multi-step factory run: `artifacts/runs/20260525_183813_757471_document_factory`;
+- generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`;
+- live multi-step snippet run: `artifacts/runs/20260525_183813_840239_factory_multi_step`;
+- verified stdout: `documentProperty.after.Title=Harness Multi Step Test`, `visibleText.line.after=Harness Circuit Multi`, `factory.allSet=True`, `document.saved=True`, `factory.property.0=Harness Multi Step Test`, `factory.visibleText.oldAfter.1=0`, `factory.visibleText.newAfter.1=1`, `factory.allValid=True`.
 
 Remaining Phase 6 work:
 
 - live factory evidence for 3D part, drawing, specification, and table categories;
-- multi-step payload execution in one copied document;
 - export target handling beyond GRB;
 - output naming contract.
 

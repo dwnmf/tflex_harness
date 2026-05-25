@@ -201,7 +201,7 @@ python -m tflex_harness.cli create-document --payload input.json --dry-run
 python -m tflex_harness.cli create-document --payload input.json --timeout-sec 120
 ```
 
-Current dispatcher executes one verified recipe per payload run. Priority is:
+Current dispatcher executes one generated multi-step C# snippet when a payload contains multiple supported mutation operations. Single-operation payloads dispatch to one verified recipe. Single-operation priority is:
 
 1. explicit `recipe`;
 2. `document.properties`;
@@ -210,7 +210,7 @@ Current dispatcher executes one verified recipe per payload run. Priority is:
 5. `document.tables`;
 6. fallback `prototype_open_copy_save`.
 
-If multiple mutation groups are present, the factory reports the rest as `pending_operations`.
+Multi-step runs apply all supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
 
 Verified live factory dispatch on 2026-05-25:
 
@@ -219,3 +219,12 @@ Verified live factory dispatch on 2026-05-25:
 - recipe run directory: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`
 - selected recipe: `prototype_set_document_property`
 - verified stdout: `documentProperty.after.Title=Harness Factory Live Test`, `document.saved=True`, `documentProperty.reopened=Harness Factory Live Test`, `documentProperty.persisted=True`
+
+Verified live multi-step factory payload on 2026-05-25:
+
+- command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`
+- factory run directory: `artifacts/runs/20260525_183813_757471_document_factory`
+- generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`
+- snippet run directory: `artifacts/runs/20260525_183813_840239_factory_multi_step`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
+- verified stdout: `documentProperty.after.Title=Harness Multi Step Test`, `visibleText.line.after=Harness Circuit Multi`, `factory.allSet=True`, `document.saved=True`, `factory.property.0=Harness Multi Step Test`, `factory.visibleText.oldAfter.1=0`, `factory.visibleText.newAfter.1=1`, `factory.allValid=True`
