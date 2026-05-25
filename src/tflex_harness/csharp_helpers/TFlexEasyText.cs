@@ -30,6 +30,9 @@ namespace TFlexEasy {
         editing = true;
         Table table = rich.GetTableByIndex(0);
         return NormalizeCellText(table.GetCellText(cell));
+      } catch (Exception ex) {
+        EasyDiagnostics.Print("table.read.error", ex.GetType().Name + ": " + ex.Message);
+        return null;
       } finally {
         if (editing) rich.EndEdit();
       }
@@ -137,6 +140,64 @@ namespace TFlexEasy {
       }
       EasyDiagnostics.Print("visibleText.replaced", replaced);
       return replaced;
+    }
+
+    public static string FirstVisibleText(Document doc) {
+      if (doc == null) throw new ArgumentNullException("doc");
+      foreach (Object2D obj in doc.Get2DObjects()) {
+        LineText line = obj as LineText;
+        if (line != null && !String.IsNullOrWhiteSpace(line.TextValue)) return line.TextValue;
+        RichText rich = obj as RichText;
+        if (rich != null) {
+          bool editing = false;
+          try {
+            rich.BeginEdit();
+            editing = true;
+            if (!rich.TableOnly && !String.IsNullOrWhiteSpace(rich.TextValue)) return rich.TextValue;
+          } catch {
+          } finally {
+            if (editing) rich.EndEdit();
+          }
+        }
+      }
+      return null;
+    }
+
+    public static bool ReplaceFirstVisibleText(Document doc, string replacement) {
+      if (doc == null) throw new ArgumentNullException("doc");
+      if (replacement == null) replacement = "";
+      foreach (Object2D obj in doc.Get2DObjects()) {
+        LineText line = obj as LineText;
+        if (line != null && !String.IsNullOrWhiteSpace(line.TextValue)) {
+          EasyDiagnostics.Print("firstVisibleText.kind", "LineText");
+          EasyDiagnostics.Print("firstVisibleText.before", line.TextValue);
+          line.TextValue = replacement;
+          EasyDiagnostics.Print("firstVisibleText.after", line.TextValue);
+          return line.TextValue == replacement;
+        }
+        RichText rich = obj as RichText;
+        if (rich != null) {
+          bool editing = false;
+          try {
+            rich.BeginEdit();
+            editing = true;
+            if (!rich.TableOnly && !String.IsNullOrWhiteSpace(rich.TextValue)) {
+              EasyDiagnostics.Print("firstVisibleText.kind", "RichText");
+              EasyDiagnostics.Print("firstVisibleText.before", rich.TextValue);
+              rich.ClearAll();
+              rich.InsertText(replacement);
+              EasyDiagnostics.Print("firstVisibleText.after", rich.TextValue);
+              return rich.TextValue == replacement;
+            }
+          } catch (Exception ex) {
+            EasyDiagnostics.Print("firstVisibleText.rich.error", ex.GetType().Name + ": " + ex.Message);
+          } finally {
+            if (editing) rich.EndEdit();
+          }
+        }
+      }
+      EasyDiagnostics.Print("firstVisibleText.error", "visible text not found");
+      return false;
     }
 
     static int CountOccurrences(string value, string search) {

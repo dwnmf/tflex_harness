@@ -35,6 +35,8 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
 - `python -m tflex_harness.cli prototypes-title-batch` — batch copies `.grb` prototypes, sets `Document.Properties.Title`, saves, reopens, verifies persistence, and writes JSON/CSV mutation matrices.
+- `python -m tflex_harness.cli prototypes-table-cell-batch` — batch mutates one `RichText` table cell on copied `.grb` prototypes and writes JSON/CSV matrices.
+- `python -m tflex_harness.cli prototypes-first-visible-text-batch` — batch replaces first API-visible non-table text on copied `.grb` prototypes and writes JSON/CSV matrices.
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
 - `create_tflex_document` / `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
 - `python -m tflex_harness.cli document-factory-samples` — runs the standard 3D/drawing/specification/table factory sample payloads and writes a JSON/CSV matrix.
@@ -146,6 +148,28 @@ Verified live title-mutation batch on 2026-05-25:
 - matrix: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json`
 - csv: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.csv`
 - follow-up artifact-column live check: `python -m tflex_harness.cli prototypes-title-batch --limit 1 --timeout-sec 120`, matrix `artifacts/prototype_validation/20260525_215156_953215/prototype_title_mutation_matrix.json`
+
+Verified live table-cell batches on 2026-05-25:
+
+- command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Таблицы --timeout-sec 120 --fail-fast`
+- table result: selected `7`, attempted `7`, passed `7`, failed `0`, persisted `7`
+- table matrix: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json`
+- command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120`
+- specification result: selected `20`, attempted `20`, passed `1`, failed `19`, persisted `1`
+- specification matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`
+
+Verified live electrical visible-text batch on 2026-05-25:
+
+- command: `python -m tflex_harness.cli prototypes-first-visible-text-batch --category Электротехника --timeout-sec 120`
+- result: selected `8`, attempted `8`, passed `4`, failed `4`, persisted `4`
+- matrix: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`
+- direct recipe proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`
+
+Verified live fragment assembly semantic insertion on 2026-05-25:
+
+- command: `python -m tflex_harness.cli run-recipe helper_fragment_lcs_assembly --timeout-sec 120`
+- run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`
+- evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`
 
 Verified live metadata batch on 2026-05-25:
 

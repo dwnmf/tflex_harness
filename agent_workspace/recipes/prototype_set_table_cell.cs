@@ -41,7 +41,7 @@ public class Program {
         string actual = EasyText.FirstTableCellText(reopened, cell);
         EasyDiagnostics.Print("table.cell.reopened", actual);
         EasyDiagnostics.Print("table.cell.persisted", actual == expected);
-        return (set && saved && actual == expected) ? 0 : 20;
+        return (saved && actual == expected) ? 0 : 20;
       } finally {
         EasyPrototype.Close(reopened);
         EasyPrototype.Close(doc);

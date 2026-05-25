@@ -139,6 +139,115 @@ def validate_title_mutation_batch(
     return matrix
 
 
+def validate_table_cell_batch(
+    root: str | Path | None = None,
+    *,
+    category: str | None = None,
+    limit: int | None = None,
+    timeout_sec: int = 120,
+    fail_fast: bool = False,
+    dry_run: bool = False,
+    output_dir: str | Path | None = None,
+    cell_index: int = 2,
+    value_prefix: str = "Harness Table Matrix",
+    recipe_runner: RecipeRunner | None = None,
+) -> dict[str, Any]:
+    catalog = scan_prototypes(root)
+    prototypes = [item for item in catalog["files"] if item["extension"] == ".grb"]
+    if category:
+        prototypes = [item for item in prototypes if item["category"] == category]
+    if limit is not None:
+        prototypes = prototypes[:limit]
+
+    out = _output_dir(output_dir)
+    rows: list[dict[str, Any]] = []
+    runner = recipe_runner or _run_recipe_adapter
+
+    for index, proto in enumerate(prototypes, start=1):
+        text_value = f"{value_prefix} {index:03d}"
+        row = _base_row(index, proto, dry_run=dry_run)
+        row["cell_index"] = cell_index
+        row["text_value"] = text_value
+        if dry_run:
+            row.update({"status": "dry_run", "ok": True, "table_cell_persisted": None})
+            rows.append(row)
+            continue
+
+        result = runner(
+            "prototype_set_table_cell",
+            {"source_path": proto["path"], "cell_index": str(cell_index), "text_value": text_value},
+            timeout_sec,
+        )
+        row.update(_table_result_to_row(result, text_value=text_value))
+        rows.append(row)
+        if fail_fast and not row["ok"]:
+            break
+
+    summary = _summary(catalog, prototypes, rows, root=Path(catalog["root"]), category=category, dry_run=dry_run)
+    summary["cell_index"] = cell_index
+    summary["value_prefix"] = value_prefix
+    summary["persisted"] = len([row for row in rows if row.get("table_cell_persisted")])
+    matrix = {"ok": summary["failed"] == 0, "summary": summary, "rows": rows}
+    matrix_path = out / "prototype_table_cell_matrix.json"
+    csv_path = out / "prototype_table_cell_matrix.csv"
+    matrix_path.write_text(json.dumps(matrix, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
+    _write_csv(csv_path, rows)
+    matrix["matrix_path"] = str(matrix_path)
+    matrix["csv_path"] = str(csv_path)
+    return matrix
+
+
+def validate_first_visible_text_batch(
+    root: str | Path | None = None,
+    *,
+    category: str | None = None,
+    limit: int | None = None,
+    timeout_sec: int = 120,
+    fail_fast: bool = False,
+    dry_run: bool = False,
+    output_dir: str | Path | None = None,
+    value_prefix: str = "Harness Visible Text Matrix",
+    recipe_runner: RecipeRunner | None = None,
+) -> dict[str, Any]:
+    catalog = scan_prototypes(root)
+    prototypes = [item for item in catalog["files"] if item["extension"] == ".grb"]
+    if category:
+        prototypes = [item for item in prototypes if item["category"] == category]
+    if limit is not None:
+        prototypes = prototypes[:limit]
+
+    out = _output_dir(output_dir)
+    rows: list[dict[str, Any]] = []
+    runner = recipe_runner or _run_recipe_adapter
+
+    for index, proto in enumerate(prototypes, start=1):
+        text_value = f"{value_prefix} {index:03d}"
+        row = _base_row(index, proto, dry_run=dry_run)
+        row["text_value"] = text_value
+        if dry_run:
+            row.update({"status": "dry_run", "ok": True, "visible_text_persisted": None})
+            rows.append(row)
+            continue
+
+        result = runner("prototype_replace_first_visible_text", {"source_path": proto["path"], "text_value": text_value}, timeout_sec)
+        row.update(_first_visible_text_result_to_row(result, text_value=text_value))
+        rows.append(row)
+        if fail_fast and not row["ok"]:
+            break
+
+    summary = _summary(catalog, prototypes, rows, root=Path(catalog["root"]), category=category, dry_run=dry_run)
+    summary["value_prefix"] = value_prefix
+    summary["persisted"] = len([row for row in rows if row.get("visible_text_persisted")])
+    matrix = {"ok": summary["failed"] == 0, "summary": summary, "rows": rows}
+    matrix_path = out / "prototype_first_visible_text_matrix.json"
+    csv_path = out / "prototype_first_visible_text_matrix.csv"
+    matrix_path.write_text(json.dumps(matrix, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
+    _write_csv(csv_path, rows)
+    matrix["matrix_path"] = str(matrix_path)
+    matrix["csv_path"] = str(csv_path)
+    return matrix
+
+
 def _run_recipe_adapter(name: str, args: dict[str, Any], timeout_sec: int) -> dict[str, Any]:
     return run_recipe(name, args=args, timeout_sec=timeout_sec)
 
@@ -210,6 +319,28 @@ def _title_result_to_row(result: dict[str, Any], *, property_name: str, text_val
     return row
 
 
+def _table_result_to_row(result: dict[str, Any], *, text_value: str) -> dict[str, Any]:
+    row = _result_to_row(result)
+    stdout = str(result.get("stdout") or "")
+    row["table_cell_after"] = f"table.cell.after={text_value}" in stdout
+    row["table_cell_reopened"] = f"table.cell.reopened={text_value}" in stdout
+    row["table_cell_persisted"] = "table.cell.persisted=True" in stdout
+    row["ok"] = bool(row["ok"] and row["table_cell_persisted"])
+    row["status"] = "passed" if row["ok"] else "failed"
+    return row
+
+
+def _first_visible_text_result_to_row(result: dict[str, Any], *, text_value: str) -> dict[str, Any]:
+    row = _result_to_row(result)
+    stdout = str(result.get("stdout") or "")
+    row["visible_text_after"] = f"firstVisibleText.after={text_value}" in stdout
+    row["visible_text_reopened"] = f"firstVisibleText.reopened={text_value}" in stdout
+    row["visible_text_persisted"] = "firstVisibleText.persisted=True" in stdout
+    row["ok"] = bool(row["ok"] and row["visible_text_persisted"])
+    row["status"] = "passed" if row["ok"] else "failed"
+    return row
+
+
 def _first_artifact_named(artifacts: list[dict[str, Any]], name: str) -> dict[str, Any] | None:
     for artifact in artifacts:
         if str(artifact.get("relative_path", "")).endswith(name) or str(artifact.get("path", "")).endswith(name):
@@ -258,6 +389,13 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "property_after",
         "property_reopened",
         "property_persisted",
+        "cell_index",
+        "table_cell_after",
+        "table_cell_reopened",
+        "table_cell_persisted",
+        "visible_text_after",
+        "visible_text_reopened",
+        "visible_text_persisted",
         "source_size",
         "copy_size",
         "output_size",

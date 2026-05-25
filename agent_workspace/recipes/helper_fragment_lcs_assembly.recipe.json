@@ -1,0 +1,13 @@
+{
+  "name": "helper_fragment_lcs_assembly",
+  "description": "Create a part and assembly, insert the part as Fragment3D, fix by PointsLCS, save, and verify.",
+  "args": {},
+  "verified": true,
+  "helpers": [
+    "easy_session"
+  ],
+  "source_sha256": "b6e816f9ebf03f9368db24794eef794b51c2f3682410fb5103fe1db6ced21339",
+  "markdown_sha256": "2205085ebd96f0b6b01cdf1fce58196c4e012a5def1beca63f127fca78aa3808",
+  "last_run_dir": "artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly",
+  "last_verified_at": "2026-05-25"
+}

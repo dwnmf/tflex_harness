@@ -13,7 +13,12 @@ from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
 from .prototype_metadata import capture_metadata_batch
 from .prototypes import list_prototypes, prototype_info, scan_and_write_catalog
-from .prototype_validation import validate_open_copy_save_batch, validate_title_mutation_batch
+from .prototype_validation import (
+    validate_first_visible_text_batch,
+    validate_open_copy_save_batch,
+    validate_table_cell_batch,
+    validate_title_mutation_batch,
+)
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
 from .schemas import DOCS_SEARCH_SCOPES, TFLEX_DOC_ASSEMBLIES
@@ -123,6 +128,27 @@ def main(argv: list[str] | None = None) -> int:
     proto_title_p.add_argument("--property-name", default="Title")
     proto_title_p.add_argument("--value-prefix", default="Harness Title Matrix")
 
+    proto_table_p = sub.add_parser("prototypes-table-cell-batch", help="Batch set one RichText table cell on copied .grb prototypes and write validation matrix")
+    proto_table_p.add_argument("--root", default=None)
+    proto_table_p.add_argument("--category", default=None)
+    proto_table_p.add_argument("--limit", type=int, default=None)
+    proto_table_p.add_argument("--timeout-sec", type=int, default=120)
+    proto_table_p.add_argument("--fail-fast", action="store_true")
+    proto_table_p.add_argument("--dry-run", action="store_true")
+    proto_table_p.add_argument("--output-dir", default=None)
+    proto_table_p.add_argument("--cell-index", type=int, default=2)
+    proto_table_p.add_argument("--value-prefix", default="Harness Table Matrix")
+
+    proto_visible_p = sub.add_parser("prototypes-first-visible-text-batch", help="Batch replace first visible non-table text on copied .grb prototypes and write validation matrix")
+    proto_visible_p.add_argument("--root", default=None)
+    proto_visible_p.add_argument("--category", default=None)
+    proto_visible_p.add_argument("--limit", type=int, default=None)
+    proto_visible_p.add_argument("--timeout-sec", type=int, default=120)
+    proto_visible_p.add_argument("--fail-fast", action="store_true")
+    proto_visible_p.add_argument("--dry-run", action="store_true")
+    proto_visible_p.add_argument("--output-dir", default=None)
+    proto_visible_p.add_argument("--value-prefix", default="Harness Visible Text Matrix")
+
     proto_meta_p = sub.add_parser("prototypes-metadata", help="Extract metadata from copied .grb prototypes and write JSON/CSV indexes")
     proto_meta_p.add_argument("--root", default=None)
     proto_meta_p.add_argument("--category", default=None)
@@ -203,6 +229,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "prototypes-title-batch":
         emit(validate_title_mutation_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir, property_name=args.property_name, value_prefix=args.value_prefix))
+        return 0
+    if args.command == "prototypes-table-cell-batch":
+        emit(validate_table_cell_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir, cell_index=args.cell_index, value_prefix=args.value_prefix))
+        return 0
+    if args.command == "prototypes-first-visible-text-batch":
+        emit(validate_first_visible_text_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir, value_prefix=args.value_prefix))
         return 0
     if args.command == "prototypes-metadata":
         emit(capture_metadata_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, output_dir=args.output_dir))

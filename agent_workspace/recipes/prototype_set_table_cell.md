@@ -84,6 +84,17 @@ Blockers: none for the verified cell `2` in `Таблица параметров
 - Cell indices are zero-based T-FLEX table cell indices.
 - The recipe writes only into `TFLEX_HARNESS_ARTIFACTS_DIR`.
 
+
+Batch table/specification probes:
+
+- command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Таблицы --timeout-sec 120 --fail-fast`;
+- table matrix: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json`;
+- table result: selected `7`, attempted `7`, passed `7`, failed `0`, persisted `7`;
+- command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120`;
+- specification matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`;
+- specification result: selected `20`, attempted `20`, passed `1`, failed `19`, persisted `1`;
+- result interpretation: installed `Таблицы/*` prototypes expose mutable `RichText` table cells through this API path; most installed `Спецификации/*` prototypes need a richer specification-specific API path.
+
 ## Limitations
 
 - This recipe targets the first table in the first `RichText`.

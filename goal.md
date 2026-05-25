@@ -794,10 +794,24 @@ Prototype-wide title mutation matrix evidence:
 - CSV: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.csv`;
 - artifact-column check: `python -m tflex_harness.cli prototypes-title-batch --limit 1 --timeout-sec 120`, matrix `artifacts/prototype_validation/20260525_215156_953215/prototype_title_mutation_matrix.json`.
 
+Additional Phase 5 semantic evidence:
+
+- table batch command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Таблицы --timeout-sec 120 --fail-fast`;
+- table batch evidence: selected `7`, attempted `7`, passed `7`, failed `0`, persisted `7`, matrix `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json`;
+- specification batch command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120`;
+- specification batch evidence: selected `20`, attempted `20`, passed `1`, failed `19`, persisted `1`, matrix `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`;
+- electrical visible-text batch command: `python -m tflex_harness.cli prototypes-first-visible-text-batch --category Электротехника --timeout-sec 120`;
+- electrical visible-text evidence: selected `8`, attempted `8`, passed `4`, failed `4`, persisted `4`, matrix `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`;
+- direct electrical recipe proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`;
+- semantic fragment/assembly recipe: `helper_fragment_lcs_assembly`;
+- semantic fragment/assembly run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`;
+- semantic fragment/assembly evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
+
 Remaining Phase 5 work:
 
-- richer category-specific payload fields beyond title/table-cell/visible-text mutation;
-- semantic fragment/assembly operations beyond safe prototype open/mutate/save/reopen.
+- richer specification-specific payload fields beyond raw `RichText` table-cell mutation;
+- richer electrical symbol/connectivity mutation beyond visible text replacement;
+- promote semantic fragment/assembly insertion into document factory payloads.
 
 ### Phase 6: Batch Document Factory
 
@@ -1024,10 +1038,10 @@ Integration/live:
 
 ## Immediate Next Work
 
-1. Add richer payload mapping per category.
-2. Add semantic fragment/assembly live probes.
-3. Add table/specification row-level mutation helpers.
-4. Add electrical symbol/text mutation helpers.
+1. Add specification-specific mutation helper path.
+2. Add electrical symbol/connectivity probes.
+3. Wire fragment insertion into document factory payloads.
+4. Add richer payload mapping per category.
 5. Promote stable live paths into recipe registry.
 
 ## Current Risks
@@ -1063,3 +1077,5 @@ Mitigation:
 - 2026-05-25: Added `--audit-open-only` to `document-factory-batch`. It resolves each payload prototype, runs the verified metadata open probe, records object/page/variable counts and audit run dir, and skips all mutation/save/export paths.
 - 2026-05-25: Added `document_factory_failure_report.json` to batch runs. It is a compact machine-readable failure report grouped by `failure_kind`, with failed payload paths and rerun hint.
 - 2026-05-25: Exposed document factory over MCP. Added `create_tflex_document` and `run_tflex_document_factory_batch` tools with smoke coverage for dry-run single payload and batch payload execution.
+
+- 2026-05-25: Added table-cell batch, first-visible-text batch, first-visible-text recipe, and semantic fragment LCS assembly recipe. Live table batch passed `7/7`; live specification raw table-cell probe passed `1/20` and exposed need for specification-specific API; live electrical visible-text probe passed `4/8`; live fragment LCS insertion passed with `fragmentAssembly.persisted=True`.

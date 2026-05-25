@@ -12,8 +12,8 @@
   "helpers": [
     "easy_text"
   ],
-  "source_sha256": "40e7e03e8b31a83183ba5cb38f188ec449269a264047fccc3e1102f696172bbf",
-  "markdown_sha256": "d7b2cf06a0ed823ad9d86ee4ad1defe32a2b90951d55416545c0a7918fc7b4e3",
-  "last_run_dir": "artifacts/runs/20260525_181242_346840_recipe_prototype_set_table_cell",
+  "source_sha256": "26aa83effb8d03468f39378919d91d597a09406fa7b1ebcff96de3e87558a7e9",
+  "markdown_sha256": "07ce984d6ef4861a9ef7628f1979adfa60b76eabe700611f6a06d5a56dc41f6a",
+  "last_run_dir": "artifacts/runs/20260525_220550_770551_recipe_prototype_set_table_cell",
   "last_verified_at": "2026-05-25"
 }

@@ -1,0 +1,18 @@
+{
+  "name": "prototype_replace_first_visible_text",
+  "description": "Replace the first visible non-table text object in a copied prototype, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "text_value": "replacement text"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "92b4696e5e1db254ab763dc25268ef7090335021f974b3c30479f56cbc0b8684",
+  "markdown_sha256": "0836238b9e599be2cfc83dc64012552050764a2545d61f5aab595d5c2c80cc05",
+  "last_run_dir": "artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text",
+  "last_verified_at": "2026-05-25"
+}
