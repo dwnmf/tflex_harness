@@ -782,9 +782,20 @@ Current Phase 5 evidence:
 - live `create_tech_sketch_card_from_prototype` run: `artifacts/runs/20260525_214444_473242_recipe_create_tech_sketch_card_from_prototype`;
 - live `create_tech_sketch_card_from_prototype` evidence: `documentProperty.after.Title=Harness Tech Sketch Card`, `document.saved=True`, `document.outputSize=42281`, `documentProperty.persisted=True`.
 
+Prototype-wide title mutation matrix evidence:
+
+- CLI: `python -m tflex_harness.cli prototypes-title-batch --timeout-sec 120 --fail-fast`;
+- selected `.grb`: `50`;
+- attempted: `50`;
+- passed: `50`;
+- failed: `0`;
+- persisted: `50`;
+- matrix: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json`;
+- CSV: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.csv`;
+- artifact-column check: `python -m tflex_harness.cli prototypes-title-batch --limit 1 --timeout-sec 120`, matrix `artifacts/prototype_validation/20260525_215156_953215/prototype_title_mutation_matrix.json`.
+
 Remaining Phase 5 work:
 
-- scan remaining installed prototype categories for any uncovered category-level recipes;
 - richer category-specific payload fields beyond title/table-cell/visible-text mutation;
 - semantic fragment/assembly operations beyond safe prototype open/mutate/save/reopen.
 
@@ -1013,10 +1024,10 @@ Integration/live:
 
 ## Immediate Next Work
 
-1. Audit installed prototype catalog for uncovered categories.
-2. Add remaining category recipes where safe.
-3. Add richer payload mapping per category.
-4. Add semantic fragment/assembly live probes.
+1. Add richer payload mapping per category.
+2. Add semantic fragment/assembly live probes.
+3. Add table/specification row-level mutation helpers.
+4. Add electrical symbol/text mutation helpers.
 5. Promote stable live paths into recipe registry.
 
 ## Current Risks
@@ -1040,6 +1051,7 @@ Mitigation:
 - 2026-05-25: Implemented Phase 1 prototype catalog. Added `src/tflex_harness/prototypes.py`, CLI commands `prototypes-scan`, `prototypes-list`, `prototypes-info`, unit/smoke tests, and real installed corpus scan evidence: `file_count=57`, `grb_count=50`, catalog at `artifacts/prototype_catalog/current_probe/catalog.json`.
 - 2026-05-25: Started Phase 2. Added `TFlexEasyPrototype.cs`, helper set `easy_prototype`, recipe `prototype_open_copy_save`, and live proof for `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`: run `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`, `document.opened=True`, `document.saved=True`, `document.closed=True`, output size `28544`.
 - 2026-05-25: Completed Phase 2 baseline. Added `src/tflex_harness/prototype_validation.py` and CLI `prototypes-open-save-batch`. Live batch opened, saved, and closed all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`.
+- 2026-05-25: Added CLI `prototypes-title-batch`. Live batch copied all 50 installed `.grb` prototypes, set `Document.Properties.Title`, saved, reopened, and verified persistence with `passed=50`, `failed=0`, `persisted=50`. Matrix: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json`.
 - 2026-05-25: Completed Phase 3 baseline. Added `src/tflex_harness/prototype_metadata.py` and CLI `prototypes-metadata`. Live batch extracted metadata for all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Index: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`.
 - 2026-05-25: Extended Phase 6 document factory output contract. Payloads can request `output.name` with `exports: ["grb"]`; factory materializes a named `.grb` under the factory run `artifacts/outputs/` and rejects unsupported export formats explicitly.
 - 2026-05-25: Added `document-factory-samples` CLI and live sample matrix for 3D part, drawing, specification, and table prototype payloads. Live matrix passed `4/4` and produced named GRB outputs for all samples.

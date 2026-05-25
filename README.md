@@ -34,6 +34,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-list` — lists prototypes by category and extension.
 - `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
+- `python -m tflex_harness.cli prototypes-title-batch` — batch copies `.grb` prototypes, sets `Document.Properties.Title`, saves, reopens, verifies persistence, and writes JSON/CSV mutation matrices.
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
 - `create_tflex_document` / `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
 - `python -m tflex_harness.cli document-factory-samples` — runs the standard 3D/drawing/specification/table factory sample payloads and writes a JSON/CSV matrix.
@@ -110,6 +111,7 @@ python -m tflex_harness.cli prototypes-scan
 python -m tflex_harness.cli prototypes-list --category Чертежи
 python -m tflex_harness.cli prototypes-info "Чертежи/Чертёж детали с форматкой"
 python -m tflex_harness.cli prototypes-open-save-batch --dry-run
+python -m tflex_harness.cli prototypes-title-batch --dry-run
 python -m tflex_harness.cli prototypes-metadata --limit 1
 ```
 
@@ -131,6 +133,19 @@ Verified live open/copy/save batch on 2026-05-25:
 - failed: `0`
 - matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`
 - csv: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.csv`
+
+Verified live title-mutation batch on 2026-05-25:
+
+- command: `python -m tflex_harness.cli prototypes-title-batch --timeout-sec 120 --fail-fast`
+- selected `.grb`: `50`
+- attempted: `50`
+- passed: `50`
+- failed: `0`
+- persisted: `50`
+- property: `Title`
+- matrix: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json`
+- csv: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.csv`
+- follow-up artifact-column live check: `python -m tflex_harness.cli prototypes-title-batch --limit 1 --timeout-sec 120`, matrix `artifacts/prototype_validation/20260525_215156_953215/prototype_title_mutation_matrix.json`
 
 Verified live metadata batch on 2026-05-25:
 
