@@ -756,7 +756,7 @@ Current Phase 6 evidence:
 - sample matrix CLI: `python -m tflex_harness.cli document-factory-samples`;
 - batch payload folder CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads`;
 - dry-run support writes `input_payload.json` and `factory_plan.json` under a factory run directory;
-- batch dry-run/live support writes `document_factory_batch_matrix.json` and `.csv`;
+- batch dry-run/live support writes `document_factory_batch_matrix.json`, `.csv`, and `document_factory_failure_report.json`;
 - dispatcher executes generated visible C# when a payload has multiple supported mutation operations;
 - single-operation payloads still dispatch to one verified recipe;
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
@@ -859,9 +859,10 @@ Current Phase 7 evidence:
 - rerun failed CLI: `python -m tflex_harness.cli document-factory-batch --failed-matrix document_factory_batch_matrix.json`;
 - open-only audit CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads --audit-open-only`;
 - supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, `--failed-matrix`, `--audit-open-only`, and `--output-dir`;
-- output files: `document_factory_batch_matrix.json`, `document_factory_batch_matrix.csv`;
+- output files: `document_factory_batch_matrix.json`, `document_factory_batch_matrix.csv`, `document_factory_failure_report.json`;
 - row evidence includes payload path/name, status, `failure_kind`, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, audit run dir, metadata counts, and error;
 - summary buckets include `passed`, `input_failed`, `timeout_failed`, `export_failed`, `recipe_failed`, `run_failed`, and `unknown_failed`.
+- failure report evidence includes `failed_count`, `failed_payloads`, `failed_by_kind`, and `rerun_failed_hint`.
 - live open-only audit command: `python -m tflex_harness.cli document-factory-batch --payload-dir artifacts/factory_payloads --glob phase6_property_payload.json --audit-open-only --timeout-sec 120 --output-dir artifacts/document_factory_batches/live_audit_open_only_20260525`;
 - live open-only audit matrix: `artifacts/document_factory_batches/live_audit_open_only_20260525/document_factory_batch_matrix.json`;
 - live open-only audit summary: `selected=1`, `attempted=1`, `passed=1`, `failed=0`;
@@ -985,3 +986,4 @@ Mitigation:
 - 2026-05-25: Started Phase 7 enterprise workflow with `document-factory-batch`. It runs all payload JSON files from a folder, supports dry-run/fail-fast/recursive globbing, and writes JSON/CSV batch matrices.
 - 2026-05-25: Extended `document-factory-batch` with failure buckets and rerun-failed flow. Rows now include `failure_kind`; summaries include stable pass/fail buckets; `--failed-matrix` reruns only failed payload rows from a previous matrix.
 - 2026-05-25: Added `--audit-open-only` to `document-factory-batch`. It resolves each payload prototype, runs the verified metadata open probe, records object/page/variable counts and audit run dir, and skips all mutation/save/export paths.
+- 2026-05-25: Added `document_factory_failure_report.json` to batch runs. It is a compact machine-readable failure report grouped by `failure_kind`, with failed payload paths and rerun hint.

@@ -68,10 +68,14 @@ def create_documents_from_payload_dir(
     }
     matrix_path = out / "document_factory_batch_matrix.json"
     csv_path = out / "document_factory_batch_matrix.csv"
+    failure_report = _failure_report(matrix)
+    failure_report_path = out / "document_factory_failure_report.json"
     matrix_path.write_text(json.dumps(matrix, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
+    failure_report_path.write_text(json.dumps(failure_report, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
     _write_csv(csv_path, rows)
     matrix["matrix_path"] = str(matrix_path)
     matrix["csv_path"] = str(csv_path)
+    matrix["failure_report_path"] = str(failure_report_path)
     return matrix
 
 
@@ -321,6 +325,45 @@ def _buckets(rows: list[dict[str, Any]]) -> dict[str, int]:
         kind = row.get("failure_kind") or ("passed" if row.get("ok") else "unknown_failed")
         buckets[str(kind)] = buckets.get(str(kind), 0) + 1
     return buckets
+
+
+def _failure_report(matrix: dict[str, Any]) -> dict[str, Any]:
+    rows = matrix.get("rows") if isinstance(matrix.get("rows"), list) else []
+    failed_rows = [row for row in rows if isinstance(row, dict) and row.get("ok") is not True]
+    by_kind: dict[str, list[dict[str, Any]]] = {}
+    for row in failed_rows:
+        kind = str(row.get("failure_kind") or "unknown_failed")
+        by_kind.setdefault(kind, []).append(_failure_row(row))
+    failed_payloads = [item["payload_path"] for item in failed_rows if item.get("payload_path")]
+    return {
+        "ok": len(failed_rows) == 0,
+        "summary": matrix.get("summary") or {},
+        "selection": matrix.get("selection"),
+        "payload_dir": matrix.get("payload_dir"),
+        "failed_matrix": matrix.get("failed_matrix"),
+        "audit_open_only": matrix.get("audit_open_only"),
+        "failed_count": len(failed_rows),
+        "failed_payloads": failed_payloads,
+        "failed_by_kind": by_kind,
+        "rerun_failed_hint": "python -m tflex_harness.cli document-factory-batch --failed-matrix <document_factory_batch_matrix.json>",
+    }
+
+
+def _failure_row(row: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "index",
+        "payload_name",
+        "payload_path",
+        "failure_kind",
+        "stage",
+        "recipe",
+        "selection",
+        "factory_run_dir",
+        "audit_run_dir",
+        "error",
+        "output_errors",
+    ]
+    return {key: row.get(key) for key in keys if row.get(key) not in (None, [], {})}
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

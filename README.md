@@ -249,15 +249,17 @@ python -m tflex_harness.cli document-factory-batch --payload-dir payloads --glob
 
 The batch command writes `document_factory_batch_matrix.json` and
 `document_factory_batch_matrix.csv` with per-payload status, recipe selection,
-output paths/sizes, export errors, failure kind, and factory run directory. The
-summary includes buckets for `passed`, `input_failed`, `timeout_failed`,
-`export_failed`, `recipe_failed`, `run_failed`, and `unknown_failed`. Use
-`--dry-run` for planning only, `--fail-fast` to stop after the first failed
-payload, and `--failed-matrix <previous-matrix.json>` to rerun only rows where
-`ok=false`. Use `--audit-open-only` to resolve each payload prototype and run
-the metadata open probe only; this mode does not apply mutations, save GRB, or
-export files, and records metadata counts such as 2D object, 3D operation,
-variable, and page totals.
+output paths/sizes, export errors, failure kind, and factory run directory. It
+also writes `document_factory_failure_report.json`, a smaller machine-readable
+failure report with failed payload paths grouped by `failure_kind` and a rerun
+hint. The summary includes buckets for `passed`, `input_failed`,
+`timeout_failed`, `export_failed`, `recipe_failed`, `run_failed`, and
+`unknown_failed`. Use `--dry-run` for planning only, `--fail-fast` to stop after
+the first failed payload, and `--failed-matrix <previous-matrix.json>` to rerun
+only rows where `ok=false`. Use `--audit-open-only` to resolve each payload
+prototype and run the metadata open probe only; this mode does not apply
+mutations, save GRB, or export files, and records metadata counts such as 2D
+object, 3D operation, variable, and page totals.
 
 Verified live factory dispatch on 2026-05-25:
 

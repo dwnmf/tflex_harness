@@ -61,6 +61,9 @@ def test_create_documents_from_payload_dir_writes_matrix_and_csv(tmp_path):
     assert calls == [("a.json", 9, True), ("b.json", 9, True)]
     assert Path(result["matrix_path"]).exists()
     assert Path(result["csv_path"]).exists()
+    failure_report = json.loads(Path(result["failure_report_path"]).read_text(encoding="utf-8"))
+    assert failure_report["ok"] is True
+    assert failure_report["failed_count"] == 0
 
 
 def test_create_documents_from_payload_dir_fail_fast(tmp_path):
@@ -86,6 +89,11 @@ def test_create_documents_from_payload_dir_fail_fast(tmp_path):
     assert result["summary"]["buckets"]["input_failed"] == 1
     assert result["rows"][0]["failure_kind"] == "input_failed"
     assert result["rows"][0]["error"] == "boom"
+    failure_report = json.loads(Path(result["failure_report_path"]).read_text(encoding="utf-8"))
+    assert failure_report["ok"] is False
+    assert failure_report["failed_count"] == 1
+    assert failure_report["failed_by_kind"]["input_failed"][0]["payload_name"] == "one"
+    assert failure_report["failed_payloads"] == [str((payload_dir / "one.json").resolve())]
 
 
 def test_create_documents_from_payload_dir_recursive_glob(tmp_path):
@@ -178,6 +186,8 @@ def test_create_documents_from_payload_dir_classifies_export_failure(tmp_path):
     assert result["ok"] is False
     assert result["summary"]["buckets"]["export_failed"] == 1
     assert result["rows"][0]["failure_kind"] == "export_failed"
+    failure_report = json.loads(Path(result["failure_report_path"]).read_text(encoding="utf-8"))
+    assert failure_report["failed_by_kind"]["export_failed"][0]["output_errors"] == ["PDF export failed"]
 
 
 def test_create_documents_from_payload_dir_audit_open_only_dry_run(tmp_path):

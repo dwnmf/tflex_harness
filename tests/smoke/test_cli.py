@@ -270,6 +270,7 @@ def test_cli_document_factory_batch_dry_run(tmp_path):
     assert result["rows"][0]["failure_kind"] == "passed"
     assert Path(result["matrix_path"]).exists()
     assert Path(result["csv_path"]).exists()
+    assert Path(result["failure_report_path"]).exists()
 
 
 def test_cli_document_factory_batch_rerun_failed_dry_run(tmp_path):
