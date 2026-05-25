@@ -69,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     factory_batch_p = sub.add_parser("document-factory-batch", help="Run document factory payload JSON files from a folder or rerun failed rows from a matrix")
     factory_batch_p.add_argument("--payload-dir", default=None, help="Folder containing document factory payload JSON files")
     factory_batch_p.add_argument("--failed-matrix", default=None, help="Previous document_factory_batch_matrix.json; rerun rows where ok=false")
+    factory_batch_p.add_argument("--audit-open-only", action="store_true", help="Open each payload prototype and collect metadata only; do not mutate, save, or export")
     factory_batch_p.add_argument("--glob", default="*.json", help="Payload filename glob; default: *.json")
     factory_batch_p.add_argument("--recursive", action="store_true")
     factory_batch_p.add_argument("--timeout-sec", type=int, default=120)
@@ -159,6 +160,7 @@ def main(argv: list[str] | None = None) -> int:
                 pattern=args.glob,
                 recursive=args.recursive,
                 failed_matrix=args.failed_matrix,
+                audit_open_only=args.audit_open_only,
                 timeout_sec=args.timeout_sec,
                 dry_run=args.dry_run,
                 fail_fast=args.fail_fast,

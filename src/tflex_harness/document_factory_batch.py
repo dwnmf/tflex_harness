@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
 from .artifacts import ArtifactStore, json_default
-from .document_factory import create_document_from_payload
+from .document_factory import create_document_from_payload, plan_document_creation
+from .prototype_metadata import capture_prototype_metadata
+from .prototypes import find_prototype
 
 
 FactoryRunner = Callable[[Path, int, bool], dict[str, Any]]
+MetadataCapture = Callable[[dict[str, Any], int], dict[str, Any]]
 
 
 def create_documents_from_payload_dir(
@@ -19,11 +23,13 @@ def create_documents_from_payload_dir(
     pattern: str = "*.json",
     recursive: bool = False,
     failed_matrix: str | Path | None = None,
+    audit_open_only: bool = False,
     timeout_sec: int = 120,
     dry_run: bool = False,
     fail_fast: bool = False,
     output_dir: str | Path | None = None,
     factory_runner: FactoryRunner | None = None,
+    metadata_capture: MetadataCapture | None = None,
 ) -> dict[str, Any]:
     if not pattern:
         return {"ok": False, "stage": "input", "error": "pattern is required", "payload_dir": str(Path(payload_dir).resolve()) if payload_dir else None}
@@ -34,10 +40,14 @@ def create_documents_from_payload_dir(
     payloads = selection["payloads"]
     out = _output_dir(output_dir)
     runner = factory_runner or _factory_runner_adapter
+    audit_capture = metadata_capture or capture_prototype_metadata
     rows: list[dict[str, Any]] = []
 
     for index, payload_path in enumerate(payloads, start=1):
-        result = runner(payload_path, timeout_sec, dry_run)
+        if audit_open_only:
+            result = _open_only_audit_payload(payload_path, timeout_sec=timeout_sec, dry_run=dry_run, metadata_capture=audit_capture)
+        else:
+            result = runner(payload_path, timeout_sec, dry_run)
         row = _row_from_result(index, payload_path, result, dry_run=dry_run)
         rows.append(row)
         if fail_fast and not row["ok"]:
@@ -50,6 +60,7 @@ def create_documents_from_payload_dir(
         "payload_dir": selection.get("payload_dir"),
         "failed_matrix": selection.get("failed_matrix"),
         "selection": selection["selection"],
+        "audit_open_only": audit_open_only,
         "pattern": pattern,
         "recursive": recursive,
         "summary": summary,
@@ -66,6 +77,88 @@ def create_documents_from_payload_dir(
 
 def _factory_runner_adapter(payload_path: Path, timeout_sec: int, dry_run: bool) -> dict[str, Any]:
     return create_document_from_payload(payload_path, timeout_sec=timeout_sec, dry_run=dry_run)
+
+
+def _open_only_audit_payload(
+    payload_path: Path,
+    *,
+    timeout_sec: int,
+    dry_run: bool,
+    metadata_capture: MetadataCapture,
+) -> dict[str, Any]:
+    if not payload_path.exists():
+        return {"ok": False, "stage": "input", "error": "payload file does not exist", "payload_path": str(payload_path), "audit_open_only": True}
+    try:
+        payload = json.loads(payload_path.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError as exc:
+        return {"ok": False, "stage": "input", "error": "payload JSON is invalid", "payload_path": str(payload_path), "detail": str(exc), "audit_open_only": True}
+    if not isinstance(payload, dict):
+        return {"ok": False, "stage": "input", "error": "payload root must be an object", "payload_path": str(payload_path), "audit_open_only": True}
+
+    plan = plan_document_creation(payload)
+    result: dict[str, Any] = {
+        "ok": plan.get("ok") is True,
+        "stage": "audit_dry_run" if dry_run else "audit",
+        "payload_path": str(payload_path),
+        "plan": plan,
+        "dry_run": dry_run,
+        "audit_open_only": True,
+    }
+    if plan.get("ok") is False:
+        result["ok"] = False
+        result["stage"] = "input"
+        result["error"] = plan.get("error")
+        return result
+    prototype_result = _prototype_from_recipe_args(plan.get("recipe_args") or {})
+    if prototype_result.get("ok") is False:
+        result.update(prototype_result)
+        result["stage"] = "input"
+        result["ok"] = False
+        return result
+    result["prototype"] = prototype_result["prototype"]
+    if dry_run:
+        return result
+
+    audit = metadata_capture(prototype_result["prototype"], timeout_sec)
+    metadata = audit.get("metadata") if isinstance(audit.get("metadata"), dict) else {}
+    run = audit.get("run") if isinstance(audit.get("run"), dict) else {}
+    result["metadata"] = metadata
+    result["audit_result"] = audit
+    result["audit_run_dir"] = run.get("run_dir")
+    result["factory_run_dir"] = run.get("run_dir")
+    result["ok"] = audit.get("ok") is True
+    if not result["ok"]:
+        result["error"] = "open-only audit failed"
+    return result
+
+
+def _prototype_from_recipe_args(args: dict[str, Any]) -> dict[str, Any]:
+    try:
+        if args.get("source_path"):
+            path = Path(str(args["source_path"])).resolve()
+            if not path.exists():
+                return {"ok": False, "error": "prototype source path does not exist", "source_path": str(path)}
+            return {"ok": True, "prototype": _prototype_record_from_path(path)}
+        selector = args.get("prototype_id") or args.get("prototype_selector")
+        if selector:
+            return {"ok": True, "prototype": find_prototype(str(selector), required=True)}
+    except KeyError as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": False, "error": "prototype source could not be resolved from payload"}
+
+
+def _prototype_record_from_path(path: Path) -> dict[str, Any]:
+    data = path.read_bytes()
+    return {
+        "id": path.stem,
+        "name": path.name,
+        "category": "",
+        "relative_path": path.name,
+        "path": str(path),
+        "extension": path.suffix.lower(),
+        "size": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
 
 
 def _select_payloads(
@@ -141,6 +234,8 @@ def _row_from_result(index: int, payload_path: Path, result: dict[str, Any], *, 
     dxf_output = next((item for item in outputs if item.get("format") == "dxf"), {})
     dwg_output = next((item for item in outputs if item.get("format") == "dwg"), {})
     failure_kind = _failure_kind(result)
+    metadata = result.get("metadata") if isinstance(result.get("metadata"), dict) else {}
+    counts = metadata.get("counts") if isinstance(metadata.get("counts"), dict) else {}
     return {
         "index": index,
         "payload_name": payload_path.stem,
@@ -149,8 +244,10 @@ def _row_from_result(index: int, payload_path: Path, result: dict[str, Any], *, 
         "ok": bool(result.get("ok")),
         "failure_kind": failure_kind,
         "dry_run": dry_run,
+        "audit_open_only": bool(result.get("audit_open_only")),
         "stage": result.get("stage"),
         "factory_run_dir": result.get("factory_run_dir"),
+        "audit_run_dir": result.get("audit_run_dir"),
         "recipe": result.get("recipe") or plan.get("recipe"),
         "selection": plan.get("selection"),
         "planned_output": plan.get("output"),
@@ -165,6 +262,10 @@ def _row_from_result(index: int, payload_path: Path, result: dict[str, Any], *, 
         "dxf_output_size": dxf_output.get("size"),
         "dwg_output_path": dwg_output.get("path"),
         "dwg_output_size": dwg_output.get("size"),
+        "objects2d": counts.get("2d"),
+        "operations3d": counts.get("3dOperations"),
+        "variables": counts.get("variables"),
+        "pages": counts.get("pages"),
         "output_errors": result.get("output_errors") or [],
         "error": result.get("error") or recipe_result.get("error"),
     }
@@ -230,6 +331,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "ok",
         "failure_kind",
         "dry_run",
+        "audit_open_only",
         "stage",
         "recipe",
         "selection",
@@ -243,7 +345,12 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "dxf_output_size",
         "dwg_output_path",
         "dwg_output_size",
+        "objects2d",
+        "operations3d",
+        "variables",
+        "pages",
         "factory_run_dir",
+        "audit_run_dir",
         "payload_path",
         "error",
     ]

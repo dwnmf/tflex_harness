@@ -178,3 +178,67 @@ def test_create_documents_from_payload_dir_classifies_export_failure(tmp_path):
     assert result["ok"] is False
     assert result["summary"]["buckets"]["export_failed"] == 1
     assert result["rows"][0]["failure_kind"] == "export_failed"
+
+
+def test_create_documents_from_payload_dir_audit_open_only_dry_run(tmp_path):
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    _write_payload(payload_dir / "audit.json")
+
+    result = create_documents_from_payload_dir(
+        payload_dir,
+        audit_open_only=True,
+        dry_run=True,
+        output_dir=tmp_path / "out",
+    )
+
+    assert result["ok"] is True
+    assert result["audit_open_only"] is True
+    assert result["rows"][0]["stage"] == "audit_dry_run"
+    assert result["rows"][0]["audit_open_only"] is True
+    assert result["rows"][0]["recipe"] == "prototype_set_document_property"
+
+
+def test_create_documents_from_payload_dir_audit_open_only_captures_metadata(tmp_path):
+    source = tmp_path / "source.grb"
+    source.write_bytes(b"grb")
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    payload = payload_dir / "audit.json"
+    payload.write_text(
+        json.dumps(
+            {
+                "prototype": {"path": str(source)},
+                "output": {"name": "audit", "exports": ["grb"]},
+                "document": {},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    calls = []
+
+    def fake_capture(prototype: dict, timeout_sec: int):
+        calls.append((prototype["path"], timeout_sec))
+        return {
+            "ok": True,
+            "metadata": {"document": {"opened": True}, "counts": {"2d": 4, "3dOperations": 2, "variables": 3, "pages": 1}},
+            "run": {"run_dir": "artifacts/runs/audit"},
+        }
+
+    result = create_documents_from_payload_dir(
+        payload_dir,
+        audit_open_only=True,
+        timeout_sec=11,
+        output_dir=tmp_path / "out",
+        metadata_capture=fake_capture,
+    )
+
+    assert result["ok"] is True
+    assert calls == [(str(source.resolve()), 11)]
+    assert result["rows"][0]["stage"] == "audit"
+    assert result["rows"][0]["audit_run_dir"] == "artifacts/runs/audit"
+    assert result["rows"][0]["objects2d"] == 4
+    assert result["rows"][0]["operations3d"] == 2
+    assert result["rows"][0]["variables"] == 3
+    assert result["rows"][0]["pages"] == 1

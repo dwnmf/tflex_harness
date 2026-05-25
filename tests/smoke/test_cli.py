@@ -296,3 +296,27 @@ def test_cli_document_factory_batch_rerun_failed_dry_run(tmp_path):
     assert result["selection"] == "failed_matrix"
     assert result["summary"]["selected"] == 1
     assert result["summary"]["buckets"]["passed"] == 1
+
+
+def test_cli_document_factory_batch_audit_open_only_dry_run(tmp_path):
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    payload = payload_dir / "audit.json"
+    payload.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "2D Деталь"},
+                "document": {"properties": {"Title": "Audit Smoke"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "audit"
+
+    result = _cli("document-factory-batch", "--payload-dir", str(payload_dir), "--audit-open-only", "--dry-run", "--output-dir", str(out))
+
+    assert result["ok"] is True
+    assert result["audit_open_only"] is True
+    assert result["rows"][0]["stage"] == "audit_dry_run"
+    assert result["rows"][0]["audit_open_only"] is True

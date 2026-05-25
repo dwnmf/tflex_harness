@@ -204,6 +204,7 @@ python -m tflex_harness.cli create-document --payload input.json --timeout-sec 1
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --dry-run
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --timeout-sec 120 --fail-fast
 python -m tflex_harness.cli document-factory-batch --failed-matrix artifacts/my_batch/document_factory_batch_matrix.json --timeout-sec 120
+python -m tflex_harness.cli document-factory-batch --payload-dir payloads --audit-open-only --timeout-sec 120
 ```
 
 Current dispatcher executes one generated multi-step C# snippet when a payload contains multiple supported mutation operations. Single-operation payloads dispatch to one verified recipe. Single-operation priority is:
@@ -253,7 +254,10 @@ summary includes buckets for `passed`, `input_failed`, `timeout_failed`,
 `export_failed`, `recipe_failed`, `run_failed`, and `unknown_failed`. Use
 `--dry-run` for planning only, `--fail-fast` to stop after the first failed
 payload, and `--failed-matrix <previous-matrix.json>` to rerun only rows where
-`ok=false`.
+`ok=false`. Use `--audit-open-only` to resolve each payload prototype and run
+the metadata open probe only; this mode does not apply mutations, save GRB, or
+export files, and records metadata counts such as 2D object, 3D operation,
+variable, and page totals.
 
 Verified live factory dispatch on 2026-05-25:
 
@@ -345,3 +349,11 @@ Updated matrix with PDF+DXF+DWG requested for the drawing sample:
 - summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
 - drawing row output formats: `grb`, `pdf`, `dxf`, `dwg`
 - drawing row outputs: `factory_drawing.pdf` size `11109`, `factory_drawing.dxf` size `125189`, `factory_drawing.dwg` size `18220`
+
+Verified live open-only audit batch on 2026-05-25:
+
+- command: `python -m tflex_harness.cli document-factory-batch --payload-dir artifacts/factory_payloads --glob phase6_property_payload.json --audit-open-only --timeout-sec 120 --output-dir artifacts/document_factory_batches/live_audit_open_only_20260525`
+- matrix: `artifacts/document_factory_batches/live_audit_open_only_20260525/document_factory_batch_matrix.json`
+- summary: `selected=1`, `attempted=1`, `passed=1`, `failed=0`
+- audit run: `artifacts/runs/20260525_195835_783892_prototype_metadata`
+- row evidence: `stage=audit`, `audit_open_only=True`, `output_formats=[]`, `variables=47`, `pages=1`

@@ -57,6 +57,7 @@ python -m tflex_harness.cli state
 python -m tflex_harness.cli run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --dry-run
 python -m tflex_harness.cli document-factory-batch --failed-matrix artifacts/my_batch/document_factory_batch_matrix.json
+python -m tflex_harness.cli document-factory-batch --payload-dir payloads --audit-open-only
 tflex-harness-mcp
 ```
 

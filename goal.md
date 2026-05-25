@@ -844,7 +844,7 @@ Tasks:
 - support per-run summary CSV/JSON; **implemented initial batch matrix**
 - support failure classification; **implemented initial buckets**
 - support dry-run; **implemented**
-- support “open only” audit mode;
+- support “open only” audit mode; **implemented initial `--audit-open-only`**
 - support rerun failed prototypes only; **implemented initial `--failed-matrix`**
 
 Validation:
@@ -857,10 +857,16 @@ Current Phase 7 evidence:
 - module: `src/tflex_harness/document_factory_batch.py`;
 - CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads`;
 - rerun failed CLI: `python -m tflex_harness.cli document-factory-batch --failed-matrix document_factory_batch_matrix.json`;
-- supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, `--failed-matrix`, and `--output-dir`;
+- open-only audit CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads --audit-open-only`;
+- supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, `--failed-matrix`, `--audit-open-only`, and `--output-dir`;
 - output files: `document_factory_batch_matrix.json`, `document_factory_batch_matrix.csv`;
-- row evidence includes payload path/name, status, `failure_kind`, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, and error;
+- row evidence includes payload path/name, status, `failure_kind`, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, audit run dir, metadata counts, and error;
 - summary buckets include `passed`, `input_failed`, `timeout_failed`, `export_failed`, `recipe_failed`, `run_failed`, and `unknown_failed`.
+- live open-only audit command: `python -m tflex_harness.cli document-factory-batch --payload-dir artifacts/factory_payloads --glob phase6_property_payload.json --audit-open-only --timeout-sec 120 --output-dir artifacts/document_factory_batches/live_audit_open_only_20260525`;
+- live open-only audit matrix: `artifacts/document_factory_batches/live_audit_open_only_20260525/document_factory_batch_matrix.json`;
+- live open-only audit summary: `selected=1`, `attempted=1`, `passed=1`, `failed=0`;
+- live open-only audit run: `artifacts/runs/20260525_195835_783892_prototype_metadata`;
+- live open-only row evidence: `stage=audit`, `audit_open_only=True`, `output_formats=[]`, `variables=47`, `pages=1`.
 
 ## Helper Set Plan
 
@@ -978,3 +984,4 @@ Mitigation:
 - 2026-05-25: Added DXF/DWG output materialization to document factory. ACAD exports run as separate visible C# using `Document.ExportToDXF.Export(path)` and `Document.ExportToDWG.Export(path)`. Live drawing proof produced DXF size `125193` with `AC1027` header evidence and DWG size `18220` with `AC1027` binary header.
 - 2026-05-25: Started Phase 7 enterprise workflow with `document-factory-batch`. It runs all payload JSON files from a folder, supports dry-run/fail-fast/recursive globbing, and writes JSON/CSV batch matrices.
 - 2026-05-25: Extended `document-factory-batch` with failure buckets and rerun-failed flow. Rows now include `failure_kind`; summaries include stable pass/fail buckets; `--failed-matrix` reruns only failed payload rows from a previous matrix.
+- 2026-05-25: Added `--audit-open-only` to `document-factory-batch`. It resolves each payload prototype, runs the verified metadata open probe, records object/page/variable counts and audit run dir, and skips all mutation/save/export paths.
