@@ -193,3 +193,18 @@ def test_cli_prototypes_open_save_batch_dry_run(tmp_path):
     assert result["summary"]["passed"] == 2
     assert Path(result["matrix_path"]).exists()
     assert Path(result["csv_path"]).exists()
+
+
+def test_cli_prototypes_metadata_with_empty_fake_tree(tmp_path):
+    root = tmp_path / "Прототипы"
+    root.mkdir()
+    out = tmp_path / "metadata"
+
+    result = _cli("prototypes-metadata", "--root", str(root), "--output-dir", str(out))
+
+    assert result["ok"] is True
+    assert result["summary"]["selected"] == 0
+    assert result["summary"]["passed"] == 0
+    assert Path(result["index_path"]).exists()
+    assert Path(result["csv_path"]).exists()
+    assert Path(result["metadata_dir"]).exists()

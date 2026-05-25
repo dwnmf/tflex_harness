@@ -34,6 +34,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-list` — lists prototypes by category and extension.
 - `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
+- `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 
@@ -103,6 +104,7 @@ python -m tflex_harness.cli prototypes-scan
 python -m tflex_harness.cli prototypes-list --category Чертежи
 python -m tflex_harness.cli prototypes-info "Чертежи/Чертёж детали с форматкой"
 python -m tflex_harness.cli prototypes-open-save-batch --dry-run
+python -m tflex_harness.cli prototypes-metadata --limit 1
 ```
 
 Verified local scan on 2026-05-25:
@@ -123,6 +125,17 @@ Verified live open/copy/save batch on 2026-05-25:
 - failed: `0`
 - matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`
 - csv: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.csv`
+
+Verified live metadata batch on 2026-05-25:
+
+- command: `python -m tflex_harness.cli prototypes-metadata --timeout-sec 120 --output-dir artifacts/prototype_metadata/live_all_20260525`
+- selected `.grb`: `50`
+- attempted: `50`
+- passed: `50`
+- failed: `0`
+- index: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`
+- csv: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.csv`
+- per-prototype JSON dir: `artifacts/prototype_metadata/live_all_20260525/metadata`
 
 The source `Program Files` tree is read-only input. Future prototype automation must copy selected `.grb` files into a run artifact directory before opening or saving.
 

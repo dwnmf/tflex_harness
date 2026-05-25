@@ -343,6 +343,8 @@ def build_runner(timeout_sec: int = 60, config: HarnessConfig | None = None) -> 
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), "-Configuration", "Debug"],
             cwd=cfg.runner_dir,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             capture_output=True,
             timeout=timeout_sec,
             env=env,
@@ -565,7 +567,7 @@ def _run_csharp_snippet_impl(
         cmd.append(str(cache_snippet))
         cmd.extend(str(path) for path in cache_helper_paths)
         try:
-            proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout_sec)
+            proc = subprocess.run(cmd, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=timeout_sec)
         except subprocess.TimeoutExpired as exc:
             compile_ms = int((time.perf_counter() - started) * 1000)
             partial_output = ((exc.stdout or "") if isinstance(exc.stdout, str) else "") + ((exc.stderr or "") if isinstance(exc.stderr, str) else "")
@@ -674,7 +676,7 @@ def _run_csharp_snippet_impl(
         run_env["TFLEX_HARNESS_ARTIFACTS_DIR"] = str(run_dir / "artifacts")
         if environment:
             run_env.update({str(k): str(v) for k, v in environment.items()})
-        run_proc = subprocess.run([str(exe)], cwd=run_dir, text=True, capture_output=True, timeout=timeout_sec, env=run_env)
+        run_proc = subprocess.run([str(exe)], cwd=run_dir, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=timeout_sec, env=run_env)
         run_ms = int((time.perf_counter() - started) * 1000)
         store.write_text(run_dir / "stdout.txt", run_proc.stdout or "")
         store.write_text(run_dir / "stderr.txt", run_proc.stderr or "")

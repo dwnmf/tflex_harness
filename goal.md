@@ -631,14 +631,15 @@ Evidence:
 
 ### Phase 3: Metadata Extraction
 
-Status: pending.
+Status: implemented.
 
 Tasks:
 
 - create metadata probe;
 - inspect API docs for document/page/text/table/variable access;
 - extract common fields;
-- write JSON per prototype.
+- write JSON per prototype;
+- write metadata index JSON/CSV.
 
 Validation:
 
@@ -647,6 +648,16 @@ Validation:
 - one specification prototype;
 - one electrical prototype;
 - then full batch.
+
+Evidence:
+
+- CLI command: `python -m tflex_harness.cli prototypes-metadata`;
+- one-prototype live probe passed: `artifacts/prototype_metadata/live_one_20260525_fix/prototype_metadata_index.json`;
+- full live metadata batch: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`;
+- full live metadata CSV: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.csv`;
+- per-prototype JSON dir: `artifacts/prototype_metadata/live_all_20260525/metadata`;
+- live metadata summary: `selected=50`, `attempted=50`, `passed=50`, `failed=0`;
+- extracted fields include 2D object counts, text-like 2D counts, table-like heuristic counts, 3D operation counts, variable counts, reflected page counts, reflected fragment counts, type histograms, variable records, and errors.
 
 ### Phase 4: Minimal Mutation
 
@@ -803,10 +814,10 @@ Integration/live:
 
 ## Immediate Next Work
 
-1. Implement metadata extraction probe.
-2. Inspect API-visible variables/pages/text/tables for representative prototypes.
-3. Write JSON metadata per prototype.
-4. Add document variable/property helpers after live proof.
+1. Analyze metadata JSON to choose mutation targets.
+2. Implement variable setting helper.
+3. Prove variable mutation on one copied prototype.
+4. Implement document property helper if API-visible.
 5. Add text/table helpers only after API proof.
 6. Create category recipes for drawings, specifications, tables, fragments, electrical docs.
 
@@ -831,3 +842,4 @@ Mitigation:
 - 2026-05-25: Implemented Phase 1 prototype catalog. Added `src/tflex_harness/prototypes.py`, CLI commands `prototypes-scan`, `prototypes-list`, `prototypes-info`, unit/smoke tests, and real installed corpus scan evidence: `file_count=57`, `grb_count=50`, catalog at `artifacts/prototype_catalog/current_probe/catalog.json`.
 - 2026-05-25: Started Phase 2. Added `TFlexEasyPrototype.cs`, helper set `easy_prototype`, recipe `prototype_open_copy_save`, and live proof for `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`: run `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`, `document.opened=True`, `document.saved=True`, `document.closed=True`, output size `28544`.
 - 2026-05-25: Completed Phase 2 baseline. Added `src/tflex_harness/prototype_validation.py` and CLI `prototypes-open-save-batch`. Live batch opened, saved, and closed all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`.
+- 2026-05-25: Completed Phase 3 baseline. Added `src/tflex_harness/prototype_metadata.py` and CLI `prototypes-metadata`. Live batch extracted metadata for all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Index: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`.
