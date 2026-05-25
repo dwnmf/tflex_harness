@@ -69,6 +69,31 @@ _CATEGORY_DOCUMENT_PROPERTY_RECIPES: dict[str, dict[str, str]] = {
         "property_name": "Title",
         "text_value": "Harness 2D Assembly",
     },
+    "create_2d_detail_from_prototype": {
+        "prototype_id": "2D Деталь",
+        "property_name": "Title",
+        "text_value": "Harness 2D Detail",
+    },
+    "create_sheet_metal_part_from_prototype": {
+        "prototype_id": "Листовая Деталь",
+        "property_name": "Title",
+        "text_value": "Harness Sheet Metal Part",
+    },
+    "create_assembly_drawing_with_spec_from_prototype": {
+        "prototype_id": "Чертежи/Сборочный чертёж со спецификацией.grb",
+        "property_name": "Title",
+        "text_value": "Harness Assembly Drawing With Spec",
+    },
+    "create_text_document_from_prototype": {
+        "prototype_id": "Чертежи/Текстовый документ с форматкой.grb",
+        "property_name": "Title",
+        "text_value": "Harness Text Document",
+    },
+    "create_tech_sketch_card_from_prototype": {
+        "prototype_id": "Техкарты/Карта эскизов ГОСТ 3.1105-2011 Ф7-7а.grb",
+        "property_name": "Title",
+        "text_value": "Harness Tech Sketch Card",
+    },
     "create_fragment_3d_part_from_prototype": {
         "prototype_id": "Фрагменты/3D Деталь.grb",
         "property_name": "Title",

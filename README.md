@@ -169,6 +169,11 @@ The source `Program Files` tree is read-only input. Future prototype automation 
 - `create_fragment_3d_assembly_from_prototype` — category recipe for 3D assembly fragments; defaults to `Фрагменты/3D Сборка.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
 - `create_fragment_sheet_metal_part_from_prototype` — category recipe for sheet-metal fragments; defaults to `Фрагменты/Листовая Деталь.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
 - `create_assembly_drawing_from_prototype` — category recipe for assembly drawings; defaults to `Чертежи/Сборочный чертёж с форматкой.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_2d_detail_from_prototype` — category recipe for 2D details; defaults to `2D Деталь`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_sheet_metal_part_from_prototype` — category recipe for sheet-metal parts; defaults to `Листовая Деталь`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_assembly_drawing_with_spec_from_prototype` — category recipe for assembly drawings with specification; defaults to `Чертежи/Сборочный чертёж со спецификацией.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_text_document_from_prototype` — category recipe for text documents; defaults to `Чертежи/Текстовый документ с форматкой.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
+- `create_tech_sketch_card_from_prototype` — category recipe for tech sketch cards; defaults to `Техкарты/Карта эскизов ГОСТ 3.1105-2011 Ф7-7а.grb`, sets `Document.Properties.Title`, saves, reopens, and verifies.
 
 Verified live text-variable mutation on 2026-05-25:
 
@@ -251,6 +256,26 @@ Verified live category recipes on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_214112_134234_recipe_create_assembly_drawing_from_prototype`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Сборочный чертёж с форматкой.grb`
 - verified stdout: `documentProperty.after.Title=Harness Assembly Drawing`, `document.saved=True`, `document.outputSize=25809`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_2d_detail_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214436_007919_recipe_create_2d_detail_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
+- verified stdout: `documentProperty.after.Title=Harness 2D Detail`, `document.saved=True`, `document.outputSize=23230`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_sheet_metal_part_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214438_176369_recipe_create_sheet_metal_part_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Листовая Деталь.grb`
+- verified stdout: `documentProperty.after.Title=Harness Sheet Metal Part`, `document.saved=True`, `document.outputSize=28418`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_assembly_drawing_with_spec_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214440_312277_recipe_create_assembly_drawing_with_spec_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Сборочный чертёж со спецификацией.grb`
+- verified stdout: `documentProperty.after.Title=Harness Assembly Drawing With Spec`, `document.saved=True`, `document.outputSize=47462`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_text_document_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214442_368731_recipe_create_text_document_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Текстовый документ с форматкой.grb`
+- verified stdout: `documentProperty.after.Title=Harness Text Document`, `document.saved=True`, `document.outputSize=20120`, `documentProperty.persisted=True`
+- command: `python -m tflex_harness.cli run-recipe create_tech_sketch_card_from_prototype --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_214444_473242_recipe_create_tech_sketch_card_from_prototype`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Техкарты\Карта эскизов ГОСТ 3.1105-2011 Ф7-7а.grb`
+- verified stdout: `documentProperty.after.Title=Harness Tech Sketch Card`, `document.saved=True`, `document.outputSize=42281`, `documentProperty.persisted=True`
 
 ## Document factory payloads
 

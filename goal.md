@@ -765,7 +765,22 @@ Current Phase 5 evidence:
 - live `create_fragment_sheet_metal_part_from_prototype` evidence: `documentProperty.after.Title=Harness Fragment Sheet Metal Part`, `document.saved=True`, `document.outputSize=27593`, `documentProperty.persisted=True`;
 - recipe: `create_assembly_drawing_from_prototype`;
 - live `create_assembly_drawing_from_prototype` run: `artifacts/runs/20260525_214112_134234_recipe_create_assembly_drawing_from_prototype`;
-- live `create_assembly_drawing_from_prototype` evidence: `documentProperty.after.Title=Harness Assembly Drawing`, `document.saved=True`, `document.outputSize=25809`, `documentProperty.persisted=True`.
+- live `create_assembly_drawing_from_prototype` evidence: `documentProperty.after.Title=Harness Assembly Drawing`, `document.saved=True`, `document.outputSize=25809`, `documentProperty.persisted=True`;
+- recipe: `create_2d_detail_from_prototype`;
+- live `create_2d_detail_from_prototype` run: `artifacts/runs/20260525_214436_007919_recipe_create_2d_detail_from_prototype`;
+- live `create_2d_detail_from_prototype` evidence: `documentProperty.after.Title=Harness 2D Detail`, `document.saved=True`, `document.outputSize=23230`, `documentProperty.persisted=True`;
+- recipe: `create_sheet_metal_part_from_prototype`;
+- live `create_sheet_metal_part_from_prototype` run: `artifacts/runs/20260525_214438_176369_recipe_create_sheet_metal_part_from_prototype`;
+- live `create_sheet_metal_part_from_prototype` evidence: `documentProperty.after.Title=Harness Sheet Metal Part`, `document.saved=True`, `document.outputSize=28418`, `documentProperty.persisted=True`;
+- recipe: `create_assembly_drawing_with_spec_from_prototype`;
+- live `create_assembly_drawing_with_spec_from_prototype` run: `artifacts/runs/20260525_214440_312277_recipe_create_assembly_drawing_with_spec_from_prototype`;
+- live `create_assembly_drawing_with_spec_from_prototype` evidence: `documentProperty.after.Title=Harness Assembly Drawing With Spec`, `document.saved=True`, `document.outputSize=47462`, `documentProperty.persisted=True`;
+- recipe: `create_text_document_from_prototype`;
+- live `create_text_document_from_prototype` run: `artifacts/runs/20260525_214442_368731_recipe_create_text_document_from_prototype`;
+- live `create_text_document_from_prototype` evidence: `documentProperty.after.Title=Harness Text Document`, `document.saved=True`, `document.outputSize=20120`, `documentProperty.persisted=True`;
+- recipe: `create_tech_sketch_card_from_prototype`;
+- live `create_tech_sketch_card_from_prototype` run: `artifacts/runs/20260525_214444_473242_recipe_create_tech_sketch_card_from_prototype`;
+- live `create_tech_sketch_card_from_prototype` evidence: `documentProperty.after.Title=Harness Tech Sketch Card`, `document.saved=True`, `document.outputSize=42281`, `documentProperty.persisted=True`.
 
 Remaining Phase 5 work:
 

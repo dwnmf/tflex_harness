@@ -1,0 +1,19 @@
+{
+  "name": "create_2d_detail_from_prototype",
+  "description": "Create a 2D detail from the installed 2D detail prototype, set Title, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "6075e5cccb211273e771833367971474df188d1913a0b127c6747a368e577cfb",
+  "markdown_sha256": "51d76745d0104deb0c66027ee3fe6f54e3126b3309320d0856463a2cc2345076",
+  "last_run_dir": "artifacts/runs/20260525_214436_007919_recipe_create_2d_detail_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

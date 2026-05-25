@@ -1,0 +1,19 @@
+{
+  "name": "create_sheet_metal_part_from_prototype",
+  "description": "Create a sheet-metal part from the installed sheet-metal part prototype, set Title, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "6075e5cccb211273e771833367971474df188d1913a0b127c6747a368e577cfb",
+  "markdown_sha256": "aeee9750d147a89536829fa18a39dadec3c79dc682862847cbb09652bb90b56d",
+  "last_run_dir": "artifacts/runs/20260525_214438_176369_recipe_create_sheet_metal_part_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

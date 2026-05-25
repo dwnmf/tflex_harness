@@ -1,0 +1,19 @@
+{
+  "name": "create_text_document_from_prototype",
+  "description": "Create a text document from the installed text document prototype, set Title, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "6075e5cccb211273e771833367971474df188d1913a0b127c6747a368e577cfb",
+  "markdown_sha256": "95a2439f4e8380f1cb96c5aa34290d7f17386518570d6b4877459d8646c9164a",
+  "last_run_dir": "artifacts/runs/20260525_214442_368731_recipe_create_text_document_from_prototype",
+  "last_verified_at": "2026-05-25"
+}
