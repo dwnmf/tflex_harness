@@ -28,6 +28,8 @@ def test_mcp_server_lists_core_tools_and_schemas():
         "run_csharp_tflex",
         "list_tflex_recipes",
         "run_tflex_recipe",
+        "create_tflex_document",
+        "run_tflex_document_factory_batch",
         "capture_tflex_state",
         "save_tflex_snippet_candidate",
     }.issubset(by_name)
@@ -51,6 +53,17 @@ def test_mcp_server_lists_core_tools_and_schemas():
     recipe_schema = by_name["run_tflex_recipe"].inputSchema
     assert "recipe" in recipe_schema["required"]
     assert recipe_schema["properties"]["timeout_sec"]["default"] == 60
+
+    create_doc_schema = by_name["create_tflex_document"].inputSchema
+    assert "payload_path" in create_doc_schema["required"]
+    assert create_doc_schema["properties"]["timeout_sec"]["default"] == 120
+    assert create_doc_schema["properties"]["dry_run"]["default"] is False
+
+    batch_schema = by_name["run_tflex_document_factory_batch"].inputSchema
+    assert batch_schema["properties"]["pattern"]["default"] == "*.json"
+    assert batch_schema["properties"]["dry_run"]["default"] is False
+    assert "failed_matrix" in batch_schema["properties"]
+    assert "audit_open_only" in batch_schema["properties"]
 
 
 def test_mcp_docs_and_recipe_tools_return_machine_readable_payloads():
@@ -89,3 +102,47 @@ def test_mcp_docs_and_recipe_tools_return_machine_readable_payloads():
     assert missing_recipe["ok"] is False
     assert missing_recipe["stage"] == "input"
     assert missing_recipe["error"] == "unknown recipe"
+
+
+def test_mcp_document_factory_tools_return_machine_readable_payloads(tmp_path):
+    pytest.importorskip("mcp")
+
+    server = create_server()
+    payload_dir = tmp_path / "payloads"
+    payload_dir.mkdir()
+    payload = payload_dir / "doc.json"
+    payload.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "2D Деталь"},
+                "document": {"properties": {"Title": "MCP Factory"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    single = _json_payload(
+        _run(
+            server.call_tool(
+                "create_tflex_document",
+                {"payload_path": str(payload), "dry_run": True},
+            )
+        )
+    )
+    assert single["ok"] is True
+    assert single["stage"] == "dry_run"
+    assert single["plan"]["recipe"] == "prototype_set_document_property"
+
+    batch = _json_payload(
+        _run(
+            server.call_tool(
+                "run_tflex_document_factory_batch",
+                {"payload_dir": str(payload_dir), "dry_run": True, "output_dir": str(tmp_path / "batch")},
+            )
+        )
+    )
+    assert batch["ok"] is True
+    assert batch["summary"]["selected"] == 1
+    assert batch["rows"][0]["recipe"] == "prototype_set_document_property"
+    assert batch["failure_report_path"].endswith("document_factory_failure_report.json")

@@ -35,9 +35,9 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-info` — resolves one prototype by id, name, relative path, or absolute path.
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
-- `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
+- `create_tflex_document` / `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
 - `python -m tflex_harness.cli document-factory-samples` — runs the standard 3D/drawing/specification/table factory sample payloads and writes a JSON/CSV matrix.
-- `python -m tflex_harness.cli document-factory-batch --payload-dir payloads` — runs every payload JSON in a folder, classifies failures, supports rerun-failed, and writes a JSON/CSV batch matrix.
+- `run_tflex_document_factory_batch` / `python -m tflex_harness.cli document-factory-batch --payload-dir payloads` — runs every payload JSON in a folder, classifies failures, supports rerun-failed/open-only audit, and writes JSON/CSV/report artifacts.
 
 The MCP server entrypoint is `tflex-harness-mcp` and maps to `tflex_harness.mcp_server:main`.
 

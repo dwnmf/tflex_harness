@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Literal
 
 from .diagnostics import get_environment
+from .document_factory import create_document_from_payload
+from .document_factory_batch import create_documents_from_payload_dir
 from .docs_search import DocsSearch
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
@@ -44,6 +46,26 @@ def create_server():
     def run_tflex_recipe(recipe: str, args: dict | None = None, timeout_sec: int = 60) -> dict:
         """Run a verified T-FLEX recipe by name with JSON args."""
         return run_recipe(name=recipe, args=args or {}, timeout_sec=timeout_sec)
+
+    @server.tool()
+    def create_tflex_document(payload_path: str, timeout_sec: int = 120, dry_run: bool = False) -> dict:
+        """Create or dry-run one T-FLEX document factory payload JSON file."""
+        return create_document_from_payload(payload_path, timeout_sec=timeout_sec, dry_run=dry_run)
+
+    @server.tool()
+    def run_tflex_document_factory_batch(payload_dir: str | None = None, pattern: str = "*.json", recursive: bool = False, failed_matrix: str | None = None, audit_open_only: bool = False, timeout_sec: int = 120, dry_run: bool = False, fail_fast: bool = False, output_dir: str | None = None) -> dict:
+        """Run or dry-run document factory payload JSON files from a folder, or rerun failed rows from a previous matrix."""
+        return create_documents_from_payload_dir(
+            payload_dir,
+            pattern=pattern,
+            recursive=recursive,
+            failed_matrix=failed_matrix,
+            audit_open_only=audit_open_only,
+            timeout_sec=timeout_sec,
+            dry_run=dry_run,
+            fail_fast=fail_fast,
+            output_dir=output_dir,
+        )
 
     @server.tool()
     def capture_tflex_state(timeout_sec: int = 60) -> dict:

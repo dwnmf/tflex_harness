@@ -858,6 +858,7 @@ Current Phase 7 evidence:
 - CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads`;
 - rerun failed CLI: `python -m tflex_harness.cli document-factory-batch --failed-matrix document_factory_batch_matrix.json`;
 - open-only audit CLI: `python -m tflex_harness.cli document-factory-batch --payload-dir payloads --audit-open-only`;
+- MCP tools: `create_tflex_document`, `run_tflex_document_factory_batch`;
 - supports `--glob`, `--recursive`, `--timeout-sec`, `--dry-run`, `--fail-fast`, `--failed-matrix`, `--audit-open-only`, and `--output-dir`;
 - output files: `document_factory_batch_matrix.json`, `document_factory_batch_matrix.csv`, `document_factory_failure_report.json`;
 - row evidence includes payload path/name, status, `failure_kind`, stage, recipe, selection, first output, STEP/PDF/DXF/DWG output paths/sizes, factory run dir, audit run dir, metadata counts, and error;
@@ -987,3 +988,4 @@ Mitigation:
 - 2026-05-25: Extended `document-factory-batch` with failure buckets and rerun-failed flow. Rows now include `failure_kind`; summaries include stable pass/fail buckets; `--failed-matrix` reruns only failed payload rows from a previous matrix.
 - 2026-05-25: Added `--audit-open-only` to `document-factory-batch`. It resolves each payload prototype, runs the verified metadata open probe, records object/page/variable counts and audit run dir, and skips all mutation/save/export paths.
 - 2026-05-25: Added `document_factory_failure_report.json` to batch runs. It is a compact machine-readable failure report grouped by `failure_kind`, with failed payload paths and rerun hint.
+- 2026-05-25: Exposed document factory over MCP. Added `create_tflex_document` and `run_tflex_document_factory_batch` tools with smoke coverage for dry-run single payload and batch payload execution.
