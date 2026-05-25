@@ -112,7 +112,7 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
             "output": output_contract["output"],
             "limitations": [
                 "Phase 6 multi-step factory uses generated visible C# with checked-in helper sources.",
-                "GRB and STEP output materialization are implemented in this phase.",
+                "GRB, STEP, and PDF output materialization are implemented in this phase.",
             ],
             "pending_operations": [],
         }
@@ -368,14 +368,14 @@ def _output_contract(output: Any) -> dict[str, Any]:
     for item in exports:
         if item and item not in normalized:
             normalized.append(item)
-    unsupported = sorted({item for item in normalized if item not in {"grb", "step"}})
+    unsupported = sorted({item for item in normalized if item not in {"grb", "step", "pdf"}})
     if unsupported:
         return {
             "ok": False,
             "stage": "input",
             "error": "unsupported output export format",
             "unsupported_exports": unsupported,
-            "supported_exports": ["grb", "step"],
+            "supported_exports": ["grb", "step", "pdf"],
         }
     return {"ok": True, "output": {"name": stem, "exports": normalized or ["grb"]}}
 
@@ -420,6 +420,16 @@ def _materialize_requested_outputs(
         else:
             errors.append("STEP export failed")
             errors.append(str(step_result.get("error") or step_result.get("stage") or "unknown"))
+    if "pdf" in exports:
+        target = target_dir / f"{output.get('name') or 'document'}.pdf"
+        pdf_result = _export_pdf_from_grb(source, target, timeout_sec=timeout_sec, config=config)
+        if pdf_result.get("ok") is True and target.exists() and target.stat().st_size > 0:
+            record = _output_record("pdf", target, factory_dir, source_path=source)
+            record["export_run_dir"] = pdf_result.get("run_dir")
+            outputs.append(record)
+        else:
+            errors.append("PDF export failed")
+            errors.append(str(pdf_result.get("error") or pdf_result.get("stage") or "unknown"))
     return {"outputs": outputs, "errors": errors}
 
 
@@ -478,6 +488,51 @@ public class Program {
     )
 
 
+def _export_pdf_from_grb(source_grb: Path, target_pdf: Path, *, timeout_sec: int, config: HarnessConfig) -> dict[str, Any]:
+    code = '''using System;
+using TFlex.Model;
+using TFlexEasy;
+
+public class Program {
+  public static int Main(){
+    string source = Environment.GetEnvironmentVariable("TFLEX_FACTORY_EXPORT_SOURCE_GRB");
+    string target = Environment.GetEnvironmentVariable("TFLEX_FACTORY_EXPORT_TARGET_PDF");
+    if (String.IsNullOrWhiteSpace(source)) {
+      EasyDiagnostics.Print("factory.pdfExport.error", "TFLEX_FACTORY_EXPORT_SOURCE_GRB is required");
+      return 2;
+    }
+    if (String.IsNullOrWhiteSpace(target)) {
+      EasyDiagnostics.Print("factory.pdfExport.error", "TFLEX_FACTORY_EXPORT_TARGET_PDF is required");
+      return 3;
+    }
+    Document doc = null;
+    using (var sess = EasySession.Start3D()) {
+      try {
+        doc = EasyPrototype.OpenCopy(source, visible: false);
+        bool pdf = EasyExport.Pdf(doc, target);
+        EasyDiagnostics.Print("factory.pdfExport.saved", pdf);
+        return pdf ? 0 : 20;
+      } finally {
+        EasyPrototype.Close(doc);
+      }
+    }
+  }
+}
+'''
+    return run_csharp_snippet(
+        code,
+        mode="run",
+        timeout_sec=timeout_sec,
+        helpers=["easy_prototype", "easy_export"],
+        environment={
+            "TFLEX_FACTORY_EXPORT_SOURCE_GRB": str(source_grb),
+            "TFLEX_FACTORY_EXPORT_TARGET_PDF": str(target_pdf),
+        },
+        artifact_prefix="factory_pdf_export",
+        config=config,
+    )
+
+
 def _select_primary_grb(recipe_result: dict[str, Any]) -> Path | None:
     artifact_output = (recipe_result.get("recipe_artifacts") or {}).get("output_file")
     candidates: list[Path] = []
@@ -505,7 +560,7 @@ def _plan(recipe: str, args: dict[str, str], payload: dict[str, Any], *, selecti
         "limitations": [
             "Phase 6 factory currently dispatches one verified recipe per payload run.",
             "Single-recipe plans execute one mutation group; multi-group payloads use generated visible C# when possible.",
-            "GRB and STEP output materialization are implemented in this phase.",
+            "GRB, STEP, and PDF output materialization are implemented in this phase.",
         ],
         "pending_operations": pending,
     }

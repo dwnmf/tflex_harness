@@ -760,10 +760,11 @@ Current Phase 6 evidence:
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
 - multi-step runs apply supported operations to one copied `.grb`, save once, reopen, and validate all mutations;
 - output contract now accepts `output.name` and `output.exports`;
-- supported output formats: `grb`, `step`;
+- supported output formats: `grb`, `step`, `pdf`;
 - named GRB output is copied into the factory run as `artifacts/outputs/<sanitized-name>.grb`;
 - named STEP output is exported from the saved `.grb` through a separate visible C# run and recorded as `artifacts/outputs/<sanitized-name>.step`;
-- unsupported formats such as `pdf`/`dxf` are rejected at plan time instead of being silently skipped.
+- named PDF output is exported from the saved `.grb` through a separate visible C# run and recorded as `artifacts/outputs/<sanitized-name>.pdf`;
+- unsupported formats such as `dxf`/`dwg` are rejected at plan time instead of being silently skipped.
 - live command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`;
 - live factory run: `artifacts/runs/20260525_183154_667605_document_factory`;
 - live recipe run: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`;
@@ -784,6 +785,14 @@ Current Phase 6 evidence:
 - live solid STEP output: `artifacts/runs/20260525_190913_994364_document_factory/artifacts/outputs/phase6_solid_step_export.step`, size `6919`;
 - live solid STEP content evidence: `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, `ADVANCED_FACE`;
 - STEP runtime note: `ExportToSTEP.Export(...)` can print `easy.stepExportResult=False` while writing a valid non-empty STEP, so helper success is file-existence/size based.
+- live PDF command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_drawing_pdf_payload.json --timeout-sec 120`;
+- live PDF factory run: `artifacts/runs/20260525_192244_448383_document_factory`;
+- live PDF recipe run: `artifacts/runs/20260525_192244_524243_recipe_prototype_set_document_property`;
+- live PDF export run: `artifacts/runs/20260525_192245_937700_factory_pdf_export`;
+- live PDF output: `artifacts/runs/20260525_192244_448383_document_factory/artifacts/outputs/phase6_drawing_pdf_export.pdf`, size `11109`;
+- live PDF header evidence: `%PDF-1.5`;
+- live PDF stdout evidence: `easy.pdfModuleSource=C:\Program Files\T-FLEX CAD 17\Program\PDFExport.dll`, `easy.pdfModuleLocalExists=True`, `easy.pdfExportResult=True`, `easy.pdfSaved=True`, `factory.pdfExport.saved=True`;
+- PDF runtime note: `ExportToPDF` must be constructed with `new ExportToPDF(document)`; `Document.ExportToPDF` is not present in T-FLEX CAD 17. Live evidence also showed `PDFExport.dll` must be copied from the T-FLEX program directory to the snippet cwd before export.
 - live multi-step command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`;
 - live multi-step factory run: `artifacts/runs/20260525_183813_757471_document_factory`;
 - generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`;
@@ -799,10 +808,14 @@ Current Phase 6 evidence:
 - live sample matrix with STEP: `artifacts/document_factory_validation/live_samples_step_20260525/document_factory_samples_matrix.json`;
 - live sample matrix with STEP summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
 - live sample matrix with STEP 3D row: `output_formats=["grb","step"]`, `step_output_size=316`.
+- live sample matrix with PDF command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_pdf_20260525`;
+- live sample matrix with PDF: `artifacts/document_factory_validation/live_samples_pdf_20260525/document_factory_samples_matrix.json`;
+- live sample matrix with PDF summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
+- live sample matrix with PDF drawing row: `output_formats=["grb","pdf"]`, `pdf_output_size=11109`.
 
 Remaining Phase 6 work:
 
-- export target handling beyond GRB/STEP, especially PDF for 2D documents and DXF/DWG where supported.
+- export target handling beyond GRB/STEP/PDF, especially DXF/DWG where supported.
 
 ### Phase 7: Enterprise Workflow
 
@@ -934,3 +947,4 @@ Mitigation:
 - 2026-05-25: Extended Phase 6 document factory output contract. Payloads can request `output.name` with `exports: ["grb"]`; factory materializes a named `.grb` under the factory run `artifacts/outputs/` and rejects unsupported export formats explicitly.
 - 2026-05-25: Added `document-factory-samples` CLI and live sample matrix for 3D part, drawing, specification, and table prototype payloads. Live matrix passed `4/4` and produced named GRB outputs for all samples.
 - 2026-05-25: Added STEP output materialization to document factory. STEP export runs as separate visible C# using `EasyPrototype.OpenCopy` and `EasyExport.Step`; live solid proof produced `phase6_solid_step_export.step` size `6919` containing `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, and `ADVANCED_FACE`.
+- 2026-05-25: Added PDF output materialization to document factory. PDF export runs as separate visible C# using `new ExportToPDF(document)` and `EasyExport.Pdf`; helper copies `PDFExport.dll` locally before export. Live drawing proof produced `phase6_drawing_pdf_export.pdf` size `11109` with `%PDF-1.5` header.

@@ -28,7 +28,7 @@ DEFAULT_FACTORY_SAMPLES: tuple[dict[str, Any], ...] = (
         "category": "drawing",
         "payload": {
             "prototype": {"id": "Чертежи/Чертёж детали с форматкой"},
-            "output": {"name": "factory_drawing", "exports": ["grb"]},
+            "output": {"name": "factory_drawing", "exports": ["grb", "pdf"]},
             "document": {"properties": {"Title": "Harness Drawing Factory"}},
         },
     },
@@ -127,6 +127,7 @@ def _result_to_row(result: dict[str, Any]) -> dict[str, Any]:
     outputs = result.get("outputs") if isinstance(result.get("outputs"), list) else []
     first_output = outputs[0] if outputs else {}
     step_output = next((item for item in outputs if item.get("format") == "step"), {})
+    pdf_output = next((item for item in outputs if item.get("format") == "pdf"), {})
     return {
         "status": "passed" if result.get("ok") else "failed",
         "ok": bool(result.get("ok")),
@@ -140,6 +141,8 @@ def _result_to_row(result: dict[str, Any]) -> dict[str, Any]:
         "output_size": first_output.get("size"),
         "step_output_path": step_output.get("path"),
         "step_output_size": step_output.get("size"),
+        "pdf_output_path": pdf_output.get("path"),
+        "pdf_output_size": pdf_output.get("size"),
         "output_errors": result.get("output_errors") or [],
         "error": result.get("error") or recipe_result.get("error"),
     }
@@ -172,6 +175,8 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "output_size",
         "step_output_path",
         "step_output_size",
+        "pdf_output_path",
+        "pdf_output_size",
         "factory_run_dir",
         "payload_path",
         "error",

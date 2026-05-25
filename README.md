@@ -213,13 +213,13 @@ Current dispatcher executes one generated multi-step C# snippet when a payload c
 
 Multi-step runs apply all supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
 
-Payload `output` currently supports named GRB and STEP materialization:
+Payload `output` currently supports named GRB, STEP, and PDF materialization:
 
 ```json
 {
   "output": {
     "name": "customer_document.grb",
-    "exports": ["grb", "step"]
+    "exports": ["grb", "step", "pdf"]
   }
 }
 ```
@@ -229,7 +229,10 @@ The factory copies the recipe/snippet saved `.grb` into the factory run as
 `outputs` array. For `step`, it opens the saved `.grb` in a separate visible
 C# export run using `Document.ExportToSTEP.Export(...)` via `TFlexEasyExport.cs`,
 then records `artifacts/outputs/<sanitized-name>.step`. Other export formats
-are rejected for now instead of being silently ignored.
+are rejected for now instead of being silently ignored. For `pdf`, it uses
+`new ExportToPDF(document).Export(...)`; the helper copies `PDFExport.dll` from
+the T-FLEX program directory to the snippet run directory first because live
+evidence showed the PDF module loader requires a local module copy.
 
 Verified live factory dispatch on 2026-05-25:
 
@@ -259,6 +262,16 @@ Verified live STEP output on 2026-05-25:
 - solid STEP content evidence: contains `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, and `ADVANCED_FACE`
 - note: T-FLEX `ExportToSTEP.Export(...)` returned `False` while still writing valid non-empty STEP, so success is based on file existence and size, matching existing helper evidence.
 
+Verified live PDF output on 2026-05-25:
+
+- command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_drawing_pdf_payload.json --timeout-sec 120`
+- factory run: `artifacts/runs/20260525_192244_448383_document_factory`
+- recipe run: `artifacts/runs/20260525_192244_524243_recipe_prototype_set_document_property`
+- PDF export run: `artifacts/runs/20260525_192245_937700_factory_pdf_export`
+- PDF output: `artifacts/outputs/phase6_drawing_pdf_export.pdf`, size `11109`
+- PDF header evidence: `%PDF-1.5`
+- stdout evidence: `easy.pdfModuleSource=C:\Program Files\T-FLEX CAD 17\Program\PDFExport.dll`, `easy.pdfModuleLocalExists=True`, `easy.pdfExportResult=True`, `easy.pdfSaved=True`, `factory.pdfExport.saved=True`
+
 Verified live multi-step factory payload on 2026-05-25:
 
 - command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`
@@ -284,3 +297,11 @@ Updated matrix with STEP requested for the 3D sample:
 - summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
 - 3D row output formats: `grb`, `step`
 - 3D row STEP output: `factory_3d_part.step`, size `316`
+
+Updated matrix with PDF requested for the drawing sample:
+
+- command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_pdf_20260525`
+- matrix: `artifacts/document_factory_validation/live_samples_pdf_20260525/document_factory_samples_matrix.json`
+- summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
+- drawing row output formats: `grb`, `pdf`
+- drawing row PDF output: `factory_drawing.pdf`, size `11109`

@@ -145,6 +145,17 @@ try { if (document != null) document.Close(); } catch {}
 if (Application.IsSessionInitialized) Application.ExitSession();
 ```
 
+## Verified Export API Facts
+
+Verified locally in T-FLEX CAD 17 on 2026-05-25.
+
+- `EasyExport.Grb(doc, path)` wraps `Document.SaveAs(path)`.
+- `EasyExport.Step(doc, path)` wraps `Document.ExportToSTEP.Export(path)`.
+- `ExportToSTEP.Export(...)` can return `False` while still writing a valid non-empty STEP. Treat non-empty file artifact as success unless newer live evidence contradicts this.
+- 2D PDF uses `new TFlex.Model.ExportToPDF(document)`, not `Document.ExportToPDF`; `Document.ExportToPDF` does not compile in T-FLEX CAD 17.
+- For headless PDF export, set `OpenExportFile=false` and `IsSelectPagesDialogEnabled=false`.
+- Live PDF export failed with `Error loading module PDFExport.dll` until `PDFExport.dll` was copied from `C:\Program Files\T-FLEX CAD 17\Program` to the snippet current directory. `EasyExport.Pdf(...)` now performs this copy by searching `PATH`.
+
 ## Verified 3D API Facts
 
 Verified locally in T-FLEX CAD 17 on 2026-05-22.

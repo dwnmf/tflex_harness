@@ -60,7 +60,7 @@ def test_plan_document_creation_preserves_cyrillic_output_name():
 def test_plan_document_creation_rejects_unsupported_export():
     payload = {
         "prototype": {"id": "2D Деталь"},
-        "output": {"name": "Demo", "exports": ["grb", "pdf"]},
+        "output": {"name": "Demo", "exports": ["grb", "dxf"]},
         "document": {"properties": {"Title": "Demo"}},
     }
 
@@ -68,7 +68,7 @@ def test_plan_document_creation_rejects_unsupported_export():
 
     assert plan["ok"] is False
     assert plan["error"] == "unsupported output export format"
-    assert plan["unsupported_exports"] == ["pdf"]
+    assert plan["unsupported_exports"] == ["dxf"]
 
 
 def test_plan_document_creation_accepts_step_export():
@@ -82,6 +82,19 @@ def test_plan_document_creation_accepts_step_export():
 
     assert plan["ok"] is True
     assert plan["output"] == {"name": "Demo", "exports": ["grb", "step"]}
+
+
+def test_plan_document_creation_accepts_pdf_export():
+    payload = {
+        "prototype": {"id": "Чертежи/Чертёж детали с форматкой"},
+        "output": {"name": "Drawing", "exports": ["grb", "pdf"]},
+        "document": {"properties": {"Title": "Demo"}},
+    }
+
+    plan = plan_document_creation(payload)
+
+    assert plan["ok"] is True
+    assert plan["output"] == {"name": "Drawing", "exports": ["grb", "pdf"]}
 
 
 def test_plan_document_creation_uses_multi_step_for_multiple_groups():
@@ -252,3 +265,45 @@ def test_create_document_from_payload_materializes_step_output(tmp_path, monkeyp
     assert result["outputs"][1]["relative_path"] == "artifacts/outputs/Step Output.step"
     assert result["outputs"][1]["size"] == 4
     assert result["outputs"][1]["export_run_dir"] == "artifacts/runs/step"
+
+
+def test_create_document_from_payload_materializes_pdf_output(tmp_path, monkeypatch):
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "Чертежи/Чертёж детали с форматкой"},
+                "output": {"name": "Pdf Output", "exports": ["grb", "pdf"]},
+                "document": {"properties": {"Title": "Demo"}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    recipe_run = tmp_path / "recipe_run"
+    recipe_artifacts = recipe_run / "artifacts"
+    recipe_artifacts.mkdir(parents=True)
+    saved = recipe_artifacts / "document_saved.grb"
+    saved.write_bytes(b"grb")
+
+    def fake_runner(name, args, timeout_sec, config):
+        return {
+            "ok": True,
+            "stage": "run",
+            "run_dir": str(recipe_run),
+            "artifacts": [{"path": str(saved), "relative_path": "artifacts/document_saved.grb", "size": 3}],
+        }
+
+    def fake_pdf(source_grb, target_pdf, timeout_sec, config):
+        target_pdf.write_bytes(b"%PDF")
+        return {"ok": True, "run_dir": "artifacts/runs/pdf"}
+
+    monkeypatch.setattr(document_factory, "_export_pdf_from_grb", fake_pdf)
+
+    result = create_document_from_payload(payload_path, timeout_sec=7, recipe_runner=fake_runner)
+
+    assert result["ok"] is True
+    assert [item["format"] for item in result["outputs"]] == ["grb", "pdf"]
+    assert result["outputs"][1]["relative_path"] == "artifacts/outputs/Pdf Output.pdf"
+    assert result["outputs"][1]["size"] == 4
+    assert result["outputs"][1]["export_run_dir"] == "artifacts/runs/pdf"
