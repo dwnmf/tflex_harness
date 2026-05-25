@@ -66,5 +66,90 @@ namespace TFlexEasy {
       if (value == null) return "";
       return value.Replace("\r\n", "\n").TrimEnd('\r', '\n');
     }
+
+    public static int CountVisibleTextOccurrences(Document doc, string search) {
+      if (doc == null) throw new ArgumentNullException("doc");
+      if (String.IsNullOrEmpty(search)) return 0;
+      int count = 0;
+      foreach (Object2D obj in doc.Get2DObjects()) {
+        LineText line = obj as LineText;
+        if (line != null) {
+          count += CountOccurrences(line.TextValue, search);
+          continue;
+        }
+        RichText rich = obj as RichText;
+        if (rich != null) {
+          bool editing = false;
+          try {
+            rich.BeginEdit();
+            editing = true;
+            if (!rich.TableOnly) count += CountOccurrences(rich.TextValue, search);
+          } catch {
+          } finally {
+            if (editing) rich.EndEdit();
+          }
+        }
+      }
+      return count;
+    }
+
+    public static int ReplaceVisibleText(Document doc, string search, string replacement) {
+      if (doc == null) throw new ArgumentNullException("doc");
+      if (String.IsNullOrEmpty(search)) return 0;
+      if (replacement == null) replacement = "";
+      int replaced = 0;
+      foreach (Object2D obj in doc.Get2DObjects()) {
+        LineText line = obj as LineText;
+        if (line != null) {
+          string before = line.TextValue;
+          int hits = CountOccurrences(before, search);
+          if (hits > 0) {
+            EasyDiagnostics.Print("visibleText.line.before", before);
+            line.TextValue = before.Replace(search, replacement);
+            EasyDiagnostics.Print("visibleText.line.after", line.TextValue);
+            replaced += hits;
+          }
+          continue;
+        }
+        RichText rich = obj as RichText;
+        if (rich != null) {
+          bool editing = false;
+          try {
+            rich.BeginEdit();
+            editing = true;
+            if (!rich.TableOnly) {
+              string before = rich.TextValue;
+              int hits = CountOccurrences(before, search);
+              if (hits > 0) {
+                EasyDiagnostics.Print("visibleText.rich.before", before);
+                rich.ClearAll();
+                rich.InsertText(before.Replace(search, replacement));
+                EasyDiagnostics.Print("visibleText.rich.after", rich.TextValue);
+                replaced += hits;
+              }
+            }
+          } catch (Exception ex) {
+            EasyDiagnostics.Print("visibleText.rich.error", ex.GetType().Name + ": " + ex.Message);
+          } finally {
+            if (editing) rich.EndEdit();
+          }
+        }
+      }
+      EasyDiagnostics.Print("visibleText.replaced", replaced);
+      return replaced;
+    }
+
+    static int CountOccurrences(string value, string search) {
+      if (String.IsNullOrEmpty(value) || String.IsNullOrEmpty(search)) return 0;
+      int count = 0;
+      int index = 0;
+      while (true) {
+        index = value.IndexOf(search, index, StringComparison.Ordinal);
+        if (index < 0) break;
+        count++;
+        index += search.Length;
+      }
+      return count;
+    }
   }
 }

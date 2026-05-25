@@ -1,0 +1,19 @@
+{
+  "name": "prototype_replace_visible_text",
+  "description": "Copy/open a prototype, replace visible LineText/non-table RichText text, save, reopen, and verify persistence.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "search_text": "required visible text to replace",
+    "replacement_text": "replacement text, defaults to empty string"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "abd6336be94bc4a6a4e78ee9a4f555b2e6b3af218586bd31309b8f94e80f1638",
+  "markdown_sha256": "57ec7279c33526abab5b5b605d76c7d1c6a1c0379d649fc6a96fd7e5fac4b42c",
+  "last_run_dir": "artifacts/runs/20260525_182531_611149_recipe_prototype_replace_visible_text",
+  "last_verified_at": "2026-05-25"
+}

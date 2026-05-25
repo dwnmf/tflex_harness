@@ -686,6 +686,7 @@ Current evidence:
 - recipe: `prototype_set_real_variable`;
 - recipe: `prototype_set_table_cell`;
 - recipe: `prototype_set_document_property`;
+- recipe: `prototype_replace_visible_text`;
 - live command: `python -m tflex_harness.cli run-recipe prototype_set_text_variable --arg 'prototype_id=2D Деталь' --arg 'variable_name=$Наименование' --arg 'text_value=Harness Recipe Test' --timeout-sec 120`;
 - live run: `artifacts/runs/20260525_175508_317973_recipe_prototype_set_text_variable`;
 - verified stdout: `variable.exists=True`, `variable.set=True`, `document.saved=True`, `variable.reopened=Harness Recipe Test`, `variable.persisted=True`;
@@ -698,12 +699,14 @@ Current evidence:
 - live command: `python -m tflex_harness.cli run-recipe prototype_set_document_property --arg 'prototype_id=2D Деталь' --arg 'property_name=Title' --arg 'text_value=Harness Document Property Test' --timeout-sec 120`;
 - live run: `artifacts/runs/20260525_181851_320860_recipe_prototype_set_document_property`;
 - verified stdout: `documentProperty.exists=True`, `documentProperty.after.Title=Harness Document Property Test`, `documentProperty.set=True`, `document.saved=True`, `documentProperty.reopened=Harness Document Property Test`, `documentProperty.persisted=True`;
+- live command: `python -m tflex_harness.cli run-recipe prototype_replace_visible_text --arg 'prototype_id=Электротехника/Клеммник.grb' --arg 'search_text=Цепь' --arg 'replacement_text=Harness Circuit' --timeout-sec 120`;
+- live run: `artifacts/runs/20260525_182531_611149_recipe_prototype_replace_visible_text`;
+- verified stdout: `visibleText.beforeCount=1`, `visibleText.line.after=Harness Circuit`, `visibleText.replaceCount=1`, `document.saved=True`, `visibleText.oldAfter=0`, `visibleText.newAfter=1`, `visibleText.persisted=True`;
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`;
 - saved copies: `artifacts/variable_mutation_copy.grb`, `artifacts/variable_mutation_saved.grb`.
 
 Remaining Phase 4 work:
 
-- visible 2D text replacement;
 - category coverage beyond `2D Деталь.grb`.
 
 ### Phase 5: Category Recipes

@@ -87,7 +87,7 @@ Known helper sets:
 - `easy_export`: session/export helpers
 - `easy_prototype`: installed `.grb` prototype copy/open/save helpers
 - `easy_variables`: prototype/session helpers plus text/real variable mutation helpers
-- `easy_text`: prototype/session helpers plus `RichText` table cell mutation helpers
+- `easy_text`: prototype/session helpers plus `RichText` table cell and visible 2D text replacement helpers
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
 - `all`: every helper source
 

@@ -69,7 +69,7 @@ Initial helper sets:
 - `easy_export` — session/export helpers
 - `easy_prototype` — safe copy/open/save helpers for installed `.grb` prototypes
 - `easy_variables` — prototype/session helpers plus text/real variable mutation helpers
-- `easy_text` — prototype/session helpers plus `RichText` table cell mutation helpers
+- `easy_text` — prototype/session helpers plus `RichText` table cell and visible 2D text replacement helpers
 - `easy_document_properties` — prototype/session helpers plus writable `Document.Properties` string mutation helpers
 - `all` — all helper source files
 
@@ -154,6 +154,7 @@ The source `Program Files` tree is read-only input. Future prototype automation 
 - `prototype_set_real_variable` — copies an installed `.grb` prototype, opens the copy, sets one existing real-number variable, saves a new `.grb`, reopens it, and verifies persisted `RealValue`.
 - `prototype_set_table_cell` — copies an installed table prototype, opens the copy, edits one cell in the first `RichText` table, saves a new `.grb`, reopens it, and verifies persisted cell text.
 - `prototype_set_document_property` — copies an installed `.grb` prototype, opens the copy, sets one writable string property on `Document.Properties`, saves a new `.grb`, reopens it, and verifies persisted property text.
+- `prototype_replace_visible_text` — copies an installed `.grb` prototype, opens the copy, replaces visible `LineText`/non-table `RichText`, saves a new `.grb`, reopens it, and verifies persisted replacement.
 
 Verified live text-variable mutation on 2026-05-25:
 
@@ -182,3 +183,10 @@ Verified live document-property mutation on 2026-05-25:
 - live run directory: `artifacts/runs/20260525_181851_320860_recipe_prototype_set_document_property`
 - source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
 - verified stdout: `documentProperty.exists=True`, `documentProperty.after.Title=Harness Document Property Test`, `documentProperty.set=True`, `document.saved=True`, `documentProperty.reopened=Harness Document Property Test`, `documentProperty.persisted=True`
+
+Verified live visible 2D text replacement on 2026-05-25:
+
+- command: `python -m tflex_harness.cli run-recipe prototype_replace_visible_text --arg 'prototype_id=Электротехника/Клеммник.grb' --arg 'search_text=Цепь' --arg 'replacement_text=Harness Circuit' --timeout-sec 120`
+- live run directory: `artifacts/runs/20260525_182531_611149_recipe_prototype_replace_visible_text`
+- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
+- verified stdout: `visibleText.beforeCount=1`, `visibleText.line.after=Harness Circuit`, `visibleText.replaceCount=1`, `document.saved=True`, `visibleText.oldAfter=0`, `visibleText.newAfter=1`, `visibleText.persisted=True`

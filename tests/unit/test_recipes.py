@@ -26,6 +26,7 @@ def test_list_recipes_includes_verified_baseline():
     assert "prototype_set_real_variable" in names
     assert "prototype_set_table_cell" in names
     assert "prototype_set_document_property" in names
+    assert "prototype_replace_visible_text" in names
 
 
 def test_helper_recipes_are_fresh_and_use_all_helpers():
@@ -64,6 +65,11 @@ def test_prototype_recipe_is_fresh_and_uses_prototype_helpers():
     assert table_mutation["verified"] is True
     assert table_mutation["freshness"]["status"] == "fresh"
     assert table_mutation["helpers"] == ["easy_text"]
+
+    visible_text = recipes["prototype_replace_visible_text"]
+    assert visible_text["verified"] is True
+    assert visible_text["freshness"]["status"] == "fresh"
+    assert visible_text["helpers"] == ["easy_text"]
 
     doc_property = recipes["prototype_set_document_property"]
     assert doc_property["verified"] is True
@@ -249,6 +255,22 @@ def test_prototype_set_document_property_requires_property_name(tmp_path, monkey
     assert result["ok"] is False
     assert result["stage"] == "input"
     assert result["error"] == "property_name is required"
+
+
+def test_prototype_replace_visible_text_requires_search_text(tmp_path, monkeypatch):
+    source = tmp_path / "demo.grb"
+    source.write_bytes(b"demo")
+
+    def fake_run_csharp_snippet(*args, **kwargs):
+        raise AssertionError("run should not start without search text")
+
+    monkeypatch.setattr(recipes_module, "run_csharp_snippet", fake_run_csharp_snippet)
+
+    result = run_recipe("prototype_replace_visible_text", args={"source_path": str(source), "replacement_text": "x"}, timeout_sec=1)
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "search_text is required"
 
 
 def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):

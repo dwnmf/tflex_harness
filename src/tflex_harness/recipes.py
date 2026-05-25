@@ -298,6 +298,28 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         artifacts["source_path"] = str(source_path)
         artifacts["property_name"] = str(property_name)
 
+    if name == "prototype_replace_visible_text":
+        source_result = _resolve_prototype_source_arg(args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        search_text = args.get("search_text")
+        if not search_text:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "search_text is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_VISIBLE_TEXT_SEARCH"] = str(search_text)
+        env["TFLEX_VISIBLE_TEXT_REPLACEMENT"] = str(args.get("replacement_text") or "")
+        artifacts["source_path"] = str(source_path)
+        artifacts["search_text"] = str(search_text)
+
     code = registry.source(name)
     helpers = recipe_info.get("helpers")
     result = run_csharp_snippet(
