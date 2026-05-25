@@ -760,9 +760,10 @@ Current Phase 6 evidence:
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
 - multi-step runs apply supported operations to one copied `.grb`, save once, reopen, and validate all mutations;
 - output contract now accepts `output.name` and `output.exports`;
-- supported output format: `grb`;
+- supported output formats: `grb`, `step`;
 - named GRB output is copied into the factory run as `artifacts/outputs/<sanitized-name>.grb`;
-- unsupported formats such as `step`/`pdf` are rejected at plan time instead of being silently skipped.
+- named STEP output is exported from the saved `.grb` through a separate visible C# run and recorded as `artifacts/outputs/<sanitized-name>.step`;
+- unsupported formats such as `pdf`/`dxf` are rejected at plan time instead of being silently skipped.
 - live command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`;
 - live factory run: `artifacts/runs/20260525_183154_667605_document_factory`;
 - live recipe run: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`;
@@ -773,6 +774,16 @@ Current Phase 6 evidence:
 - live named GRB recipe run: `artifacts/runs/20260525_184830_053534_recipe_prototype_set_document_property`;
 - live named GRB output: `artifacts/runs/20260525_184829_962489_document_factory/artifacts/outputs/phase6_named_output.grb`;
 - live named GRB evidence: `outputs[0].format=grb`, `outputs[0].relative_path=artifacts/outputs/phase6_named_output.grb`, `outputs[0].size=23240`, `output_errors=[]`.
+- live prototype STEP command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_3d_step_payload.json --timeout-sec 120`;
+- live prototype STEP factory run: `artifacts/runs/20260525_190649_137237_document_factory`;
+- live prototype STEP export run: `artifacts/runs/20260525_190650_981262_factory_step_export`;
+- live prototype STEP output: `artifacts/runs/20260525_190649_137237_document_factory/artifacts/outputs/phase6_3d_step_export.step`, size `322`;
+- live solid STEP command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_solid_step_payload.json --timeout-sec 120`;
+- live solid STEP factory run: `artifacts/runs/20260525_190913_994364_document_factory`;
+- live solid STEP export run: `artifacts/runs/20260525_190915_851463_factory_step_export`;
+- live solid STEP output: `artifacts/runs/20260525_190913_994364_document_factory/artifacts/outputs/phase6_solid_step_export.step`, size `6919`;
+- live solid STEP content evidence: `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, `ADVANCED_FACE`;
+- STEP runtime note: `ExportToSTEP.Export(...)` can print `easy.stepExportResult=False` while writing a valid non-empty STEP, so helper success is file-existence/size based.
 - live multi-step command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`;
 - live multi-step factory run: `artifacts/runs/20260525_183813_757471_document_factory`;
 - generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`;
@@ -784,10 +795,14 @@ Current Phase 6 evidence:
 - live sample matrix summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
 - live sample matrix categories: `3d_part`, `drawing`, `specification`, `table`;
 - live sample matrix outputs: `factory_3d_part.grb` size `28542`, `factory_drawing.grb` size `25465`, `factory_specification.grb` size `29101`, `factory_table.grb` size `63297`.
+- live sample matrix with STEP command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_step_20260525`;
+- live sample matrix with STEP: `artifacts/document_factory_validation/live_samples_step_20260525/document_factory_samples_matrix.json`;
+- live sample matrix with STEP summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`;
+- live sample matrix with STEP 3D row: `output_formats=["grb","step"]`, `step_output_size=316`.
 
 Remaining Phase 6 work:
 
-- export target handling beyond GRB.
+- export target handling beyond GRB/STEP, especially PDF for 2D documents and DXF/DWG where supported.
 
 ### Phase 7: Enterprise Workflow
 
@@ -918,3 +933,4 @@ Mitigation:
 - 2026-05-25: Completed Phase 3 baseline. Added `src/tflex_harness/prototype_metadata.py` and CLI `prototypes-metadata`. Live batch extracted metadata for all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Index: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`.
 - 2026-05-25: Extended Phase 6 document factory output contract. Payloads can request `output.name` with `exports: ["grb"]`; factory materializes a named `.grb` under the factory run `artifacts/outputs/` and rejects unsupported export formats explicitly.
 - 2026-05-25: Added `document-factory-samples` CLI and live sample matrix for 3D part, drawing, specification, and table prototype payloads. Live matrix passed `4/4` and produced named GRB outputs for all samples.
+- 2026-05-25: Added STEP output materialization to document factory. STEP export runs as separate visible C# using `EasyPrototype.OpenCopy` and `EasyExport.Step`; live solid proof produced `phase6_solid_step_export.step` size `6919` containing `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, and `ADVANCED_FACE`.

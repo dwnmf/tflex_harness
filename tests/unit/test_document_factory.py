@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+import tflex_harness.document_factory as document_factory
 from tflex_harness.document_factory import create_document_from_payload, plan_document_creation
 
 
@@ -59,7 +60,7 @@ def test_plan_document_creation_preserves_cyrillic_output_name():
 def test_plan_document_creation_rejects_unsupported_export():
     payload = {
         "prototype": {"id": "2D Деталь"},
-        "output": {"name": "Demo", "exports": ["grb", "step"]},
+        "output": {"name": "Demo", "exports": ["grb", "pdf"]},
         "document": {"properties": {"Title": "Demo"}},
     }
 
@@ -67,7 +68,20 @@ def test_plan_document_creation_rejects_unsupported_export():
 
     assert plan["ok"] is False
     assert plan["error"] == "unsupported output export format"
-    assert plan["unsupported_exports"] == ["step"]
+    assert plan["unsupported_exports"] == ["pdf"]
+
+
+def test_plan_document_creation_accepts_step_export():
+    payload = {
+        "prototype": {"id": "3D Деталь"},
+        "output": {"name": "Demo", "exports": ["grb", "step", "step"]},
+        "document": {},
+    }
+
+    plan = plan_document_creation(payload)
+
+    assert plan["ok"] is True
+    assert plan["output"] == {"name": "Demo", "exports": ["grb", "step"]}
 
 
 def test_plan_document_creation_uses_multi_step_for_multiple_groups():
@@ -196,3 +210,45 @@ def test_create_document_from_payload_materializes_named_grb_output(tmp_path):
     assert result["outputs"][0]["format"] == "grb"
     assert result["outputs"][0]["relative_path"] == "artifacts/outputs/Named Output.grb"
     assert result["outputs"][0]["size"] == 3
+
+
+def test_create_document_from_payload_materializes_step_output(tmp_path, monkeypatch):
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "3D Деталь"},
+                "output": {"name": "Step Output", "exports": ["grb", "step"]},
+                "document": {},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    recipe_run = tmp_path / "recipe_run"
+    recipe_artifacts = recipe_run / "artifacts"
+    recipe_artifacts.mkdir(parents=True)
+    saved = recipe_artifacts / "document_saved.grb"
+    saved.write_bytes(b"grb")
+
+    def fake_runner(name, args, timeout_sec, config):
+        return {
+            "ok": True,
+            "stage": "run",
+            "run_dir": str(recipe_run),
+            "artifacts": [{"path": str(saved), "relative_path": "artifacts/document_saved.grb", "size": 3}],
+        }
+
+    def fake_step(source_grb, target_step, timeout_sec, config):
+        target_step.write_bytes(b"step")
+        return {"ok": True, "run_dir": "artifacts/runs/step"}
+
+    monkeypatch.setattr(document_factory, "_export_step_from_grb", fake_step)
+
+    result = create_document_from_payload(payload_path, timeout_sec=7, recipe_runner=fake_runner)
+
+    assert result["ok"] is True
+    assert [item["format"] for item in result["outputs"]] == ["grb", "step"]
+    assert result["outputs"][1]["relative_path"] == "artifacts/outputs/Step Output.step"
+    assert result["outputs"][1]["size"] == 4
+    assert result["outputs"][1]["export_run_dir"] == "artifacts/runs/step"

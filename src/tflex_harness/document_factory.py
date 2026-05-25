@@ -63,7 +63,7 @@ def create_document_from_payload(
         recipe_result = _run_multi_step_plan(plan, factory_dir=factory_dir, timeout_sec=timeout_sec, config=cfg)
     else:
         recipe_result = recipe_runner(plan["recipe"], args=plan["recipe_args"], timeout_sec=timeout_sec, config=cfg)
-    outputs_result = _materialize_requested_outputs(plan, recipe_result, factory_dir)
+    outputs_result = _materialize_requested_outputs(plan, recipe_result, factory_dir, timeout_sec=timeout_sec, config=cfg)
     result["recipe_result"] = recipe_result
     result["outputs"] = outputs_result["outputs"]
     result["output_errors"] = outputs_result["errors"]
@@ -112,7 +112,7 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
             "output": output_contract["output"],
             "limitations": [
                 "Phase 6 multi-step factory uses generated visible C# with checked-in helper sources.",
-                "Only GRB output materialization is implemented in this phase.",
+                "GRB and STEP output materialization are implemented in this phase.",
             ],
             "pending_operations": [],
         }
@@ -364,16 +364,20 @@ def _output_contract(output: Any) -> dict[str, Any]:
     else:
         return {"ok": False, "stage": "input", "error": "output.exports must be a string or array"}
     exports = exports or ["grb"]
-    unsupported = sorted({item for item in exports if item != "grb"})
+    normalized: list[str] = []
+    for item in exports:
+        if item and item not in normalized:
+            normalized.append(item)
+    unsupported = sorted({item for item in normalized if item not in {"grb", "step"}})
     if unsupported:
         return {
             "ok": False,
             "stage": "input",
             "error": "unsupported output export format",
             "unsupported_exports": unsupported,
-            "supported_exports": ["grb"],
+            "supported_exports": ["grb", "step"],
         }
-    return {"ok": True, "output": {"name": stem, "exports": ["grb"]}}
+    return {"ok": True, "output": {"name": stem, "exports": normalized or ["grb"]}}
 
 
 def _safe_output_stem(name: str) -> str:
@@ -383,12 +387,18 @@ def _safe_output_stem(name: str) -> str:
     return (safe[:80] or "document")
 
 
-def _materialize_requested_outputs(plan: dict[str, Any], recipe_result: dict[str, Any], factory_dir: Path) -> dict[str, Any]:
+def _materialize_requested_outputs(
+    plan: dict[str, Any],
+    recipe_result: dict[str, Any],
+    factory_dir: Path,
+    *,
+    timeout_sec: int,
+    config: HarnessConfig,
+) -> dict[str, Any]:
     output = plan.get("output") or {"name": "document", "exports": ["grb"]}
     outputs: list[dict[str, Any]] = []
     errors: list[str] = []
-    if "grb" not in output.get("exports", []):
-        return {"outputs": outputs, "errors": errors}
+    exports = output.get("exports", [])
     source = _select_primary_grb(recipe_result)
     if source is None:
         if recipe_result.get("ok") is True:
@@ -396,18 +406,76 @@ def _materialize_requested_outputs(plan: dict[str, Any], recipe_result: dict[str
         return {"outputs": outputs, "errors": errors}
     target_dir = factory_dir / "artifacts" / "outputs"
     target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / f"{output.get('name') or 'document'}.grb"
-    shutil.copy2(source, target)
-    outputs.append(
-        {
-            "format": "grb",
-            "path": str(target),
-            "relative_path": str(target.relative_to(factory_dir)).replace("\\", "/"),
-            "size": target.stat().st_size,
-            "source_path": str(source),
-        }
-    )
+    if "grb" in exports:
+        target = target_dir / f"{output.get('name') or 'document'}.grb"
+        shutil.copy2(source, target)
+        outputs.append(_output_record("grb", target, factory_dir, source_path=source))
+    if "step" in exports:
+        target = target_dir / f"{output.get('name') or 'document'}.step"
+        step_result = _export_step_from_grb(source, target, timeout_sec=timeout_sec, config=config)
+        if step_result.get("ok") is True and target.exists() and target.stat().st_size > 0:
+            record = _output_record("step", target, factory_dir, source_path=source)
+            record["export_run_dir"] = step_result.get("run_dir")
+            outputs.append(record)
+        else:
+            errors.append("STEP export failed")
+            errors.append(str(step_result.get("error") or step_result.get("stage") or "unknown"))
     return {"outputs": outputs, "errors": errors}
+
+
+def _output_record(format_name: str, target: Path, factory_dir: Path, *, source_path: Path) -> dict[str, Any]:
+    return {
+        "format": format_name,
+        "path": str(target),
+        "relative_path": str(target.relative_to(factory_dir)).replace("\\", "/"),
+        "size": target.stat().st_size,
+        "source_path": str(source_path),
+    }
+
+
+def _export_step_from_grb(source_grb: Path, target_step: Path, *, timeout_sec: int, config: HarnessConfig) -> dict[str, Any]:
+    code = '''using System;
+using TFlex.Model;
+using TFlexEasy;
+
+public class Program {
+  public static int Main(){
+    string source = Environment.GetEnvironmentVariable("TFLEX_FACTORY_EXPORT_SOURCE_GRB");
+    string target = Environment.GetEnvironmentVariable("TFLEX_FACTORY_EXPORT_TARGET_STEP");
+    if (String.IsNullOrWhiteSpace(source)) {
+      EasyDiagnostics.Print("factory.stepExport.error", "TFLEX_FACTORY_EXPORT_SOURCE_GRB is required");
+      return 2;
+    }
+    if (String.IsNullOrWhiteSpace(target)) {
+      EasyDiagnostics.Print("factory.stepExport.error", "TFLEX_FACTORY_EXPORT_TARGET_STEP is required");
+      return 3;
+    }
+    Document doc = null;
+    using (var sess = EasySession.Start3D()) {
+      try {
+        doc = EasyPrototype.OpenCopy(source, visible: false);
+        bool step = EasyExport.Step(doc, target);
+        EasyDiagnostics.Print("factory.stepExport.saved", step);
+        return step ? 0 : 20;
+      } finally {
+        EasyPrototype.Close(doc);
+      }
+    }
+  }
+}
+'''
+    return run_csharp_snippet(
+        code,
+        mode="run",
+        timeout_sec=timeout_sec,
+        helpers=["easy_prototype", "easy_export"],
+        environment={
+            "TFLEX_FACTORY_EXPORT_SOURCE_GRB": str(source_grb),
+            "TFLEX_FACTORY_EXPORT_TARGET_STEP": str(target_step),
+        },
+        artifact_prefix="factory_step_export",
+        config=config,
+    )
 
 
 def _select_primary_grb(recipe_result: dict[str, Any]) -> Path | None:
@@ -437,7 +505,7 @@ def _plan(recipe: str, args: dict[str, str], payload: dict[str, Any], *, selecti
         "limitations": [
             "Phase 6 factory currently dispatches one verified recipe per payload run.",
             "Single-recipe plans execute one mutation group; multi-group payloads use generated visible C# when possible.",
-            "Only GRB output materialization is implemented in this phase.",
+            "GRB and STEP output materialization are implemented in this phase.",
         ],
         "pending_operations": pending,
     }

@@ -213,21 +213,23 @@ Current dispatcher executes one generated multi-step C# snippet when a payload c
 
 Multi-step runs apply all supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
 
-Payload `output` currently supports named GRB materialization:
+Payload `output` currently supports named GRB and STEP materialization:
 
 ```json
 {
   "output": {
     "name": "customer_document.grb",
-    "exports": ["grb"]
+    "exports": ["grb", "step"]
   }
 }
 ```
 
 The factory copies the recipe/snippet saved `.grb` into the factory run as
 `artifacts/outputs/<sanitized-name>.grb` and records it in the top-level
-`outputs` array. Other export formats are rejected for now instead of being
-silently ignored.
+`outputs` array. For `step`, it opens the saved `.grb` in a separate visible
+C# export run using `Document.ExportToSTEP.Export(...)` via `TFlexEasyExport.cs`,
+then records `artifacts/outputs/<sanitized-name>.step`. Other export formats
+are rejected for now instead of being silently ignored.
 
 Verified live factory dispatch on 2026-05-25:
 
@@ -244,6 +246,18 @@ Verified live named GRB output on 2026-05-25:
 - recipe run directory: `artifacts/runs/20260525_184830_053534_recipe_prototype_set_document_property`
 - materialized output: `artifacts/runs/20260525_184829_962489_document_factory/artifacts/outputs/phase6_named_output.grb`
 - verified output evidence: `outputs[0].format=grb`, `outputs[0].relative_path=artifacts/outputs/phase6_named_output.grb`, `outputs[0].size=23240`, `output_errors=[]`
+
+Verified live STEP output on 2026-05-25:
+
+- prototype-copy command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_3d_step_payload.json --timeout-sec 120`
+- prototype-copy factory run: `artifacts/runs/20260525_190649_137237_document_factory`
+- prototype-copy STEP output: `artifacts/outputs/phase6_3d_step_export.step`, size `322`
+- solid explicit-recipe command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_solid_step_payload.json --timeout-sec 120`
+- solid explicit-recipe factory run: `artifacts/runs/20260525_190913_994364_document_factory`
+- solid STEP export run: `artifacts/runs/20260525_190915_851463_factory_step_export`
+- solid STEP output: `artifacts/outputs/phase6_solid_step_export.step`, size `6919`
+- solid STEP content evidence: contains `MANIFOLD_SOLID_BREP`, `CLOSED_SHELL`, and `ADVANCED_FACE`
+- note: T-FLEX `ExportToSTEP.Export(...)` returned `False` while still writing valid non-empty STEP, so success is based on file existence and size, matching existing helper evidence.
 
 Verified live multi-step factory payload on 2026-05-25:
 
@@ -262,3 +276,11 @@ Verified live factory sample matrix on 2026-05-25:
 - summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
 - covered categories: `3d_part`, `drawing`, `specification`, `table`
 - output files: `factory_3d_part.grb` size `28542`, `factory_drawing.grb` size `25465`, `factory_specification.grb` size `29101`, `factory_table.grb` size `63297`
+
+Updated matrix with STEP requested for the 3D sample:
+
+- command: `python -m tflex_harness.cli document-factory-samples --timeout-sec 120 --output-dir artifacts/document_factory_validation/live_samples_step_20260525`
+- matrix: `artifacts/document_factory_validation/live_samples_step_20260525/document_factory_samples_matrix.json`
+- summary: `selected=4`, `attempted=4`, `passed=4`, `failed=0`
+- 3D row output formats: `grb`, `step`
+- 3D row STEP output: `factory_3d_part.step`, size `316`

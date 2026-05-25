@@ -19,7 +19,7 @@ DEFAULT_FACTORY_SAMPLES: tuple[dict[str, Any], ...] = (
         "category": "3d_part",
         "payload": {
             "prototype": {"id": "3D Деталь"},
-            "output": {"name": "factory_3d_part", "exports": ["grb"]},
+            "output": {"name": "factory_3d_part", "exports": ["grb", "step"]},
             "document": {},
         },
     },
@@ -126,6 +126,7 @@ def _result_to_row(result: dict[str, Any]) -> dict[str, Any]:
     recipe_result = result.get("recipe_result") if isinstance(result.get("recipe_result"), dict) else {}
     outputs = result.get("outputs") if isinstance(result.get("outputs"), list) else []
     first_output = outputs[0] if outputs else {}
+    step_output = next((item for item in outputs if item.get("format") == "step"), {})
     return {
         "status": "passed" if result.get("ok") else "failed",
         "ok": bool(result.get("ok")),
@@ -134,8 +135,11 @@ def _result_to_row(result: dict[str, Any]) -> dict[str, Any]:
         "recipe": result.get("recipe") or plan.get("recipe"),
         "selection": plan.get("selection"),
         "planned_output": plan.get("output"),
+        "output_formats": [item.get("format") for item in outputs],
         "output_path": first_output.get("path"),
         "output_size": first_output.get("size"),
+        "step_output_path": step_output.get("path"),
+        "step_output_size": step_output.get("size"),
         "output_errors": result.get("output_errors") or [],
         "error": result.get("error") or recipe_result.get("error"),
     }
@@ -166,6 +170,8 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "selection",
         "output_path",
         "output_size",
+        "step_output_path",
+        "step_output_size",
         "factory_run_dir",
         "payload_path",
         "error",
