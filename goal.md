@@ -757,12 +757,21 @@ Current Phase 6 evidence:
 - dispatcher executes generated visible C# when a payload has multiple supported mutation operations;
 - single-operation payloads still dispatch to one verified recipe;
 - supported dispatch groups: explicit `recipe`, `document.properties`, `document.variables`, `document.text_replacements`, `document.tables`, fallback `prototype_open_copy_save`;
-- multi-step runs apply supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
+- multi-step runs apply supported operations to one copied `.grb`, save once, reopen, and validate all mutations;
+- output contract now accepts `output.name` and `output.exports`;
+- supported output format: `grb`;
+- named GRB output is copied into the factory run as `artifacts/outputs/<sanitized-name>.grb`;
+- unsupported formats such as `step`/`pdf` are rejected at plan time instead of being silently skipped.
 - live command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`;
 - live factory run: `artifacts/runs/20260525_183154_667605_document_factory`;
 - live recipe run: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`;
 - selected recipe: `prototype_set_document_property`;
 - verified stdout: `documentProperty.after.Title=Harness Factory Live Test`, `document.saved=True`, `documentProperty.reopened=Harness Factory Live Test`, `documentProperty.persisted=True`.
+- live named GRB command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_named_grb_payload.json --timeout-sec 120`;
+- live named GRB factory run: `artifacts/runs/20260525_184829_962489_document_factory`;
+- live named GRB recipe run: `artifacts/runs/20260525_184830_053534_recipe_prototype_set_document_property`;
+- live named GRB output: `artifacts/runs/20260525_184829_962489_document_factory/artifacts/outputs/phase6_named_output.grb`;
+- live named GRB evidence: `outputs[0].format=grb`, `outputs[0].relative_path=artifacts/outputs/phase6_named_output.grb`, `outputs[0].size=23240`, `output_errors=[]`.
 - live multi-step command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_multi_step_payload.json --timeout-sec 120`;
 - live multi-step factory run: `artifacts/runs/20260525_183813_757471_document_factory`;
 - generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`;
@@ -772,8 +781,7 @@ Current Phase 6 evidence:
 Remaining Phase 6 work:
 
 - live factory evidence for 3D part, drawing, specification, and table categories;
-- export target handling beyond GRB;
-- output naming contract.
+- export target handling beyond GRB.
 
 ### Phase 7: Enterprise Workflow
 
@@ -902,3 +910,4 @@ Mitigation:
 - 2026-05-25: Started Phase 2. Added `TFlexEasyPrototype.cs`, helper set `easy_prototype`, recipe `prototype_open_copy_save`, and live proof for `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`: run `artifacts/runs/20260525_172319_936833_prototype_open_copy_save_3d_part`, `document.opened=True`, `document.saved=True`, `document.closed=True`, output size `28544`.
 - 2026-05-25: Completed Phase 2 baseline. Added `src/tflex_harness/prototype_validation.py` and CLI `prototypes-open-save-batch`. Live batch opened, saved, and closed all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Matrix: `artifacts/prototype_validation/live_all_20260525/prototype_open_save_matrix.json`.
 - 2026-05-25: Completed Phase 3 baseline. Added `src/tflex_harness/prototype_metadata.py` and CLI `prototypes-metadata`. Live batch extracted metadata for all 50 installed `.grb` prototypes from artifact copies with `passed=50`, `failed=0`. Index: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.json`.
+- 2026-05-25: Extended Phase 6 document factory output contract. Payloads can request `output.name` with `exports: ["grb"]`; factory materializes a named `.grb` under the factory run `artifacts/outputs/` and rejects unsupported export formats explicitly.

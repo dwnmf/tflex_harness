@@ -31,6 +31,45 @@ def test_plan_document_creation_dispatches_numeric_variable_payload():
     assert plan["recipe_args"]["real_value"] == "42"
 
 
+def test_plan_document_creation_includes_output_contract():
+    payload = {
+        "prototype": {"id": "2D Деталь"},
+        "output": {"name": "Demo Document.grb", "exports": ["grb"]},
+        "document": {"variables": {"Nomer_Shem": 42}},
+    }
+
+    plan = plan_document_creation(payload)
+
+    assert plan["ok"] is True
+    assert plan["output"] == {"name": "Demo Document", "exports": ["grb"]}
+
+
+def test_plan_document_creation_preserves_cyrillic_output_name():
+    payload = {
+        "prototype": {"id": "2D Деталь"},
+        "output": {"name": "Деталь заказчика.grb"},
+        "document": {"variables": {"Nomer_Shem": 42}},
+    }
+
+    plan = plan_document_creation(payload)
+
+    assert plan["output"] == {"name": "Деталь заказчика", "exports": ["grb"]}
+
+
+def test_plan_document_creation_rejects_unsupported_export():
+    payload = {
+        "prototype": {"id": "2D Деталь"},
+        "output": {"name": "Demo", "exports": ["grb", "step"]},
+        "document": {"properties": {"Title": "Demo"}},
+    }
+
+    plan = plan_document_creation(payload)
+
+    assert plan["ok"] is False
+    assert plan["error"] == "unsupported output export format"
+    assert plan["unsupported_exports"] == ["step"]
+
+
 def test_plan_document_creation_uses_multi_step_for_multiple_groups():
     payload = {
         "prototype": {"id": "Электротехника/Клеммник.grb"},
@@ -100,10 +139,20 @@ def test_create_document_from_payload_uses_recipe_runner(tmp_path):
         encoding="utf-8",
     )
     calls = []
+    recipe_run = tmp_path / "recipe_run"
+    recipe_artifacts = recipe_run / "artifacts"
+    recipe_artifacts.mkdir(parents=True)
+    saved = recipe_artifacts / "document_saved.grb"
+    saved.write_bytes(b"grb")
 
     def fake_runner(name, args, timeout_sec, config):
         calls.append((name, args, timeout_sec, config))
-        return {"ok": True, "stage": "run", "run_dir": "artifacts/runs/fake"}
+        return {
+            "ok": True,
+            "stage": "run",
+            "run_dir": str(recipe_run),
+            "artifacts": [{"path": str(saved), "relative_path": "artifacts/document_saved.grb", "size": 3}],
+        }
 
     result = create_document_from_payload(payload_path, timeout_sec=7, recipe_runner=fake_runner)
 
@@ -112,3 +161,38 @@ def test_create_document_from_payload_uses_recipe_runner(tmp_path):
     assert calls[0][0] == "prototype_set_real_variable"
     assert calls[0][1]["variable_name"] == "Nomer_Shem"
     assert calls[0][2] == 7
+
+
+def test_create_document_from_payload_materializes_named_grb_output(tmp_path):
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "prototype": {"id": "2D Деталь"},
+                "output": {"name": "Named Output.grb", "exports": "grb"},
+                "document": {"variables": {"Nomer_Shem": 42}},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    recipe_run = tmp_path / "recipe_run"
+    recipe_artifacts = recipe_run / "artifacts"
+    recipe_artifacts.mkdir(parents=True)
+    saved = recipe_artifacts / "document_saved.grb"
+    saved.write_bytes(b"grb")
+
+    def fake_runner(name, args, timeout_sec, config):
+        return {
+            "ok": True,
+            "stage": "run",
+            "run_dir": str(recipe_run),
+            "artifacts": [{"path": str(saved), "relative_path": "artifacts/document_saved.grb", "size": 3}],
+        }
+
+    result = create_document_from_payload(payload_path, timeout_sec=7, recipe_runner=fake_runner)
+
+    assert result["ok"] is True
+    assert result["outputs"][0]["format"] == "grb"
+    assert result["outputs"][0]["relative_path"] == "artifacts/outputs/Named Output.grb"
+    assert result["outputs"][0]["size"] == 3

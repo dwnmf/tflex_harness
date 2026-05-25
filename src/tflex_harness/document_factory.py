@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -62,12 +63,16 @@ def create_document_from_payload(
         recipe_result = _run_multi_step_plan(plan, factory_dir=factory_dir, timeout_sec=timeout_sec, config=cfg)
     else:
         recipe_result = recipe_runner(plan["recipe"], args=plan["recipe_args"], timeout_sec=timeout_sec, config=cfg)
+    outputs_result = _materialize_requested_outputs(plan, recipe_result, factory_dir)
     result["recipe_result"] = recipe_result
-    result["ok"] = recipe_result.get("ok") is True
+    result["outputs"] = outputs_result["outputs"]
+    result["output_errors"] = outputs_result["errors"]
+    result["ok"] = recipe_result.get("ok") is True and not outputs_result["errors"]
     result["stage"] = recipe_result.get("stage", "run")
     result["recipe"] = plan["recipe"]
     result["recipe_args"] = plan["recipe_args"]
     result["recipe_run_dir"] = recipe_result.get("run_dir")
+    (factory_dir / "factory_result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
     return result
 
 
@@ -75,6 +80,9 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
     prototype_args = _prototype_args(payload.get("prototype"))
     if prototype_args.get("ok") is False:
         return prototype_args
+    output_contract = _output_contract(payload.get("output"))
+    if output_contract.get("ok") is False:
+        return output_contract
 
     explicit = payload.get("recipe")
     if isinstance(explicit, dict):
@@ -83,9 +91,9 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
         if not recipe_name:
             return {"ok": False, "stage": "input", "error": "recipe.name is required"}
         recipe_args = {**prototype_args["args"], **recipe_args}
-        return _plan(str(recipe_name), recipe_args, payload, selection="explicit_recipe")
+        return _plan(str(recipe_name), recipe_args, payload, selection="explicit_recipe", output=output_contract)
     if isinstance(explicit, str) and explicit:
-        return _plan(explicit, dict(prototype_args["args"]), payload, selection="explicit_recipe")
+        return _plan(explicit, dict(prototype_args["args"]), payload, selection="explicit_recipe", output=output_contract)
 
     document = payload.get("document") or {}
     if not isinstance(document, dict):
@@ -101,9 +109,10 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
             "recipe_args": dict(prototype_args["args"]),
             "selection": "multi_step",
             "operations": operations,
+            "output": output_contract["output"],
             "limitations": [
                 "Phase 6 multi-step factory uses generated visible C# with checked-in helper sources.",
-                "Exports beyond saved GRB are not implemented yet.",
+                "Only GRB output materialization is implemented in this phase.",
             ],
             "pending_operations": [],
         }
@@ -112,22 +121,22 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
     if isinstance(properties, dict) and properties:
         name, value = next(iter(properties.items()))
         args = {**prototype_args["args"], "property_name": str(name), "text_value": "" if value is None else str(value)}
-        return _plan("prototype_set_document_property", args, payload, selection="document.properties")
+        return _plan("prototype_set_document_property", args, payload, selection="document.properties", output=output_contract)
 
     variables = document.get("variables") or {}
     if isinstance(variables, dict) and variables:
         name, value = next(iter(variables.items()))
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             args = {**prototype_args["args"], "variable_name": str(name), "real_value": str(value)}
-            return _plan("prototype_set_real_variable", args, payload, selection="document.variables.real")
+            return _plan("prototype_set_real_variable", args, payload, selection="document.variables.real", output=output_contract)
         args = {**prototype_args["args"], "variable_name": str(name), "text_value": "" if value is None else str(value)}
-        return _plan("prototype_set_text_variable", args, payload, selection="document.variables.text")
+        return _plan("prototype_set_text_variable", args, payload, selection="document.variables.text", output=output_contract)
 
     replacements = document.get("text_replacements") or {}
     if isinstance(replacements, dict) and replacements:
         search, replacement = next(iter(replacements.items()))
         args = {**prototype_args["args"], "search_text": str(search), "replacement_text": "" if replacement is None else str(replacement)}
-        return _plan("prototype_replace_visible_text", args, payload, selection="document.text_replacements")
+        return _plan("prototype_replace_visible_text", args, payload, selection="document.text_replacements", output=output_contract)
 
     tables = document.get("tables") or []
     if isinstance(tables, list) and tables:
@@ -138,9 +147,9 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
             return {"ok": False, "stage": "input", "error": "document.tables[0].cell_index is required"}
         value = first.get("text_value", first.get("value", ""))
         args = {**prototype_args["args"], "cell_index": str(first["cell_index"]), "text_value": "" if value is None else str(value)}
-        return _plan("prototype_set_table_cell", args, payload, selection="document.tables")
+        return _plan("prototype_set_table_cell", args, payload, selection="document.tables", output=output_contract)
 
-    return _plan("prototype_open_copy_save", dict(prototype_args["args"]), payload, selection="open_copy_save")
+    return _plan("prototype_open_copy_save", dict(prototype_args["args"]), payload, selection="open_copy_save", output=output_contract)
 
 
 def _collect_operations(document: dict[str, Any]) -> list[dict[str, Any]] | dict[str, Any]:
@@ -340,16 +349,95 @@ def _prototype_args(prototype: Any) -> dict[str, Any]:
     return {"ok": True, "args": args}
 
 
-def _plan(recipe: str, args: dict[str, str], payload: dict[str, Any], *, selection: str) -> dict[str, Any]:
+def _output_contract(output: Any) -> dict[str, Any]:
+    if output is None:
+        output = {}
+    if not isinstance(output, dict):
+        return {"ok": False, "stage": "input", "error": "output must be an object"}
+    name = str(output.get("name") or "document")
+    stem = _safe_output_stem(name)
+    exports_raw = output.get("exports", ["grb"])
+    if isinstance(exports_raw, str):
+        exports = [exports_raw]
+    elif isinstance(exports_raw, list):
+        exports = [str(item).lower().lstrip(".") for item in exports_raw]
+    else:
+        return {"ok": False, "stage": "input", "error": "output.exports must be a string or array"}
+    exports = exports or ["grb"]
+    unsupported = sorted({item for item in exports if item != "grb"})
+    if unsupported:
+        return {
+            "ok": False,
+            "stage": "input",
+            "error": "unsupported output export format",
+            "unsupported_exports": unsupported,
+            "supported_exports": ["grb"],
+        }
+    return {"ok": True, "output": {"name": stem, "exports": ["grb"]}}
+
+
+def _safe_output_stem(name: str) -> str:
+    stem = Path(name).stem or name or "document"
+    safe = "".join("_" if char in '<>:"/\\|?*' or ord(char) < 32 else char for char in stem)
+    safe = safe.strip(" ._")
+    return (safe[:80] or "document")
+
+
+def _materialize_requested_outputs(plan: dict[str, Any], recipe_result: dict[str, Any], factory_dir: Path) -> dict[str, Any]:
+    output = plan.get("output") or {"name": "document", "exports": ["grb"]}
+    outputs: list[dict[str, Any]] = []
+    errors: list[str] = []
+    if "grb" not in output.get("exports", []):
+        return {"outputs": outputs, "errors": errors}
+    source = _select_primary_grb(recipe_result)
+    if source is None:
+        if recipe_result.get("ok") is True:
+            errors.append("no GRB artifact found in recipe result")
+        return {"outputs": outputs, "errors": errors}
+    target_dir = factory_dir / "artifacts" / "outputs"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / f"{output.get('name') or 'document'}.grb"
+    shutil.copy2(source, target)
+    outputs.append(
+        {
+            "format": "grb",
+            "path": str(target),
+            "relative_path": str(target.relative_to(factory_dir)).replace("\\", "/"),
+            "size": target.stat().st_size,
+            "source_path": str(source),
+        }
+    )
+    return {"outputs": outputs, "errors": errors}
+
+
+def _select_primary_grb(recipe_result: dict[str, Any]) -> Path | None:
+    artifact_output = (recipe_result.get("recipe_artifacts") or {}).get("output_file")
+    candidates: list[Path] = []
+    if artifact_output:
+        candidates.append(Path(str(artifact_output)))
+    for artifact in recipe_result.get("artifacts") or []:
+        path = artifact.get("path") if isinstance(artifact, dict) else None
+        if path and str(path).lower().endswith(".grb"):
+            candidates.append(Path(str(path)))
+    existing = [path for path in candidates if path.exists() and path.is_file()]
+    if not existing:
+        return None
+    saved = [path for path in existing if "saved" in path.stem.lower() or "output" in path.stem.lower()]
+    return (saved or existing)[-1]
+
+
+def _plan(recipe: str, args: dict[str, str], payload: dict[str, Any], *, selection: str, output: dict[str, Any]) -> dict[str, Any]:
     pending = _pending_operations(payload, selection)
     return {
         "ok": True,
         "recipe": recipe,
         "recipe_args": args,
         "selection": selection,
+        "output": output["output"],
         "limitations": [
             "Phase 6 factory currently dispatches one verified recipe per payload run.",
-            "If payload contains multiple mutation groups, only the first supported group is executed and the rest are reported as pending_operations.",
+            "Single-recipe plans execute one mutation group; multi-group payloads use generated visible C# when possible.",
+            "Only GRB output materialization is implemented in this phase.",
         ],
         "pending_operations": pending,
     }

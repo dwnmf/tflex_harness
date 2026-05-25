@@ -212,6 +212,22 @@ Current dispatcher executes one generated multi-step C# snippet when a payload c
 
 Multi-step runs apply all supported operations to one copied `.grb`, save once, reopen, and validate all mutations.
 
+Payload `output` currently supports named GRB materialization:
+
+```json
+{
+  "output": {
+    "name": "customer_document.grb",
+    "exports": ["grb"]
+  }
+}
+```
+
+The factory copies the recipe/snippet saved `.grb` into the factory run as
+`artifacts/outputs/<sanitized-name>.grb` and records it in the top-level
+`outputs` array. Other export formats are rejected for now instead of being
+silently ignored.
+
 Verified live factory dispatch on 2026-05-25:
 
 - command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_property_payload.json --timeout-sec 120`
@@ -219,6 +235,14 @@ Verified live factory dispatch on 2026-05-25:
 - recipe run directory: `artifacts/runs/20260525_183154_769543_recipe_prototype_set_document_property`
 - selected recipe: `prototype_set_document_property`
 - verified stdout: `documentProperty.after.Title=Harness Factory Live Test`, `document.saved=True`, `documentProperty.reopened=Harness Factory Live Test`, `documentProperty.persisted=True`
+
+Verified live named GRB output on 2026-05-25:
+
+- command: `python -m tflex_harness.cli create-document --payload artifacts/factory_payloads/phase6_named_grb_payload.json --timeout-sec 120`
+- factory run directory: `artifacts/runs/20260525_184829_962489_document_factory`
+- recipe run directory: `artifacts/runs/20260525_184830_053534_recipe_prototype_set_document_property`
+- materialized output: `artifacts/runs/20260525_184829_962489_document_factory/artifacts/outputs/phase6_named_output.grb`
+- verified output evidence: `outputs[0].format=grb`, `outputs[0].relative_path=artifacts/outputs/phase6_named_output.grb`, `outputs[0].size=23240`, `output_errors=[]`
 
 Verified live multi-step factory payload on 2026-05-25:
 
