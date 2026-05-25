@@ -137,3 +137,17 @@ def test_cli_run_csharp_compile_only_accepts_all_helpers():
     assert result["ok"] is True, result
     assert result["stage"] == "compile"
     assert len(result["helper_sources"]) == 8
+
+
+def test_cli_reverse_evidence_writes_semantic_outputs(tmp_path):
+    result = _cli(
+        "reverse-evidence",
+        "agent_workspace/snippets/grb_reverse_planetary/model_evidence_with_contours.json",
+        "--output-dir",
+        str(tmp_path),
+    )
+
+    assert result["ok"] is True
+    assert result["recognized_count"] == 9
+    assert (tmp_path / "semantic_model.json").exists()
+    assert (tmp_path / "parametric_candidate.cs").exists()

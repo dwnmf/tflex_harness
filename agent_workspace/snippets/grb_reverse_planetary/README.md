@@ -46,3 +46,21 @@ Live reconstructed artifacts:
 ## Limitation
 
 This is not original design-intent decompilation. It recovers a visible C# geometry algorithm: profiles as polylines plus extrusion heights. It does not recover variables, constraints, formulas, feature history semantics, or true gear intent unless names/metadata reveal them.
+
+## Phase 2 semantic parametric output
+
+Added after the raw clone prototype:
+
+- recognizer module: `src/tflex_harness/grb_reverse.py`
+- CLI command: `python -m tflex_harness.cli reverse-evidence ... --output-dir ...`
+- generated semantic output: `semantic_parametric/semantic_model.json`
+- generated parametric C#: `semantic_parametric/parametric_candidate.cs`
+
+Live parametric validation:
+
+- run dir: `artifacts/runs/20260525_133320_520936_grb_reverse_planetary_blind_parametric_live`
+- `exit_code=0`
+- `operations=9`
+- `carrier_plate...bboxSpanMm=105,105,4`
+- `pin_*...bboxSpanMm=6,6,14`
+- STEP size: `1955345`

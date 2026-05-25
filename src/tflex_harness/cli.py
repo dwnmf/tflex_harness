@@ -7,6 +7,7 @@ import sys
 from .artifacts import json_default
 from .diagnostics import get_environment
 from .docs_search import DocsSearch
+from .grb_reverse import write_semantic_outputs
 from .recipes import list_recipes, run_recipe
 from .runner import run_csharp_snippet
 from .schemas import DOCS_SEARCH_SCOPES, TFLEX_DOC_ASSEMBLIES
@@ -54,6 +55,10 @@ def main(argv: list[str] | None = None) -> int:
     save_p.add_argument("--code", required=True)
     save_p.add_argument("--markdown", default=None)
 
+    reverse_p = sub.add_parser("reverse-evidence", help="Recognize GRB contour evidence and emit parametric C#")
+    reverse_p.add_argument("evidence_json")
+    reverse_p.add_argument("--output-dir", required=True)
+
     args = parser.parse_args(argv)
     if args.command == "env":
         emit(get_environment())
@@ -87,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "save-snippet":
         emit(save_snippet_candidate(args.name, code=args.code, markdown=args.markdown))
+        return 0
+    if args.command == "reverse-evidence":
+        emit(write_semantic_outputs(args.evidence_json, args.output_dir))
         return 0
     parser.error(f"unknown command {args.command}")
     return 2

@@ -1,0 +1,150 @@
+{
+  "source_grb": "D:\\REALPROJECTS\\tflex_harness\\artifacts\\runs\\20260525_124700_025877_recipe_helper_planetary_static_assembly\\artifacts\\helper_planetary_static_assembly.grb",
+  "operation_count": 9,
+  "recognizer": "tflex_harness.grb_reverse.v1",
+  "operations": [
+    {
+      "source_index": 0,
+      "source_name": "sun_24t_od54_bore10_clearanced",
+      "z_min_mm": 0.0,
+      "height_mm": 8.0,
+      "center_mm": [
+        0.0,
+        0.0
+      ],
+      "kind": "external_trapezoid_gear_with_bore",
+      "confidence": 0.95,
+      "teeth": 24,
+      "root_dia_mm": 42.0,
+      "outer_dia_mm": 54.0,
+      "phase_deg": -7.50000001,
+      "tooth_style": "clearanced",
+      "bore_dia_mm": 10.0
+    },
+    {
+      "source_index": 1,
+      "source_name": "ring_60t_od140_internal_clearanced",
+      "z_min_mm": 0.0,
+      "height_mm": 8.0,
+      "center_mm": [
+        0.0,
+        0.0
+      ],
+      "kind": "internal_trapezoid_gear_ring",
+      "confidence": 0.95,
+      "teeth": 60,
+      "outer_dia_mm": 140.0,
+      "internal_root_dia_mm": 126.0,
+      "tooth_tip_dia_mm": 114.0,
+      "phase_deg": -9.0,
+      "tooth_style": "clearanced"
+    },
+    {
+      "source_index": 2,
+      "source_name": "carrier_plate_d105_z_minus5_minus1_clearanced",
+      "z_min_mm": -5.0,
+      "height_mm": 4.0,
+      "center_mm": [
+        0.0,
+        0.0
+      ],
+      "kind": "circle_extrusion",
+      "confidence": 0.94,
+      "diameter_mm": 105.0,
+      "segments": 144
+    },
+    {
+      "source_index": 3,
+      "source_name": "planet_1_18t_od41_clearanced",
+      "z_min_mm": 0.0,
+      "height_mm": 8.0,
+      "center_mm": [
+        42.0,
+        0.0
+      ],
+      "kind": "external_trapezoid_gear",
+      "confidence": 0.95,
+      "teeth": 18,
+      "root_dia_mm": 31.0,
+      "outer_dia_mm": 41.0,
+      "phase_deg": 180.0,
+      "tooth_style": "clearanced"
+    },
+    {
+      "source_index": 4,
+      "source_name": "pin_1_d6_h14_clearanced",
+      "z_min_mm": -5.0,
+      "height_mm": 14.0,
+      "center_mm": [
+        42.0,
+        0.0
+      ],
+      "kind": "circle_extrusion",
+      "confidence": 0.94,
+      "diameter_mm": 6.0,
+      "segments": 48
+    },
+    {
+      "source_index": 5,
+      "source_name": "planet_2_18t_od41_clearanced",
+      "z_min_mm": 0.0,
+      "height_mm": 8.0,
+      "center_mm": [
+        -21.0,
+        36.37306695
+      ],
+      "kind": "external_trapezoid_gear",
+      "confidence": 0.95,
+      "teeth": 18,
+      "root_dia_mm": 31.0,
+      "outer_dia_mm": 41.0,
+      "phase_deg": -60.0,
+      "tooth_style": "clearanced"
+    },
+    {
+      "source_index": 6,
+      "source_name": "pin_2_d6_h14_clearanced",
+      "z_min_mm": -5.0,
+      "height_mm": 14.0,
+      "center_mm": [
+        -21.0,
+        36.37306696
+      ],
+      "kind": "circle_extrusion",
+      "confidence": 0.94,
+      "diameter_mm": 6.0,
+      "segments": 48
+    },
+    {
+      "source_index": 7,
+      "source_name": "planet_3_18t_od41_clearanced",
+      "z_min_mm": 0.0,
+      "height_mm": 8.0,
+      "center_mm": [
+        -21.0,
+        -36.37306697
+      ],
+      "kind": "external_trapezoid_gear",
+      "confidence": 0.95,
+      "teeth": 18,
+      "root_dia_mm": 31.0,
+      "outer_dia_mm": 41.0,
+      "phase_deg": 60.0,
+      "tooth_style": "clearanced"
+    },
+    {
+      "source_index": 8,
+      "source_name": "pin_3_d6_h14_clearanced",
+      "z_min_mm": -5.0,
+      "height_mm": 14.0,
+      "center_mm": [
+        -21.0,
+        -36.37306696
+      ],
+      "kind": "circle_extrusion",
+      "confidence": 0.94,
+      "diameter_mm": 6.0,
+      "segments": 48
+    }
+  ]
+}
