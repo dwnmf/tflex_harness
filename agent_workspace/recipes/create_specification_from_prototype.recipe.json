@@ -1,0 +1,19 @@
+{
+  "name": "create_specification_from_prototype",
+  "description": "Create a specification from the installed specification prototype, set a document property, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "f089046005dafd82833e04f9c9491058e5383de86fa80f2c24859348142f5554",
+  "markdown_sha256": "48fec06a9ec61de80fb73ad07c089b9ef27403bb78d53819d4c088c9249e4d51",
+  "last_run_dir": "artifacts/runs/20260525_212204_093117_recipe_create_specification_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

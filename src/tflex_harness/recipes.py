@@ -53,6 +53,19 @@ _FALLBACK_RECIPE_DEFINITIONS: tuple[dict[str, Any], ...] = (
     },
 )
 
+_CATEGORY_DOCUMENT_PROPERTY_RECIPES: dict[str, dict[str, str]] = {
+    "create_detail_drawing_from_prototype": {
+        "prototype_id": "Чертежи/Чертёж детали с форматкой",
+        "property_name": "Title",
+        "text_value": "Harness Detail Drawing",
+    },
+    "create_specification_from_prototype": {
+        "prototype_id": "Спецификации/Спецификация форма 1 ГОСТ 2.106-2019",
+        "property_name": "Title",
+        "text_value": "Harness Specification",
+    },
+}
+
 
 def _sha256(path: Path) -> str | None:
     try:
@@ -297,6 +310,31 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         env["TFLEX_DOCUMENT_PROPERTY_TEXT"] = str(args.get("text_value") or "")
         artifacts["source_path"] = str(source_path)
         artifacts["property_name"] = str(property_name)
+
+    if name in _CATEGORY_DOCUMENT_PROPERTY_RECIPES:
+        defaults = _CATEGORY_DOCUMENT_PROPERTY_RECIPES[name]
+        merged_args = {**defaults, **args}
+        source_result = _resolve_prototype_source_arg(merged_args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        property_name = merged_args.get("property_name")
+        if not property_name:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "property_name is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_DOCUMENT_PROPERTY_NAME"] = str(property_name)
+        env["TFLEX_DOCUMENT_PROPERTY_TEXT"] = str(merged_args.get("text_value") or "")
+        artifacts["source_path"] = str(source_path)
+        artifacts["property_name"] = str(property_name)
+        artifacts["category_recipe_defaults"] = defaults
 
     if name == "prototype_replace_visible_text":
         source_result = _resolve_prototype_source_arg(args, name, recipe_info)

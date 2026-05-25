@@ -1,0 +1,19 @@
+{
+  "name": "create_detail_drawing_from_prototype",
+  "description": "Create a detail drawing from the installed drawing prototype, set a document property, save, reopen, and verify.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional; category default is used when omitted",
+    "prototype_id": "catalog id, optional; category default is used when omitted",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "writable string DocumentProperties property name; defaults to Title",
+    "text_value": "new property text; category default is used when omitted"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "f089046005dafd82833e04f9c9491058e5383de86fa80f2c24859348142f5554",
+  "markdown_sha256": "145349405e8458a7a740da1e7091b6a8268113176b77ef50d3803870185ecda1",
+  "last_run_dir": "artifacts/runs/20260525_212201_368610_recipe_create_detail_drawing_from_prototype",
+  "last_verified_at": "2026-05-25"
+}

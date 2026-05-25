@@ -711,7 +711,7 @@ Remaining Phase 4 work:
 
 ### Phase 5: Category Recipes
 
-Status: pending.
+Status: started.
 
 Tasks:
 
@@ -724,6 +724,23 @@ Validation:
 
 - recipe registry lists all category recipes;
 - each recipe has at least one live run.
+
+Current Phase 5 evidence:
+
+- recipe: `create_detail_drawing_from_prototype`;
+- recipe: `create_specification_from_prototype`;
+- helper set: `easy_document_properties`;
+- live drawing command: `python -m tflex_harness.cli run-recipe create_detail_drawing_from_prototype --timeout-sec 120`;
+- live drawing run: `artifacts/runs/20260525_212201_368610_recipe_create_detail_drawing_from_prototype`;
+- live drawing evidence: `documentProperty.after.Title=Harness Detail Drawing`, `document.saved=True`, `document.outputSize=25462`, `documentProperty.persisted=True`;
+- live specification command: `python -m tflex_harness.cli run-recipe create_specification_from_prototype --timeout-sec 120`;
+- live specification run: `artifacts/runs/20260525_212204_093117_recipe_create_specification_from_prototype`;
+- live specification evidence: `documentProperty.after.Title=Harness Specification`, `document.saved=True`, `document.outputSize=29138`, `documentProperty.persisted=True`.
+
+Remaining Phase 5 work:
+
+- category recipes for table documents, fragments, electrical docs, and 3D/assembly categories;
+- richer category-specific payload fields beyond writable document properties.
 
 ### Phase 6: Batch Document Factory
 
