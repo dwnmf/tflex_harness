@@ -276,6 +276,28 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         artifacts["source_path"] = str(source_path)
         artifacts["cell_index"] = str(args.get("cell_index"))
 
+    if name == "prototype_set_document_property":
+        source_result = _resolve_prototype_source_arg(args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        property_name = args.get("property_name")
+        if not property_name:
+            return {
+                "ok": False,
+                "stage": "input",
+                "error": "property_name is required",
+                "recipe": name,
+                "recipe_args": args,
+                "recipe_artifacts": {},
+                "recipe_info": recipe_info,
+            }
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_DOCUMENT_PROPERTY_NAME"] = str(property_name)
+        env["TFLEX_DOCUMENT_PROPERTY_TEXT"] = str(args.get("text_value") or "")
+        artifacts["source_path"] = str(source_path)
+        artifacts["property_name"] = str(property_name)
+
     code = registry.source(name)
     helpers = recipe_info.get("helpers")
     result = run_csharp_snippet(

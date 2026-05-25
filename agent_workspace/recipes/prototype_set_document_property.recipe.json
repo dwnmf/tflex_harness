@@ -1,0 +1,19 @@
+{
+  "name": "prototype_set_document_property",
+  "description": "Copy/open a prototype, set one writable string Document.Properties property, save, reopen, and verify persistence.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "property_name": "required writable string DocumentProperties property name",
+    "text_value": "new property text, defaults to empty string"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_document_properties"
+  ],
+  "source_sha256": "f089046005dafd82833e04f9c9491058e5383de86fa80f2c24859348142f5554",
+  "markdown_sha256": "fa632609070bd7effaf359d9689ebe07b2047d41ac6db38d68bc17b04d3577b6",
+  "last_run_dir": "artifacts/runs/20260525_181851_320860_recipe_prototype_set_document_property",
+  "last_verified_at": "2026-05-25"
+}

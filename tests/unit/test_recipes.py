@@ -25,6 +25,7 @@ def test_list_recipes_includes_verified_baseline():
     assert "prototype_set_text_variable" in names
     assert "prototype_set_real_variable" in names
     assert "prototype_set_table_cell" in names
+    assert "prototype_set_document_property" in names
 
 
 def test_helper_recipes_are_fresh_and_use_all_helpers():
@@ -63,6 +64,11 @@ def test_prototype_recipe_is_fresh_and_uses_prototype_helpers():
     assert table_mutation["verified"] is True
     assert table_mutation["freshness"]["status"] == "fresh"
     assert table_mutation["helpers"] == ["easy_text"]
+
+    doc_property = recipes["prototype_set_document_property"]
+    assert doc_property["verified"] is True
+    assert doc_property["freshness"]["status"] == "fresh"
+    assert doc_property["helpers"] == ["easy_document_properties"]
 
 
 def test_each_verified_recipe_has_markdown_and_csharp_source():
@@ -227,6 +233,22 @@ def test_prototype_set_table_cell_requires_cell_index(tmp_path, monkeypatch):
     assert result["ok"] is False
     assert result["stage"] == "input"
     assert result["error"] == "cell_index is required"
+
+
+def test_prototype_set_document_property_requires_property_name(tmp_path, monkeypatch):
+    source = tmp_path / "demo.grb"
+    source.write_bytes(b"demo")
+
+    def fake_run_csharp_snippet(*args, **kwargs):
+        raise AssertionError("run should not start without property name")
+
+    monkeypatch.setattr(recipes_module, "run_csharp_snippet", fake_run_csharp_snippet)
+
+    result = run_recipe("prototype_set_document_property", args={"source_path": str(source), "text_value": "x"}, timeout_sec=1)
+
+    assert result["ok"] is False
+    assert result["stage"] == "input"
+    assert result["error"] == "property_name is required"
 
 
 def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):
