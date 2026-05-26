@@ -2,13 +2,14 @@
 
 Date: 2026-05-26
 
-Current objective: live MVP for assembly validation through `tflex_harness` helpers.
+Current objective: production-ready MVP for assembly validation through `tflex_harness` helpers.
 
 Failure classes in scope:
 
 1. bodies/fragments placed inside each other;
 2. `Fragment3D` objects floating without LCS/fixing/mate connection;
-3. native mate graph evidence for future BFS/DOF checks.
+3. face-contact/tolerance-contact that must not become a false collision;
+4. native mate graph evidence for future BFS/DOF checks.
 
 ## What Is Implemented
 
@@ -28,11 +29,12 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120
 ```
 
-Run: `artifacts/runs/20260526_231540_012426_recipe_helper_assembly_validation`
+Run: `artifacts/runs/20260526_232620_098025_recipe_helper_assembly_validation`
 
 Evidence:
 
 - bad assembly has exact solid collision:
+  - `bad.summary.broadPhasePairCount=1`
   - `bad.summary.bboxOverlapCount=1`
   - `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`
   - `bad.summary.clashPairCount=1`
@@ -45,16 +47,23 @@ Evidence:
   - `bad.fragment.1.reason=no_lcs_fixing_or_mate`
   - `bad.summary.floatingFragmentCount=1`
 - good assembly is clean:
-  - `good.summary.bboxOverlapCount=0`
+  - `good.summary.broadPhasePairCount=0`
   - `good.summary.collisionCount=0`
   - `good.summary.floatingFragmentCount=0`
   - `good.expectedClean=True`
+- touching assembly is contact, not collision:
+  - `touch.pair.0_1.bboxOverlap=False`
+  - `touch.pair.0_1.broadPhaseCandidate=True`
+  - `touch.pair.0_1.solid.0_0.clash.0.type=Interfere`
+  - `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`
+  - `touch.summary.bboxContactCandidateCount=1`
+  - `touch.summary.collisionCount=0`
+  - `touch.summary.contactCount=1`
+  - `touch.expectedContact=True`
 - native mate inspector runs live:
   - `bad.summary.mateCount=0`
-  - `bad.summary.mateEdgeCount=0`
-  - `bad.summary.mateOperationLinkCount=0`
   - `good.summary.mateCount=0`
-  - `good.summary.mateLinkedFragmentCount=0`
+  - `touch.summary.mateCount=0`
 - final pass: `assemblyValidation.live=True`.
 
 ## Important API Facts
@@ -63,6 +72,8 @@ Evidence:
 - Exact body access: `Operation.Geometry.Solid[index]` returns `BaseBody`.
 - Exact clash: `BaseBody.Clash(BaseBody, false, true)` returns `ICollection<BaseClashResultItem>`.
 - Exact collision type live-proven: `BaseBody.TypeOfClash.Interfere`.
+- Face contact can be returned by the kernel as `Interfere`; helper classifies it as contact when strict AABB volume overlap is false.
+- Broad phase is inclusive-with-tolerance for exact checks, but strict `BoxesOverlap(...)` still separates volume overlap from face contact.
 - Fragment fixing/connectivity signals:
   - `Fragment3D.Fixing`
   - `Fragment3D.FixingType.NoFixing`
@@ -75,26 +86,31 @@ Evidence:
   - `Mate.Element1`, `Mate.Element2`, `Mate.Type`, and `Mate.Suppressed` compile and are logged.
 - `CoordinateNode3D` LCS placement uses model units; recipe converts mm with `EasyUnits.MmToModel(...)`.
 
-## Known Limitation
+## Mate Status
 
-Collision detection is exact for solid body pairs: AABB broad phase, then `Operation.Geometry.Solid[index]` -> `BaseBody.Clash(...)`. `ClashBody(...)` is obsolete and not used.
+Positive native mate-edge classification remains blocked by input data/API behavior, not by the validator hook:
 
-Floating detection now combines LCS/fixing state plus a native mate operation hook. Positive native mate-edge classification is not live-proven yet: simple LCS plane mate creation probe failed with `CompleteError` in `artifacts/runs/20260526_231412_287906_probe_create_lcs_mate`.
+- direct native mate creation probes returned `CompleteError`, including `artifacts/runs/20260526_231412_287906_probe_create_lcs_mate`;
+- installed prototype scan opened 50 `.grb` prototypes and found no native mates: `artifacts/runs/20260526_232731_135336_probe_scan_prototype_mates`, `scan.opened=50`, `scan.withMates=0`;
+- DeepWiki/local docs confirm the visible API shape (`new Mate(document)`, `Type`, `Element1`, `Element2`, `Document3D.GetMates(doc)`), but no working creation recipe is documented.
 
-This is not yet a full DOF solver.
+This is production-ready for generated/legacy assemblies where collisions, contacts, and floating fragments are the gates. It is not a full DOF solver and does not yet prove positive `MateEdgeCount>0` on a real native-mate file.
 
 ## Next Target
 
-1. Find/create a live assembly with real native mates and prove `MateEdgeCount>0`.
+1. Obtain or create a real native-mate `.grb` and prove `MateEdgeCount>0`.
 2. Extend from mate operation hooks to BFS over LCS/mate links.
-3. Add contact-specific live case for `BaseBody.TypeOfClash.Abutment`.
+3. Add policy options: fail on contact vs allow contact, allowed overlap pairs, ignored body names.
 
-## Done Criteria For This Iteration
+## Done Criteria For Current MVP
 
 - Helper source exists and is registered: done.
 - Recipe exists with markdown/metadata: done.
 - Recipe compiles and runs live: done.
-- Live stdout proves bad and good cases: done.
+- Live stdout proves bad collision/floating case: done.
+- Live stdout proves clean separated case: done.
+- Live stdout proves face-contact is not false collision: done.
 - Mate enumeration compiles and runs in live recipe: done.
-- Positive mate-edge case: not done.
+- Installed prototypes scanned for positive mate file: done, none found.
+- Positive mate-edge case: blocked until real native-mate input exists or working creation API is discovered.
 - Commit and push: pending.

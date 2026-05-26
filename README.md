@@ -78,6 +78,7 @@ Initial helper sets:
 - `easy_variables` — prototype/session helpers plus text/real variable mutation helpers
 - `easy_text` — prototype/session helpers plus `RichText` table cell and visible 2D text replacement helpers
 - `easy_document_properties` — prototype/session helpers plus writable `Document.Properties` string mutation helpers
+- `easy_assembly_validation` — assembly collision/contact/floating-fragment validation helpers
 - `all` — all helper source files
 
 Every helper run copies helper `.cs` files into the run directory under `helpers/`, includes helper source content in the compile cache key, and records helper paths plus SHA256 hashes in `result.json`.
@@ -210,15 +211,17 @@ Verified live fragment LCS factory payload on 2026-05-26:
 Verified live assembly validation MVP on 2026-05-26:
 
 - command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`
-- run: `artifacts/runs/20260526_231540_012426_recipe_helper_assembly_validation`
+- run: `artifacts/runs/20260526_232620_098025_recipe_helper_assembly_validation`
 - helper set: `easy_assembly_validation`
 - helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`
 - bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`
 - bad floating reason: `bad.fragment.1.connectedByMate=False`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`
-- good assembly evidence: `good.summary.bboxOverlapCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`
-- mate inspector evidence: `bad.summary.mateCount=0`, `good.summary.mateCount=0`, `good.summary.mateLinkedFragmentCount=0`
+- good assembly evidence: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`
+- touching evidence: `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.expectedContact=True`
+- mate inspector evidence: `bad.summary.mateCount=0`, `good.summary.mateCount=0`, `touch.summary.mateCount=0`
+- prototype mate scan: `artifacts/runs/20260526_232731_135336_probe_scan_prototype_mates`, `scan.opened=50`, `scan.withMates=0`
 - final evidence: `assemblyValidation.live=True`
-- collision path: AABB broad phase plus exact `BaseBody.Clash(...)`; mate graph hook uses `Document3D.GetMates(doc)`, but positive native mate-edge case is not live-proven yet.
+- collision path: inclusive AABB broad phase plus exact `BaseBody.Clash(...)`; strict AABB separates volume collision from face contact. Mate graph hook uses `Document3D.GetMates(doc)`, but positive native mate-edge case needs a real native-mate `.grb`.
 
 Verified live metadata batch on 2026-05-25:
 

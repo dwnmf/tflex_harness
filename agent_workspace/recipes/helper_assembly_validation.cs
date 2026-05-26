@@ -118,13 +118,44 @@ public class Program {
     }
   }
 
+  static string MakeTouchingAssembly(EasySession sess, string partFile) {
+    Document asm = null;
+    try {
+      string asmFile = sess.ArtifactPath("assembly_validation_touching.grb");
+      asm = sess.New3DDocument(false);
+      asm.BeginChanges("touching assembly with fixed face contact");
+      PointsLCS a = MakeLcs(asm, "TOUCH_A", 0, 0, 0);
+      PointsLCS b = MakeLcs(asm, "TOUCH_B", 20, 0, 0);
+      Fragment3D fragA = new Fragment3D(partFile, asm);
+      fragA.Name = "touching_fragment_a";
+      fragA.FixByFragmentLCS("FRAG_LCS", a);
+      Fragment3D fragB = new Fragment3D(partFile, asm);
+      fragB.Name = "touching_fragment_b";
+      fragB.FixByFragmentLCS("FRAG_LCS", b);
+      var end = asm.EndChanges();
+      EasyDiagnostics.Print("touch.end", end);
+      AssemblyValidationReport report = EasyAssemblyValidation.Validate(asm, "touch");
+      bool saved = asm.SaveAs(asmFile);
+      EasyDiagnostics.Print("touch.saved", saved);
+      EasyDiagnostics.Print("touch.path", asmFile);
+      EasyDiagnostics.Print("touch.exists", File.Exists(asmFile));
+      if (File.Exists(asmFile)) EasyDiagnostics.Print("touch.size", new FileInfo(asmFile).Length);
+      bool expected = report.CollisionCount == 0 && report.ContactCount > 0 && report.FloatingFragmentCount == 0 && report.FragmentCount == 2;
+      EasyDiagnostics.Print("touch.expectedContact", expected);
+      return expected ? asmFile : "";
+    } finally {
+      if (asm != null) sess.Close(asm);
+    }
+  }
+
   public static int Main() {
     using (var sess = EasySession.Start3D()) {
       try {
         string partFile = MakeSourcePart(sess);
         string badFile = MakeBadAssembly(sess, partFile);
         string goodFile = MakeGoodAssembly(sess, partFile);
-        bool ok = File.Exists(partFile) && File.Exists(badFile) && File.Exists(goodFile);
+        string touchFile = MakeTouchingAssembly(sess, partFile);
+        bool ok = File.Exists(partFile) && File.Exists(badFile) && File.Exists(goodFile) && File.Exists(touchFile);
         EasyDiagnostics.Print("assemblyValidation.live", ok);
         return ok ? 0 : 20;
       } catch (Exception ex) {

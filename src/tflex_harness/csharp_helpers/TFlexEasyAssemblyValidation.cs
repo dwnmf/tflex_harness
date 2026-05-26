@@ -14,7 +14,9 @@ namespace TFlexEasy {
 
   public sealed class AssemblyValidationReport {
     public int BodyCount;
+    public int BroadPhasePairCount;
     public int BBoxOverlapCount;
+    public int BBoxContactCandidateCount;
     public int ClashPairCount;
     public int CollisionCount;
     public int ContactCount;
@@ -67,9 +69,13 @@ namespace TFlexEasy {
           AssemblyBodyRecord a = bodies[i];
           AssemblyBodyRecord b = bodies[j];
           bool bboxOverlap = BoxesOverlap(a.Box, b.Box);
+          bool broadPhaseCandidate = BoxesMayTouchOrOverlap(a.Box, b.Box, 0.001);
           EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".bboxOverlap", bboxOverlap);
-          if (!bboxOverlap) continue;
-          report.BBoxOverlapCount++;
+          EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".broadPhaseCandidate", broadPhaseCandidate);
+          if (!broadPhaseCandidate) continue;
+          report.BroadPhasePairCount++;
+          if (bboxOverlap) report.BBoxOverlapCount++;
+          else report.BBoxContactCandidateCount++;
           bool pairClashed = false;
           int bodyPairCount = 0;
           try {
@@ -92,11 +98,16 @@ namespace TFlexEasy {
                 foreach (BaseClashResultItem item in clashes) {
                   BaseBody.TypeOfClash clash = item.Type;
                   EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solid." + ai + "_" + bi + ".clash." + clashIndex + ".type", clash);
-                  if (clash == BaseBody.TypeOfClash.Interfere
-                      || clash == BaseBody.TypeOfClash.Exists
-                      || clash == BaseBody.TypeOfClash.TargetInTool
-                      || clash == BaseBody.TypeOfClash.ToolInTarget) pairClashed = true;
-                  else if (clash == BaseBody.TypeOfClash.Abutment) report.ContactCount++;
+                  if (IsCollisionClash(clash)) {
+                    if (bboxOverlap) pairClashed = true;
+                    else {
+                      report.ContactCount++;
+                      EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solid." + ai + "_" + bi + ".clash." + clashIndex + ".classification", "contact_by_bbox_no_volume_overlap");
+                    }
+                  } else if (clash == BaseBody.TypeOfClash.Abutment) {
+                    report.ContactCount++;
+                    EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solid." + ai + "_" + bi + ".clash." + clashIndex + ".classification", "contact_by_kernel_abutment");
+                  }
                   clashIndex++;
                 }
               }
@@ -199,9 +210,25 @@ namespace TFlexEasy {
           && a.MinZ < b.MaxZ && a.MaxZ > b.MinZ;
     }
 
+    public static bool IsCollisionClash(BaseBody.TypeOfClash clash) {
+      return clash == BaseBody.TypeOfClash.Interfere
+          || clash == BaseBody.TypeOfClash.Exists
+          || clash == BaseBody.TypeOfClash.TargetInTool
+          || clash == BaseBody.TypeOfClash.ToolInTarget;
+    }
+
+    public static bool BoxesMayTouchOrOverlap(BodyBoxMm a, BodyBoxMm b, double toleranceMm) {
+      if (!a.Valid || !b.Valid) return false;
+      return a.MinX <= b.MaxX + toleranceMm && a.MaxX + toleranceMm >= b.MinX
+          && a.MinY <= b.MaxY + toleranceMm && a.MaxY + toleranceMm >= b.MinY
+          && a.MinZ <= b.MaxZ + toleranceMm && a.MaxZ + toleranceMm >= b.MinZ;
+    }
+
     public static void PrintReport(AssemblyValidationReport report, string label) {
       EasyDiagnostics.Print(label + ".summary.bodyCount", report.BodyCount);
+      EasyDiagnostics.Print(label + ".summary.broadPhasePairCount", report.BroadPhasePairCount);
       EasyDiagnostics.Print(label + ".summary.bboxOverlapCount", report.BBoxOverlapCount);
+      EasyDiagnostics.Print(label + ".summary.bboxContactCandidateCount", report.BBoxContactCandidateCount);
       EasyDiagnostics.Print(label + ".summary.clashPairCount", report.ClashPairCount);
       EasyDiagnostics.Print(label + ".summary.collisionCount", report.CollisionCount);
       EasyDiagnostics.Print(label + ".summary.contactCount", report.ContactCount);
