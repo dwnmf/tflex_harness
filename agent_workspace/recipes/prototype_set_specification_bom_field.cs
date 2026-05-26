@@ -36,9 +36,11 @@ public class Program {
 
         reopened = EasyPrototype.OpenCopy(output, visible: false);
         string actual = EasySpecifications.FirstBomStandardFieldText(reopened, field);
+        bool anyActual = EasySpecifications.AnyBomStandardFieldText(reopened, field, expected);
         EasyDiagnostics.Print("spec.field.reopened", actual);
-        EasyDiagnostics.Print("spec.field.persisted", actual == expected);
-        return (saved && actual == expected) ? 0 : 20;
+        EasyDiagnostics.Print("spec.field.reopenedAny", anyActual);
+        EasyDiagnostics.Print("spec.field.persisted", anyActual);
+        return (saved && anyActual) ? 0 : 20;
       } finally {
         EasyPrototype.Close(reopened);
         EasyPrototype.Close(doc);

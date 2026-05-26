@@ -301,7 +301,7 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         env["TFLEX_RECIPE_OUTPUT_FILE"] = str(output_file)
         artifacts["output_file"] = str(output_file)
 
-    if name in {"prototype_open_copy_save", "prototype_probe_specification_objects"}:
+    if name in {"prototype_open_copy_save", "prototype_probe_specification_objects", "prototype_probe_electrical_objects"}:
         source_result = _resolve_prototype_source_arg(args, name, recipe_info)
         if source_result.get("ok") is False:
             return source_result

@@ -33,28 +33,25 @@ User-facing style:
 
 ## Current Focus: Point Fixes 1-3
 
-As of 2026-05-26, `goal.md` is the active compact backlog. Ignore older phase sprawl unless needed for evidence lookup. Current work is only:
+As of 2026-05-26, `goal.md` is the active compact backlog. Ignore older phase sprawl unless needed for evidence lookup. Current exact state:
 
-1. **Tables/specifications**
-   - Generic `RichText` table-cell mutation works for `Таблицы/*`.
-   - Live matrix: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json`.
-   - Result: `Таблицы` selected `7`, passed `7`, persisted `7`.
-   - Same raw path is weak for `Спецификации/*`.
-   - Live matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`.
-   - Result: `Спецификации` selected `20`, passed `1`, failed `19`, persisted `1`.
-   - New proven path: `TFlex.Model.Model2D.BOMObject` via `TFlexEasySpecifications.cs` and `prototype_set_specification_bom_field`.
+1. **Specifications**
+   - Generic `RichText` table-cell mutation is for `Таблицы/*`, not specifications.
+   - Real spec path is `TFlex.Model.Model2D.BOMObject` through `TFlexEasySpecifications.cs` and `prototype_set_specification_bom_field`.
    - Probe run: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
-   - Single mutation run: `artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field`, `spec.field.persisted=True`.
-   - Batch matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`.
-   - Result: `Спецификации` selected `20`, passed `17`, failed `3`, persisted `17`; buckets `bom_standard_field_supported=17`, `bom_no_persist=3`.
-   - Next: classify the three `bom_no_persist` templates; do not retry raw `RichText.GetTableByIndex(0)` as the main spec path.
+   - Final scan-based single proof: `artifacts/runs/20260526_212003_622190_recipe_prototype_set_specification_bom_field`, `spec.field.reopenedAny=True`, `spec.field.persisted=True`.
+   - Final matrix: `artifacts/prototype_validation/20260526_212016_705556/prototype_specification_bom_field_matrix.json`.
+   - Result: `Спецификации` selected `20`, passed `20`, failed `0`, persisted `20`; bucket `bom_standard_field_supported=20`.
+   - Do not reintroduce first-record-only verification; scan BOM records after reopen.
 
 2. **Electrical documents**
-   - Generic visible text replacement works only where `LineText` or non-table `RichText` is API-visible.
-   - Direct proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`.
-   - Batch matrix: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`.
-   - Result: `Электротехника` selected `8`, passed `4`, failed `4`, persisted `4`.
-   - Next: add an electrical metadata probe for failing prototypes, classify visible-text / variable-backed / symbol-property-backed / unsupported, then add one helper only after live persistence proof.
+   - Generic visible text replacement works only where labels are exposed as `LineText` or non-table `RichText`.
+   - Visible-text batch: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`, selected `8`, passed `4`, failed `4`, persisted `4`.
+   - Electrical probe recipe exists: `prototype_probe_electrical_objects`.
+   - Probe run on failed `Электротехника/Аппарат`: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`.
+   - Finding: `Аппарат` is variable-backed; key variables include `$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`.
+   - Mutation proof uses existing `prototype_set_text_variable`: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`, `variable.persisted=True`.
+   - Next: add electrical batch fallback/classification: visible text -> text variable -> symbol/property/unknown.
 
 3. **Fragments/assemblies**
    - Semantic Fragment3D LCS insertion is live-proven.
@@ -63,7 +60,7 @@ As of 2026-05-26, `goal.md` is the active compact backlog. Ignore older phase sp
    - Evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
    - Next: wire this exact path into document factory payloads and prove one JSON payload live.
 
-Do not mark any of these complete without a fresh narrow live run for the exact changed path.
+Do not mark electrical batch or fragment factory complete without fresh narrow live proof for the exact changed path.
 Do not run broad test drag while time is low; use direct live checks and `git diff --check`.
 
 ## Hard Rules

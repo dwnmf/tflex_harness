@@ -75,6 +75,21 @@ Evidence:
 
 Blockers: none for the verified `$Наименование` text variable in `2D Деталь.grb`.
 
+
+## Electrical Prototype Proof
+
+Live on 2026-05-26 this same variable helper fixed a previously failed electrical prototype where visible `LineText`/`RichText` replacement did not apply.
+
+Evidence:
+
+- probe run: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`;
+- mutation run: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`;
+- command: `python -m tflex_harness.cli run-recipe prototype_set_text_variable --arg 'prototype_id=Электротехника/Аппарат' --arg 'variable_name=$Наименование' --arg 'text_value=Harness Electrical Name' --timeout-sec 120`;
+- stdout: `variable.exists=True`;
+- stdout: `variable.expression.$Наименование="Harness Electrical Name"`;
+- stdout: `variable.reopened=Harness Electrical Name`;
+- stdout: `variable.persisted=True`.
+
 ## Assumptions
 
 - The target variable already exists.

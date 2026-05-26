@@ -2,163 +2,100 @@
 
 Date: 2026-05-26
 
-This file is the only active plan. Old broad phase history is intentionally removed. Current work is narrow: fix three semantic gaps proven by live T-FLEX evidence, using only targeted live runs.
+This file is the active short backlog. Old broad phases are intentionally removed. Work only on three point fixes needed to turn installed T-FLEX prototypes into reliable harness-driven documents.
 
 ## Non-Negotiables
 
 - Use visible C# snippets plus checked-in helper source files; no hidden wrapper DLLs.
-- Use `C:\Program Files\T-FLEX CAD 17\Program\Прототипы` as reference coverage, not as files to mutate in place.
-- Work only on artifact copies of `.grb` files.
-- Do not run broad/unit test drag unless a code path truly needs it.
-- Prefer one live T-FLEX proof for the exact changed path.
+- Treat `C:\Program Files\T-FLEX CAD 17\Program\Прототипы` as reference coverage only.
+- Mutate only copied `.grb` files under `artifacts/runs/...`.
+- Do not run broad/unit test drag while time is low; use narrow live T-FLEX proof.
 - Save evidence under `artifacts/runs/...` or `artifacts/prototype_validation/...`.
 - Update recipe docs/metadata and this file when a path becomes live-proven.
 - Commit and push each completed iteration.
 
-## Current Baseline
+## Baseline Already Proven
 
-Already live-proven:
+- Prototype discovery and copy/open/save work.
+- `Document.Properties.Title` persists on all installed prototypes: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json` (`50/50`).
+- Generic `RichText` table-cell mutation works for `Таблицы/*`: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json` (`7/7`).
+- Generic first visible text mutation works for some `Электротехника/*`: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json` (`4/8`).
+- Fragment insertion by `PointsLCS` + `Fragment3D.FixByFragmentLCS(...)` works standalone: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`.
 
-- Installed prototype scan works.
-- Copy/open/save works for installed `.grb` prototypes.
-- `Document.Properties.Title` mutation works for all 50 installed prototypes.
-- Generic `RichText` table-cell mutation works for `Таблицы/*`.
-- Generic first visible 2D text replacement works for some `Электротехника/*` prototypes.
-- Fragment insertion by `PointsLCS` + `Fragment3D.FixByFragmentLCS(...)` works as a standalone recipe.
+## Point Fix 1: Specifications via BOMObject
 
-Key evidence:
+### Done Live
 
-- Title batch: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json` (`50/50`, persisted `50`).
-- Tables batch: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json` (`7/7`, persisted `7`).
-- Specification weak batch: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json` (`1/20`, persisted `1`).
-- Specification BOM field batch: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json` (`17/20`, persisted `17`, buckets `bom_standard_field_supported=17`, `bom_no_persist=3`).
-- Electrical visible text batch: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json` (`4/8`, persisted `4`).
-- Electrical direct proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text` (`firstVisibleText.persisted=True`).
-- Fragment LCS proof: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly` (`fragmentAssembly.persisted=True`).
+- Probe found real spec object model: `TFlex.Model.Model2D.BOMObject`.
+- Probe evidence: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
+- Helper added: `src/tflex_harness/csharp_helpers/TFlexEasySpecifications.cs`.
+- Recipe updated: `agent_workspace/recipes/prototype_set_specification_bom_field.cs`.
+- Important fix: verification now scans all BOM records, not only the first record. This removed false `bom_no_persist` failures.
+- Single proof on former failing template:
+  - run: `artifacts/runs/20260526_212003_622190_recipe_prototype_set_specification_bom_field`;
+  - evidence: `spec.scan.2.field=Harness Spec Scan`, `spec.field.reopenedAny=True`, `spec.field.persisted=True`.
+- Category matrix:
+  - matrix: `artifacts/prototype_validation/20260526_212016_705556/prototype_specification_bom_field_matrix.json`;
+  - result: selected `20`, attempted `20`, passed `20`, failed `0`, persisted `20`;
+  - bucket: `bom_standard_field_supported=20`.
 
-## Point Fix 1: Specifications
+### Remaining
 
-### Problem
-
-`Таблицы/*` works through generic `RichText.GetTableByIndex(0)` cell mutation. Most `Спецификации/*` prototypes fail through that same path with `InvalidOperationException: Can not find object` or `Bad position`.
-
-### Next Exact Work
-
-Done now:
-
-- Probe recipe: `prototype_probe_specification_objects`.
-- Probe live run: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
-- Finding: failing specification prototypes expose `TFlex.Model.Model2D.BOMObject`; raw `RichText.GetTableByIndex(0)` reports `InvalidOperationException: Can not find object / Bad position`.
-- Mutation helper: `TFlexEasySpecifications.cs`.
-- Mutation recipe: `prototype_set_specification_bom_field`.
-- Single live proof: `artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field`, with `spec.field.persisted=True`.
-- Category matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`, selected `20`, passed `17`, failed `3`, persisted `17`.
-
-Remaining exact work:
-
-1. For the three `bom_no_persist` specification-like templates, run focused probes and determine whether they need a different standard field, user field, or table-specific path.
-2. If a second path is found, add it as a separate helper/recipe instead of weakening `prototype_set_specification_bom_field`.
-3. Keep the `RichText` table helper for `Таблицы/*`; use `BOMObject` for normal `Спецификации/*`.
-
-Historical probe requirements already satisfied:
-
-1. Add a specification probe recipe/snippet that opens one copied failing `Спецификации/*` prototype and prints:
-   - 2D object type histogram;
-   - object names where readable;
-   - reflected public members containing `Spec`, `Table`, `Cell`, `Row`, `Text`, `Value`, `Data`;
-   - writable text-like/table-like properties;
-   - safe `RichText` table access results with per-object errors.
-2. Run it live on at least one currently failing specification prototype.
-3. From evidence, choose one writable path:
-   - real specification API row/cell field;
-   - variable-backed field;
-   - property-backed field;
-   - unsupported with proved object model reason.
-4. Add the smallest helper only for the proven path.
-5. Add a recipe named around the proven behavior, e.g. `prototype_set_specification_cell` or `prototype_set_specification_field`.
-6. Run a narrow live persist/reopen proof.
-7. Then rerun category matrix for `Спецификации` only if the single path works.
-
-### Done
-
-- At least one common `Спецификации/*` prototype has a persisted semantic mutation after reopen. Done: `Спецификация форма 1 ГОСТ 2.106-2019`.
-- Matrix/report separates supported and unsupported spec templates. Partly done: `17` supported, `3` are `bom_no_persist`; the three still need deeper classification.
+- None for installed `Спецификации/*` coverage.
+- Keep generic `RichText` table helper for `Таблицы/*`; use `BOMObject` path for `Спецификации/*`.
 
 ## Point Fix 2: Electrical Labels
 
-### Problem
+### Done Live
 
-`prototype_replace_first_visible_text` works only where visible labels are exposed as `LineText` or non-table `RichText`. Four electrical prototypes still fail:
+- Generic visible text path remains proven for easy electrical templates: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`.
+- Probe added: `agent_workspace/recipes/prototype_probe_electrical_objects.cs`.
+- Probe live run on a previously failed template:
+  - prototype: `Электротехника/Аппарат`;
+  - run: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`;
+  - evidence: document has text variables like `$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`, plus geometry/control objects and no normal visible `LineText`/`RichText` label path.
+- Existing variable helper proven as the semantic electrical path:
+  - recipe: `prototype_set_text_variable`;
+  - prototype: `Электротехника/Аппарат`;
+  - run: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`;
+  - evidence: `variable.exists=True`, `variable.expression.$Наименование="Harness Electrical Name"`, `variable.reopened=Harness Electrical Name`, `variable.persisted=True`.
 
-- `Электротехника/Аппарат`
-- `Электротехника/Базовый компонент`
-- `Электротехника/Контактор`
-- `Электротехника/Схема`
+### Remaining
 
-### Next Exact Work
-
-1. Add an electrical metadata probe recipe/snippet for one failing prototype.
-2. Print:
-   - 2D object type histogram;
-   - writable reflected members containing `Text`, `Name`, `Value`, `Mark`, `Label`, `Reference`, `Variable`, `Connector`, `Contact`;
-   - document variables and text-like values;
-   - symbol/block-like objects and writable properties.
-3. Run it live on one failing electrical prototype.
-4. Classify storage:
-   - visible text;
-   - variable-backed label;
-   - symbol/property-backed label;
-   - unsupported/unknown API.
-5. Add one helper only after a persisted live mutation path is proven.
-6. Extend the electrical batch output with classification buckets instead of plain failed rows.
-
-### Done
-
-- At least one currently failing electrical prototype is mutated semantically and persists after reopen, or has a proved unsupported classification.
-- Batch matrix has explicit buckets.
+1. Add/extend an electrical category batch that first tries visible text, then classifies variable-backed templates and applies `prototype_set_text_variable` where the target variable exists.
+2. Run that batch only on `Электротехника/*` and report buckets:
+   - `visible_text_supported`;
+   - `variable_backed_supported`;
+   - `symbol_property_backed`;
+   - `unsupported_unknown`.
+3. If any failing prototype is not variable-backed, add a focused probe for that exact template before creating another helper.
 
 ## Point Fix 3: Fragment LCS Factory Payload
 
-### Problem
+### Done Live
 
-`helper_fragment_lcs_assembly` proves the native T-FLEX path, but document factory payloads do not yet expose it.
+- Standalone native path is proven:
+  - recipe: `helper_fragment_lcs_assembly`;
+  - run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`;
+  - evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
 
-### Next Exact Work
+### Remaining
 
 1. Add a document factory payload type for fragment LCS assembly creation.
-2. Payload must include:
-   - source part name/output path stem;
-   - source LCS name;
-   - target LCS name;
-   - target position/orientation parameters;
-   - assembly output stem;
-   - optional STEP export flag.
-3. Generate visible C# that uses the proven path:
+2. Payload must include source part stem, source LCS name, target LCS name, target position/orientation, assembly stem, optional STEP export.
+3. Generated C# must use the proven path exactly:
    - create source part `.grb`;
    - create `PointsLCS` with `UseForFragment=true` and `UseForFragmentFixing=true`;
-   - save/close part;
+   - save/close source part;
    - create assembly document;
    - create target `PointsLCS`;
    - insert `Fragment3D`;
    - call `FixByFragmentLCS(sourceName, targetLcs)`;
-   - save assembly.
-4. Validate live factory evidence:
-   - part saved and non-empty;
-   - assembly saved and non-empty;
-   - `SourceLCSName` equals requested source LCS;
-   - `TargetLCS` is non-null;
-   - assembly operation count increased;
-   - persisted reopen proof exists.
+   - save/reopen assembly.
+4. Prove one JSON payload live via `document-factory-batch` or equivalent factory command.
 
-### Done
+## Next Work Order
 
-- `document-factory-batch` or equivalent factory command creates a part and assembly from one JSON payload live.
-- Evidence includes persisted assembly proof matching the standalone recipe.
-
-## Work Order
-
-1. Specification probe and first proven mutation/classification.
-2. Electrical probe and first proven mutation/classification.
-3. Fragment LCS payload wiring and one live factory proof.
-
-Stop after each pushed iteration if time is low.
+1. Electrical batch with variable-backed classification.
+2. Fragment LCS document-factory payload and one live factory proof.
+3. Only after that, broaden prototype coverage if needed.

@@ -1,0 +1,17 @@
+{
+  "name": "prototype_probe_electrical_objects",
+  "description": "Copy/open an electrical prototype and print reflected label, fragment variable, connector, and circuit object evidence without mutation.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "21b23e29363f5f9078719cd39c81cca36001fbd5eea4cae41410db7b706a3b46",
+  "markdown_sha256": "edc7c95c4153f682908577d72ab0b08a4cd6a13a73c5d14be8d677d595306de8",
+  "last_run_dir": "artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects",
+  "last_verified_at": "2026-05-26"
+}

@@ -36,6 +36,40 @@ namespace TFlexEasy {
       }
     }
 
+    public static bool AnyBomStandardFieldText(Document doc, BOMObject.StandardField field, string expected) {
+      return AnyBomStandardFieldText(doc, field, expected, 256);
+    }
+
+    public static bool AnyBomStandardFieldText(Document doc, BOMObject.StandardField field, string expected, int maxRecords) {
+      if (expected == null) expected = "";
+      BOMObject bom = FirstBom(doc);
+      if (bom == null) return false;
+      bool editing = false;
+      try {
+        bom.BeginEdit();
+        editing = true;
+        bom.MoveToFrontRecord();
+        uint previousId = UInt32.MaxValue;
+        for (int index = 0; index < maxRecords; index++) {
+          uint id = bom.RecordID;
+          string text = bom.GetStandardFieldValue(field);
+          EasyDiagnostics.Print("spec.scan." + index + ".recordID", id);
+          EasyDiagnostics.Print("spec.scan." + index + ".field", text);
+          if (text == expected) return true;
+          bom.MoveToNextRecord();
+          uint nextId = bom.RecordID;
+          if (nextId == id || nextId == previousId) break;
+          previousId = id;
+        }
+        return false;
+      } catch (Exception ex) {
+        EasyDiagnostics.Print("spec.scan.error", ex.GetType().Name + ": " + ex.Message);
+        return false;
+      } finally {
+        if (editing) bom.EndEdit();
+      }
+    }
+
     public static bool SetFirstBomStandardFieldText(Document doc, BOMObject.StandardField field, string value) {
       return SetFirstBomStandardFieldText(doc, field, value, false);
     }

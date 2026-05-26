@@ -10,11 +10,11 @@
     "add_record": "true/false; when true, add a BOM record before setting the field (useful for empty specification prototypes)"
   },
   "verified": true,
-  "last_run_dir": "artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field",
+  "last_run_dir": "artifacts/runs/20260526_212003_622190_recipe_prototype_set_specification_bom_field",
   "last_verified_at": "2026-05-26",
   "helpers": [
     "easy_specification"
   ],
-  "source_sha256": "c7978668adec9b34c2b37615b5827299ac06ddb45af10de88e8b9586017efe75",
-  "markdown_sha256": "bae426730ab93911c7b4d15c003ffe5053b7c9aa40aaf1a3e4dab5360de9f7fc"
+  "source_sha256": "707c3dcbb04ff731ac139d11b82493b6dd188d8840b1de7b3beeb4989c7e7dc1",
+  "markdown_sha256": "48be4d22a2444aab01080b2dce53bf275131dc2e62fb06a660bfda88df017bb1"
 }

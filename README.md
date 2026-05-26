@@ -168,9 +168,13 @@ Verified live specification BOM-field path on 2026-05-26:
 - mutation run: `artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field`
 - mutation evidence: `spec.record.added=True`, `spec.field.after=Harness Spec BOM Desc`, `spec.field.reopened=Harness Spec BOM Desc`, `spec.field.persisted=True`
 - batch command: `python -m tflex_harness.cli prototypes-specification-bom-field-batch --category Спецификации --timeout-sec 120`
-- batch result: selected `20`, attempted `20`, passed `17`, failed `3`, persisted `17`
-- buckets: `bom_standard_field_supported=17`, `bom_no_persist=3`
-- matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`
+- first batch result: selected `20`, attempted `20`, passed `17`, failed `3`, persisted `17`
+- first buckets: `bom_standard_field_supported=17`, `bom_no_persist=3`
+- first matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`
+- scan-based command: `python -m tflex_harness.cli prototypes-specification-bom-field-batch --category Спецификации --timeout-sec 120`
+- scan-based result: selected `20`, attempted `20`, passed `20`, failed `0`, persisted `20`
+- scan-based buckets: `bom_standard_field_supported=20`
+- scan-based matrix: `artifacts/prototype_validation/20260526_212016_705556/prototype_specification_bom_field_matrix.json`
 
 Verified live electrical visible-text batch on 2026-05-25:
 
@@ -178,6 +182,8 @@ Verified live electrical visible-text batch on 2026-05-25:
 - result: selected `8`, attempted `8`, passed `4`, failed `4`, persisted `4`
 - matrix: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`
 - direct recipe proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`
+- electrical object probe: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`, classified `Электротехника/Аппарат` as variable-backed (`$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`)
+- variable-backed mutation proof: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`, `variable.reopened=Harness Electrical Name`, `variable.persisted=True`
 
 Verified live fragment assembly semantic insertion on 2026-05-25:
 
