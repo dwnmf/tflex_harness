@@ -7,7 +7,7 @@
     "easy_assembly_validation"
   ],
   "source_sha256": "d203e51f0160bbc92f6a2a36d25609cd1a265394029998e584f5328f6b357123",
-  "markdown_sha256": "69b1b6ba8fdbc2988e8d0dab506bc77966d0a41481410a1d84ec499282adcd09",
-  "last_run_dir": "artifacts/runs/20260526_230853_507662_recipe_helper_assembly_validation",
+  "markdown_sha256": "75112098bd7ad7b8ef43ca97fdf3591b65b50e6ef304e313723edf55fdca8918",
+  "last_run_dir": "artifacts/runs/20260526_231540_012426_recipe_helper_assembly_validation",
   "last_verified_at": "2026-05-26"
 }

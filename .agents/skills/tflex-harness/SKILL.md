@@ -40,18 +40,20 @@ Live-proven now:
 - Helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`.
 - Helper set: `easy_assembly_validation`.
 - Recipe: `agent_workspace/recipes/helper_assembly_validation.cs`.
-- Live run: `artifacts/runs/20260526_230853_507662_recipe_helper_assembly_validation`.
+- Live run: `artifacts/runs/20260526_231540_012426_recipe_helper_assembly_validation`.
 - Command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`.
-- Bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`.
-- Good assembly evidence: `good.summary.bboxOverlapCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`.
+- Bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`, `bad.expectedDetected=True`.
+- Good assembly evidence: `good.summary.bboxOverlapCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.summary.mateCount=0`, `good.expectedClean=True`.
 - Final evidence: `assemblyValidation.live=True`.
 
 Important facts:
 
 - Collision now uses AABB broad phase via `Operation.Geometry.AABoundBox`, then exact `BaseBody.Clash(...)`.
+- Mate inspector uses `Document3D.GetMates(doc)` and logs `Mate.Operation1/2`, `Element1/2`, `Type`, `Suppressed`.
 - Live compile fact: `Operation.Geometry.Solid[index]` returns `BaseBody`; `Operation.Geometry.Solid.Current` is only `object`.
 - Do not use obsolete `BaseBody.ClashBody(...)`; compiler warns to use `Clash(...)`.
-- Next work: mate graph/BFS and DOF analysis.
+- Not verified yet: positive native mate-edge case with `MateEdgeCount>0`; simple LCS plane mate probe failed with `CompleteError` in `artifacts/runs/20260526_231412_287906_probe_create_lcs_mate`.
+- Next work: find/create real native mate assembly, then BFS/DOF analysis.
 
 Do not rerun broad prototype/document batches for this goal. Use only targeted live recipe/probes.
 
@@ -123,7 +125,7 @@ Known helper sets:
 - `easy_text`: prototype/session helpers plus `RichText` table cell, visible 2D text replacement helpers, and first visible non-table text helpers
 - `easy_specification`: prototype/session helpers plus `BOMObject` first-record standard field helpers for specification prototypes
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
-- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB broad phase, exact `BaseBody.Clash(...)`, and `Fragment3D` floating checks
+- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB broad phase, exact `BaseBody.Clash(...)`, `Fragment3D` floating checks, and `Document3D.GetMates(doc)` mate inspection
 - `all`: every helper source
 
 For gear assemblies:

@@ -18,6 +18,10 @@ namespace TFlexEasy {
     public int ClashPairCount;
     public int CollisionCount;
     public int ContactCount;
+    public int MateCount;
+    public int MateEdgeCount;
+    public int MateOperationLinkCount;
+    public int MateLinkedFragmentCount;
     public int FragmentCount;
     public int ConnectedFragmentCount;
     public int FloatingFragmentCount;
@@ -29,7 +33,8 @@ namespace TFlexEasy {
       List<AssemblyBodyRecord> bodies = CollectBodies(doc, label);
       report.BodyCount = bodies.Count;
       ValidateBodyClashes(bodies, report, label);
-      ValidateFragments(doc, report, label);
+      HashSet<Operation> mateConnectedOperations = ValidateMates(doc, report, label);
+      ValidateFragments(doc, report, label, mateConnectedOperations);
       PrintReport(report, label);
       return report;
     }
@@ -107,13 +112,53 @@ namespace TFlexEasy {
       }
     }
 
-    public static void ValidateFragments(Document doc, AssemblyValidationReport report, string label) {
+    public static HashSet<Operation> ValidateMates(Document doc, AssemblyValidationReport report, string label) {
+      HashSet<Operation> mateConnectedOperations = new HashSet<Operation>();
+      ICollection<Mate> mates = Document3D.GetMates(doc);
+      report.MateCount = mates.Count;
+      EasyDiagnostics.Print(label + ".mateCount", mates.Count);
+      int index = 0;
+      foreach (Mate mate in mates) {
+        Operation op1 = null;
+        Operation op2 = null;
+        try { op1 = mate.Operation1; } catch (Exception ex) { EasyDiagnostics.Print(label + ".mate." + index + ".operation1Error", ex.GetType().Name + ": " + ex.Message); }
+        try { op2 = mate.Operation2; } catch (Exception ex) { EasyDiagnostics.Print(label + ".mate." + index + ".operation2Error", ex.GetType().Name + ": " + ex.Message); }
+        EasyDiagnostics.Print(label + ".mate." + index + ".name", String.IsNullOrWhiteSpace(mate.Name) ? "Mate_" + index : mate.Name);
+        EasyDiagnostics.Print(label + ".mate." + index + ".type", mate.Type);
+        EasyDiagnostics.Print(label + ".mate." + index + ".element1Null", mate.Element1 == null);
+        EasyDiagnostics.Print(label + ".mate." + index + ".element2Null", mate.Element2 == null);
+        EasyDiagnostics.Print(label + ".mate." + index + ".operation1Null", op1 == null);
+        EasyDiagnostics.Print(label + ".mate." + index + ".operation2Null", op2 == null);
+        EasyDiagnostics.Print(label + ".mate." + index + ".operation1Name", OperationName(op1, "null"));
+        EasyDiagnostics.Print(label + ".mate." + index + ".operation2Name", OperationName(op2, "null"));
+        try {
+          EasyDiagnostics.Print(label + ".mate." + index + ".suppressed", mate.Suppressed == null ? "null" : mate.Suppressed.ToString());
+        } catch (Exception ex) {
+          EasyDiagnostics.Print(label + ".mate." + index + ".suppressedError", ex.GetType().Name + ": " + ex.Message);
+        }
+        if (op1 != null) {
+          report.MateOperationLinkCount++;
+          mateConnectedOperations.Add(op1);
+        }
+        if (op2 != null) {
+          report.MateOperationLinkCount++;
+          mateConnectedOperations.Add(op2);
+        }
+        if (op1 != null && op2 != null) report.MateEdgeCount++;
+        index++;
+      }
+      return mateConnectedOperations;
+    }
+
+    public static void ValidateFragments(Document doc, AssemblyValidationReport report, string label, HashSet<Operation> mateConnectedOperations) {
       int index = 0;
       foreach (Operation op in Document3D.GetOperations(doc)) {
         Fragment3D fragment = op as Fragment3D;
         if (fragment == null) continue;
         report.FragmentCount++;
         bool connected = false;
+        bool connectedByLcs = false;
+        bool connectedByMate = mateConnectedOperations != null && mateConnectedOperations.Contains(op);
         string reason = "";
         try {
           Fragment3D.FixingType fixing = fragment.Fixing;
@@ -124,18 +169,27 @@ namespace TFlexEasy {
           EasyDiagnostics.Print(label + ".fragment." + index + ".fixing", fixing);
           EasyDiagnostics.Print(label + ".fragment." + index + ".sourceLcs", source);
           EasyDiagnostics.Print(label + ".fragment." + index + ".targetLcsNull", targetLcsNull);
-          connected = fixing != Fragment3D.FixingType.NoFixing && !targetLcsNull;
-          reason = connected ? "connected_by_target_lcs" : "no_lcs_fixing_or_target";
+          EasyDiagnostics.Print(label + ".fragment." + index + ".connectedByMate", connectedByMate);
+          connectedByLcs = fixing != Fragment3D.FixingType.NoFixing && !targetLcsNull;
+          connected = connectedByLcs || connectedByMate;
+          reason = connectedByLcs ? "connected_by_target_lcs" : (connectedByMate ? "connected_by_mate_operation" : "no_lcs_fixing_or_mate");
         } catch (Exception ex) {
           reason = "fragment_fixing_read_error:" + ex.GetType().Name;
           EasyDiagnostics.Print(label + ".fragment." + index + ".error", ex.GetType().Name + ": " + ex.Message);
         }
+        if (connectedByMate) report.MateLinkedFragmentCount++;
         EasyDiagnostics.Print(label + ".fragment." + index + ".connected", connected);
         EasyDiagnostics.Print(label + ".fragment." + index + ".reason", reason);
         if (connected) report.ConnectedFragmentCount++;
         else report.FloatingFragmentCount++;
         index++;
       }
+    }
+
+    public static string OperationName(Operation op, string fallback) {
+      if (op == null) return fallback;
+      if (String.IsNullOrWhiteSpace(op.Name)) return op.GetType().Name;
+      return op.Name;
     }
 
     public static bool BoxesOverlap(BodyBoxMm a, BodyBoxMm b) {
@@ -151,6 +205,10 @@ namespace TFlexEasy {
       EasyDiagnostics.Print(label + ".summary.clashPairCount", report.ClashPairCount);
       EasyDiagnostics.Print(label + ".summary.collisionCount", report.CollisionCount);
       EasyDiagnostics.Print(label + ".summary.contactCount", report.ContactCount);
+      EasyDiagnostics.Print(label + ".summary.mateCount", report.MateCount);
+      EasyDiagnostics.Print(label + ".summary.mateEdgeCount", report.MateEdgeCount);
+      EasyDiagnostics.Print(label + ".summary.mateOperationLinkCount", report.MateOperationLinkCount);
+      EasyDiagnostics.Print(label + ".summary.mateLinkedFragmentCount", report.MateLinkedFragmentCount);
       EasyDiagnostics.Print(label + ".summary.fragmentCount", report.FragmentCount);
       EasyDiagnostics.Print(label + ".summary.connectedFragmentCount", report.ConnectedFragmentCount);
       EasyDiagnostics.Print(label + ".summary.floatingFragmentCount", report.FloatingFragmentCount);
