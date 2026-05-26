@@ -1,0 +1,13 @@
+{
+  "name": "helper_assembly_validation",
+  "description": "Create live bad/good 3D assemblies and validate body collisions plus floating Fragment3D fixing state.",
+  "args": {},
+  "verified": true,
+  "helpers": [
+    "easy_assembly_validation"
+  ],
+  "source_sha256": "d203e51f0160bbc92f6a2a36d25609cd1a265394029998e584f5328f6b357123",
+  "markdown_sha256": "0da1549778f5b2b08ceef0add2b9a56b87f42254532e57e632514956c318e256",
+  "last_run_dir": "artifacts/runs/20260526_225737_199228_recipe_helper_assembly_validation",
+  "last_verified_at": "2026-05-26"
+}

@@ -206,6 +206,18 @@ Verified live fragment LCS factory payload on 2026-05-26:
 - batch matrix: `artifacts/document_factory_batches/20260526_213924_474008/document_factory_batch_matrix.json`
 - batch result: selected `1`, attempted `1`, passed `1`, failed `0`; output formats `grb`, `step`
 
+
+Verified live assembly validation MVP on 2026-05-26:
+
+- command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`
+- run: `artifacts/runs/20260526_225737_199228_recipe_helper_assembly_validation`
+- helper set: `easy_assembly_validation`
+- helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`
+- bad assembly evidence: `bad.summary.bboxOverlapCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`
+- good assembly evidence: `good.summary.bboxOverlapCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`
+- final evidence: `assemblyValidation.live=True`
+- limitation: collision is AABB candidate detection, not exact solid intersection yet; exact kernel bridge remains next work.
+
 Verified live metadata batch on 2026-05-25:
 
 - command: `python -m tflex_harness.cli prototypes-metadata --timeout-sec 120 --output-dir artifacts/prototype_metadata/live_all_20260525`

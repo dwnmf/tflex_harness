@@ -31,32 +31,29 @@ User-facing style:
 - Local T-FLEX API docs: `D:\REALPROJECTS\tflex_api\llm`
 
 
-## Current Focus: Point Fixes 1-3
+## Current Focus: Assembly Validation MVP
 
-As of 2026-05-26, the active `goal.md` point fixes are live-complete:
+As of 2026-05-26, active `goal.md` is assembly validation.
 
-1. **Specifications**
-   - Real spec path: `TFlex.Model.Model2D.BOMObject` through `TFlexEasySpecifications.cs` and `prototype_set_specification_bom_field`.
-   - Final matrix: `artifacts/prototype_validation/20260526_212016_705556/prototype_specification_bom_field_matrix.json`.
-   - Result: `Спецификации` selected `20`, passed `20`, failed `0`, persisted `20`; bucket `bom_standard_field_supported=20`.
-   - Keep scan-based verification. Do not reintroduce first-record-only BOM checks.
+Live-proven now:
 
-2. **Electrical documents**
-   - Fallback batch exists: `prototypes-electrical-labels-batch`.
-   - It tries visible `LineText`/non-table `RichText`, then `$Наименование` text variable fallback.
-   - Final matrix: `artifacts/prototype_validation/20260526_213248_774110/prototype_electrical_labels_matrix.json`.
-   - Result: `Электротехника` selected `8`, passed `8`, failed `0`, persisted `8`.
-   - Buckets: `visible_text_supported=4`, `variable_backed_supported=4`.
+- Helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`.
+- Helper set: `easy_assembly_validation`.
+- Recipe: `agent_workspace/recipes/helper_assembly_validation.cs`.
+- Live run: `artifacts/runs/20260526_225737_199228_recipe_helper_assembly_validation`.
+- Command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`.
+- Bad assembly evidence: `bad.summary.bboxOverlapCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`.
+- Good assembly evidence: `good.summary.bboxOverlapCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`.
+- Final evidence: `assemblyValidation.live=True`.
 
-3. **Fragments/assemblies**
-   - Factory payload type exists: `document.fragment_lcs_assembly`.
-   - Sample payload: `agent_workspace/payloads/fragment_lcs_assembly.json`.
-   - Direct live factory run: `artifacts/runs/20260526_213859_133554_document_factory`.
-   - Generated snippet run: `artifacts/runs/20260526_213859_145299_factory_fragment_lcs_assembly`.
-   - Evidence: `factory.fragment.persisted=True`, `factory.fragment.reopened=True`, outputs `grb` and `step`.
-   - Batch matrix: `artifacts/document_factory_batches/20260526_213924_474008/document_factory_batch_matrix.json`, selected `1`, passed `1`, failed `0`.
+Important caveat:
 
-For future work, use these as known-good baselines. Do not rerun broad tests unless changing the related code path.
+- Collision is currently AABB candidate detection via `Operation.Geometry.AABoundBox`.
+- It is not exact solid intersection yet.
+- Docs expose `BaseBody.ClashBody(BaseBody)`, but live compile showed `Operation.Body`, `Operation.Geometry`, and `Operation.Geometry.Solid` do not expose `ClashBody` directly in snippets.
+- Next work: find a live-compiling bridge to exact kernel clash or another exact intersection API.
+
+Do not rerun broad prototype/document batches for this goal. Use only targeted live recipe/probes.
 
 ## Hard Rules
 
@@ -126,6 +123,7 @@ Known helper sets:
 - `easy_text`: prototype/session helpers plus `RichText` table cell, visible 2D text replacement helpers, and first visible non-table text helpers
 - `easy_specification`: prototype/session helpers plus `BOMObject` first-record standard field helpers for specification prototypes
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
+- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB collision-candidate and `Fragment3D` floating checks
 - `all`: every helper source
 
 For gear assemblies:
