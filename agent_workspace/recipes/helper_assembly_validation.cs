@@ -76,7 +76,13 @@ public class Program {
       EasyDiagnostics.Print("bad.path", asmFile);
       EasyDiagnostics.Print("bad.exists", File.Exists(asmFile));
       if (File.Exists(asmFile)) EasyDiagnostics.Print("bad.size", new FileInfo(asmFile).Length);
-      bool expected = report.CollisionCount > 0 && report.FloatingFragmentCount > 0;
+      bool expected = report.CollisionCount > 0
+        && report.FloatingFragmentCount > 0
+        && report.GroundedFragmentCount == 1
+        && report.UngroundedFragmentCount == 1
+        && report.FullyConstrainedFragmentCount == 1
+        && report.UnderConstrainedFragmentCount == 1
+        && report.EstimatedDofRemaining == 6;
       EasyDiagnostics.Print("bad.expectedDetected", expected);
       return expected ? asmFile : "";
     } finally {
@@ -110,7 +116,12 @@ public class Program {
       EasyDiagnostics.Print("good.path", asmFile);
       EasyDiagnostics.Print("good.exists", File.Exists(asmFile));
       if (File.Exists(asmFile)) EasyDiagnostics.Print("good.size", new FileInfo(asmFile).Length);
-      bool expected = report.CollisionCount == 0 && report.FloatingFragmentCount == 0 && report.FragmentCount == 2;
+      bool expected = report.CollisionCount == 0
+        && report.FloatingFragmentCount == 0
+        && report.FragmentCount == 2
+        && report.GroundedFragmentCount == 2
+        && report.FullyConstrainedFragmentCount == 2
+        && report.EstimatedDofRemaining == 0;
       EasyDiagnostics.Print("good.expectedClean", expected);
       return expected ? asmFile : "";
     } finally {
@@ -140,7 +151,13 @@ public class Program {
       EasyDiagnostics.Print("touch.path", asmFile);
       EasyDiagnostics.Print("touch.exists", File.Exists(asmFile));
       if (File.Exists(asmFile)) EasyDiagnostics.Print("touch.size", new FileInfo(asmFile).Length);
-      bool expected = report.CollisionCount == 0 && report.ContactCount > 0 && report.FloatingFragmentCount == 0 && report.FragmentCount == 2;
+      bool expected = report.CollisionCount == 0
+        && report.ContactCount > 0
+        && report.FloatingFragmentCount == 0
+        && report.FragmentCount == 2
+        && report.GroundedFragmentCount == 2
+        && report.FullyConstrainedFragmentCount == 2
+        && report.EstimatedDofRemaining == 0;
       EasyDiagnostics.Print("touch.expectedContact", expected);
       return expected ? asmFile : "";
     } finally {

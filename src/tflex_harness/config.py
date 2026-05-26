@@ -40,6 +40,9 @@ class HarnessConfig:
 
 
 def find_repo_dir(start: Path | None = None) -> Path:
+    env_repo = os.environ.get("TFLEX_HARNESS_REPO_DIR")
+    if env_repo:
+        return Path(env_repo).expanduser().resolve()
     current = (start or Path(__file__).resolve()).resolve()
     if current.is_file():
         current = current.parent
@@ -51,9 +54,10 @@ def find_repo_dir(start: Path | None = None) -> Path:
 
 def load_config(repo_dir: Path | None = None) -> HarnessConfig:
     repo = (repo_dir or find_repo_dir()).resolve()
-    install = Path(os.environ.get("TFLEX_INSTALL_DIR", r"C:\Program Files\T-FLEX CAD 17"))
+    default_install = Path(os.environ.get("ProgramFiles", "")) / "T-FLEX CAD 17"
+    install = Path(os.environ.get("TFLEX_INSTALL_DIR", str(default_install)))
     program = Path(os.environ.get("TFLEX_PROGRAM_DIR", str(install / "Program")))
-    docs = Path(os.environ.get("TFLEX_API_DOCS_DIR", r"D:\REALPROJECTS\tflex_api"))
+    docs = Path(os.environ.get("TFLEX_API_DOCS_DIR", str(repo.parent / "tflex_api")))
     runner_project = os.environ.get("TFLEX_RUNNER_PROJECT")
     runner_dir = os.environ.get("TFLEX_RUNNER_DIR", runner_project or str(repo / "runner" / "TFlexRunner"))
     return HarnessConfig(

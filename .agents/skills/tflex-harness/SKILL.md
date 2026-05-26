@@ -1,11 +1,11 @@
 ---
 name: tflex-harness
-description: "Work on the local D:\\REALPROJECTS\\tflex_harness repository: T-FLEX CAD 17 harness/MCP code, C# snippet runner, recipes, live CAD validation, artifacts, diagnostics, and project documentation. Use this when editing, testing, debugging, or operating tflex-harness itself. Communicate in a concise caveman style while preserving exact commands, paths, and evidence."
+description: "Work on the local <repo> repository: T-FLEX CAD 17 harness/MCP code, C# snippet runner, recipes, live CAD validation, artifacts, diagnostics, and project documentation. Use this when editing, testing, debugging, or operating tflex-harness itself. Communicate in a concise caveman style while preserving exact commands, paths, and evidence."
 ---
 
 # T-FLEX Harness
 
-Use this skill for work inside `D:\REALPROJECTS\tflex_harness`: harness code, MCP server, C# snippet runner, recipes, live T-FLEX CAD checks, generated artifacts, diagnostics, and local project docs.
+Use this skill for work inside `<repo>`: harness code, MCP server, C# snippet runner, recipes, live T-FLEX CAD checks, generated artifacts, diagnostics, and local project docs.
 
 ## Voice
 
@@ -18,7 +18,7 @@ User-facing style:
 
 ## Repo Map
 
-- Repo root: `D:\REALPROJECTS\tflex_harness`
+- Repo root: `<repo>`
 - Package: `src/tflex_harness`
 - Tests: `tests/unit`, `tests/smoke`, `tests/integration`
 - Local skills: `.agents/skills`
@@ -28,7 +28,9 @@ User-facing style:
 - C# helper sources: `src/tflex_harness/csharp_helpers`
 - Event log: `logs/events.jsonl`
 - Architecture/status: `goal.md`
-- Local T-FLEX API docs: `D:\REALPROJECTS\tflex_api\llm`
+- Public install guide: `install.md`
+- Public agent skill: `SKILL.md`
+- Local T-FLEX API docs: `<tflex-api-docs>\llm`
 
 
 ## Current Focus: Assembly Validation MVP
@@ -40,23 +42,34 @@ Live-proven now:
 - Helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`.
 - Helper set: `easy_assembly_validation`.
 - Recipe: `agent_workspace/recipes/helper_assembly_validation.cs`.
-- Live run: `artifacts/runs/20260526_232620_098025_recipe_helper_assembly_validation`.
+- Live run: `artifacts/runs/20260526_233717_009768_recipe_helper_assembly_validation`.
 - Command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`.
-- Bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`, `bad.expectedDetected=True`.
-- Good assembly evidence: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.summary.mateCount=0`, `good.expectedClean=True`.
-- Touching evidence: `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.expectedContact=True`.
+- Bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`, `bad.fragment.1.estimatedRemainingDof=6`, `bad.expectedDetected=True`.
+- Good assembly evidence: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.summary.mateCount=0`, `good.summary.fullyConstrainedFragmentCount=2`, `good.summary.estimatedDofRemaining=0`, `good.expectedClean=True`.
+- Touching evidence: `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.summary.estimatedDofRemaining=0`, `touch.expectedContact=True`.
 - Final evidence: `assemblyValidation.live=True`.
 
 Important facts:
 
 - Collision now uses inclusive AABB broad phase via `Operation.Geometry.AABoundBox`, then exact `BaseBody.Clash(...)`. Strict AABB volume overlap separates collision from face contact.
-- Mate inspector uses `Document3D.GetMates(doc)` and logs `Mate.Operation1/2`, `Element1/2`, `Type`, `Suppressed`.
+- DOF-lite counts 6 DOF per `Fragment3D`; LCS-fixed fragments get 6 constraints and remaining DOF 0; no-fixing fragments remain 6 DOF.
+- Mate inspector uses `Document3D.GetMates(doc)` and logs `Mate.Operation1/2`, `Element1/2`, `Type`, `Suppressed`; mate edges have approximate constraint counts when present.
 - Live compile fact: `Operation.Geometry.Solid[index]` returns `BaseBody`; `Operation.Geometry.Solid.Current` is only `object`.
 - Do not use obsolete `BaseBody.ClashBody(...)`; compiler warns to use `Clash(...)`.
 - Not verified yet: positive native mate-edge case with `MateEdgeCount>0`; simple LCS plane mate probe failed with `CompleteError` in `artifacts/runs/20260526_231412_287906_probe_create_lcs_mate`; installed prototype scan `artifacts/runs/20260526_232731_135336_probe_scan_prototype_mates` found `scan.withMates=0`.
 - Next work: find/create real native mate assembly, then BFS/DOF analysis.
 
 Do not rerun broad prototype/document batches for this goal. Use only targeted live recipe/probes.
+
+## Install/Release Pattern
+
+Public install is modeled after browser-harness:
+
+- Human install: clone repo, `uv tool install -e ".[mcp]"`, verify `tflex-harness env` and `tflex-harness recipes`.
+- AI install: read root `install.md`, then register root `SKILL.md` as a global agent skill.
+- MCP entrypoint: `tflex-harness-mcp`.
+- If a non-editable wheel install cannot find recipes/helpers, set `TFLEX_HARNESS_REPO_DIR` to the repo checkout.
+- Release assets should include wheel + sdist from `python -m build`; do not commit `dist/`.
 
 ## Hard Rules
 
@@ -126,7 +139,7 @@ Known helper sets:
 - `easy_text`: prototype/session helpers plus `RichText` table cell, visible 2D text replacement helpers, and first visible non-table text helpers
 - `easy_specification`: prototype/session helpers plus `BOMObject` first-record standard field helpers for specification prototypes
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
-- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB broad phase, exact `BaseBody.Clash(...)`, `Fragment3D` floating checks, and `Document3D.GetMates(doc)` mate inspection
+- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB broad phase, exact `BaseBody.Clash(...)`, `Fragment3D` floating checks, DOF-lite counting, and `Document3D.GetMates(doc)` mate inspection
 - `all`: every helper source
 
 For gear assemblies:
@@ -154,8 +167,8 @@ For gear assemblies:
 
 ### T-FLEX API snippets
 
-1. Search `D:\REALPROJECTS\tflex_api\llm\symbols.jsonl`.
-2. Open matching `D:\REALPROJECTS\tflex_api\llm\types\*.md`.
+1. Search `<tflex-api-docs>\llm\symbols.jsonl`.
+2. Open matching `<tflex-api-docs>\llm\types\*.md`.
 3. Ask DeepWiki repo `dwnmf/tflex_api` for exact class/member behavior.
 4. Compile with `mode='compile_only'`.
 5. Run live if compile passes and behavior matters.
@@ -194,7 +207,7 @@ Verified locally in T-FLEX CAD 17 on 2026-05-25.
 - `ExportToSTEP.Export(...)` can return `False` while still writing a valid non-empty STEP. Treat non-empty file artifact as success unless newer live evidence contradicts this.
 - 2D PDF uses `new TFlex.Model.ExportToPDF(document)`, not `Document.ExportToPDF`; `Document.ExportToPDF` does not compile in T-FLEX CAD 17.
 - For headless PDF export, set `OpenExportFile=false` and `IsSelectPagesDialogEnabled=false`.
-- Live PDF export failed with `Error loading module PDFExport.dll` until `PDFExport.dll` was copied from `C:\Program Files\T-FLEX CAD 17\Program` to the snippet current directory. `EasyExport.Pdf(...)` now performs this copy by searching `PATH`.
+- Live PDF export failed with `Error loading module PDFExport.dll` until `PDFExport.dll` was copied from `<tflex-program>` to the snippet current directory. `EasyExport.Pdf(...)` now performs this copy by searching `PATH`.
 - Live DXF/DWG drawing export succeeded with `easy.dxfExportResult=True`, `easy.dxfSaved=True`, `easy.dwgExportResult=True`, and `easy.dwgSaved=True`. DXF header evidence: `SECTION`, `$ACADVER`, `AC1027`; DWG header bytes: `41 43 31 30 32 37` (`AC1027`).
 
 ## Verified 3D API Facts

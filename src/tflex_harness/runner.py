@@ -192,7 +192,10 @@ HELPER_SETS: dict[str, tuple[str, ...]] = {
 
 
 def _helper_dir(cfg: HarnessConfig) -> Path:
-    return cfg.repo_dir / "src" / "tflex_harness" / "csharp_helpers"
+    repo_helper_dir = cfg.repo_dir / "src" / "tflex_harness" / "csharp_helpers"
+    if repo_helper_dir.exists():
+        return repo_helper_dir
+    return Path(__file__).resolve().parent / "csharp_helpers"
 
 
 def _sha256_bytes(data: bytes) -> str:

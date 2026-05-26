@@ -1,13 +1,13 @@
 {
   "name": "helper_assembly_validation",
-  "description": "Create live bad/good/touching 3D assemblies and validate body collisions, contacts, mate inspection, and floating Fragment3D fixing state.",
+  "description": "Create live bad/good/touching 3D assemblies and validate body collisions, contacts, DOF-lite, mate inspection, and floating Fragment3D fixing state.",
   "args": {},
   "verified": true,
   "helpers": [
     "easy_assembly_validation"
   ],
-  "source_sha256": "dd0258daccb7f9fab61f9851c8deb1bbee0dbf4941d7dff1d3c412bc7432f491",
-  "markdown_sha256": "119b74f299a3737693345ce9af5e5ad48f92ca436d7f9f14c05e721bd1362309",
-  "last_run_dir": "artifacts/runs/20260526_232620_098025_recipe_helper_assembly_validation",
+  "source_sha256": "e10db0b43ba945f37ff59bef94db1dc958d0951a045ac5b1dfcc231199ca336e",
+  "markdown_sha256": "06be8428e2125860233d1a7544ef5ed388359be3e762cb8f3ed07328254c624a",
+  "last_run_dir": "artifacts/runs/20260526_233717_009768_recipe_helper_assembly_validation",
   "last_verified_at": "2026-05-26"
 }

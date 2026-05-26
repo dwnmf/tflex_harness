@@ -27,6 +27,26 @@ namespace TFlexEasy {
     public int FragmentCount;
     public int ConnectedFragmentCount;
     public int FloatingFragmentCount;
+    public int GroundedFragmentCount;
+    public int UngroundedFragmentCount;
+    public int FullyConstrainedFragmentCount;
+    public int UnderConstrainedFragmentCount;
+    public int OverConstrainedSuspectedFragmentCount;
+    public int EstimatedDofTotal;
+    public int EstimatedDofRemaining;
+    public int EstimatedConstraintCount;
+  }
+
+  public sealed class MateEdgeRecord {
+    public Operation Operation1;
+    public Operation Operation2;
+    public Mate.MateType Type;
+    public int ConstraintCount;
+  }
+
+  public sealed class MateAnalysisResult {
+    public HashSet<Operation> LinkedOperations = new HashSet<Operation>();
+    public List<MateEdgeRecord> Edges = new List<MateEdgeRecord>();
   }
 
   public static class EasyAssemblyValidation {
@@ -35,8 +55,8 @@ namespace TFlexEasy {
       List<AssemblyBodyRecord> bodies = CollectBodies(doc, label);
       report.BodyCount = bodies.Count;
       ValidateBodyClashes(bodies, report, label);
-      HashSet<Operation> mateConnectedOperations = ValidateMates(doc, report, label);
-      ValidateFragments(doc, report, label, mateConnectedOperations);
+      MateAnalysisResult mates = ValidateMates(doc, report, label);
+      ValidateFragments(doc, report, label, mates);
       PrintReport(report, label);
       return report;
     }
@@ -123,8 +143,8 @@ namespace TFlexEasy {
       }
     }
 
-    public static HashSet<Operation> ValidateMates(Document doc, AssemblyValidationReport report, string label) {
-      HashSet<Operation> mateConnectedOperations = new HashSet<Operation>();
+    public static MateAnalysisResult ValidateMates(Document doc, AssemblyValidationReport report, string label) {
+      MateAnalysisResult analysis = new MateAnalysisResult();
       ICollection<Mate> mates = Document3D.GetMates(doc);
       report.MateCount = mates.Count;
       EasyDiagnostics.Print(label + ".mateCount", mates.Count);
@@ -149,28 +169,46 @@ namespace TFlexEasy {
         }
         if (op1 != null) {
           report.MateOperationLinkCount++;
-          mateConnectedOperations.Add(op1);
+          analysis.LinkedOperations.Add(op1);
         }
         if (op2 != null) {
           report.MateOperationLinkCount++;
-          mateConnectedOperations.Add(op2);
+          analysis.LinkedOperations.Add(op2);
         }
-        if (op1 != null && op2 != null) report.MateEdgeCount++;
+        if (op1 != null && op2 != null) {
+          report.MateEdgeCount++;
+          int constraints = EstimateMateConstraintCount(mate.Type);
+          analysis.Edges.Add(new MateEdgeRecord { Operation1 = op1, Operation2 = op2, Type = mate.Type, ConstraintCount = constraints });
+          EasyDiagnostics.Print(label + ".mate." + index + ".estimatedConstraintCount", constraints);
+        }
         index++;
       }
-      return mateConnectedOperations;
+      return analysis;
     }
 
-    public static void ValidateFragments(Document doc, AssemblyValidationReport report, string label, HashSet<Operation> mateConnectedOperations) {
-      int index = 0;
+    public static void ValidateFragments(Document doc, AssemblyValidationReport report, string label, MateAnalysisResult mates) {
+      HashSet<Operation> fixedRoots = new HashSet<Operation>();
+      List<Fragment3D> fragments = new List<Fragment3D>();
       foreach (Operation op in Document3D.GetOperations(doc)) {
         Fragment3D fragment = op as Fragment3D;
         if (fragment == null) continue;
+        fragments.Add(fragment);
+        if (IsFragmentFixedByLcs(fragment)) fixedRoots.Add(fragment);
+      }
+      HashSet<Operation> groundedByGraph = BuildGroundedOperationSet(fixedRoots, mates);
+      int index = 0;
+      foreach (Fragment3D fragment in fragments) {
+        Operation op = fragment;
         report.FragmentCount++;
-        bool connected = false;
         bool connectedByLcs = false;
-        bool connectedByMate = mateConnectedOperations != null && mateConnectedOperations.Contains(op);
+        bool connectedByMate = mates != null && mates.LinkedOperations.Contains(op);
+        bool grounded = groundedByGraph.Contains(op);
         string reason = "";
+        int mateConstraints = SumMateConstraints(op, mates);
+        int lcsConstraints = 0;
+        int estimatedConstraints = 0;
+        int remainingDof = 6;
+        bool overConstrained = false;
         try {
           Fragment3D.FixingType fixing = fragment.Fixing;
           bool targetLcsNull = fragment.TargetLCS == null;
@@ -182,18 +220,103 @@ namespace TFlexEasy {
           EasyDiagnostics.Print(label + ".fragment." + index + ".targetLcsNull", targetLcsNull);
           EasyDiagnostics.Print(label + ".fragment." + index + ".connectedByMate", connectedByMate);
           connectedByLcs = fixing != Fragment3D.FixingType.NoFixing && !targetLcsNull;
-          connected = connectedByLcs || connectedByMate;
-          reason = connectedByLcs ? "connected_by_target_lcs" : (connectedByMate ? "connected_by_mate_operation" : "no_lcs_fixing_or_mate");
+          lcsConstraints = connectedByLcs ? 6 : 0;
+          estimatedConstraints = lcsConstraints + mateConstraints;
+          overConstrained = estimatedConstraints > 6;
+          remainingDof = overConstrained ? 0 : Math.Max(0, 6 - estimatedConstraints);
+          if (connectedByLcs) reason = "grounded_by_target_lcs";
+          else if (grounded && connectedByMate) reason = "grounded_by_mate_path";
+          else if (connectedByMate) reason = "mate_linked_but_not_grounded";
+          else reason = "no_lcs_fixing_or_mate";
         } catch (Exception ex) {
           reason = "fragment_fixing_read_error:" + ex.GetType().Name;
           EasyDiagnostics.Print(label + ".fragment." + index + ".error", ex.GetType().Name + ": " + ex.Message);
         }
         if (connectedByMate) report.MateLinkedFragmentCount++;
-        EasyDiagnostics.Print(label + ".fragment." + index + ".connected", connected);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".grounded", grounded);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".lcsConstraintCount", lcsConstraints);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".mateConstraintCount", mateConstraints);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".estimatedConstraintCount", estimatedConstraints);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".estimatedRemainingDof", remainingDof);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".overConstrainedSuspected", overConstrained);
+        EasyDiagnostics.Print(label + ".fragment." + index + ".connected", grounded);
         EasyDiagnostics.Print(label + ".fragment." + index + ".reason", reason);
-        if (connected) report.ConnectedFragmentCount++;
-        else report.FloatingFragmentCount++;
+        report.EstimatedDofTotal += 6;
+        report.EstimatedConstraintCount += estimatedConstraints;
+        report.EstimatedDofRemaining += remainingDof;
+        if (grounded) {
+          report.ConnectedFragmentCount++;
+          report.GroundedFragmentCount++;
+        } else {
+          report.FloatingFragmentCount++;
+          report.UngroundedFragmentCount++;
+        }
+        if (overConstrained) report.OverConstrainedSuspectedFragmentCount++;
+        else if (remainingDof == 0 && grounded) report.FullyConstrainedFragmentCount++;
+        else report.UnderConstrainedFragmentCount++;
         index++;
+      }
+    }
+
+    public static bool IsFragmentFixedByLcs(Fragment3D fragment) {
+      try {
+        return fragment.Fixing != Fragment3D.FixingType.NoFixing && fragment.TargetLCS != null;
+      } catch {
+        return false;
+      }
+    }
+
+    public static HashSet<Operation> BuildGroundedOperationSet(HashSet<Operation> fixedRoots, MateAnalysisResult mates) {
+      HashSet<Operation> grounded = new HashSet<Operation>();
+      Queue<Operation> queue = new Queue<Operation>();
+      foreach (Operation root in fixedRoots) {
+        if (root == null || grounded.Contains(root)) continue;
+        grounded.Add(root);
+        queue.Enqueue(root);
+      }
+      if (mates == null) return grounded;
+      while (queue.Count > 0) {
+        Operation current = queue.Dequeue();
+        foreach (MateEdgeRecord edge in mates.Edges) {
+          Operation next = null;
+          if (SameOperation(edge.Operation1, current)) next = edge.Operation2;
+          else if (SameOperation(edge.Operation2, current)) next = edge.Operation1;
+          if (next == null || grounded.Contains(next)) continue;
+          grounded.Add(next);
+          queue.Enqueue(next);
+        }
+      }
+      return grounded;
+    }
+
+    public static int SumMateConstraints(Operation op, MateAnalysisResult mates) {
+      if (op == null || mates == null) return 0;
+      int sum = 0;
+      foreach (MateEdgeRecord edge in mates.Edges) {
+        if (SameOperation(edge.Operation1, op) || SameOperation(edge.Operation2, op)) sum += edge.ConstraintCount;
+      }
+      return sum;
+    }
+
+    public static bool SameOperation(Operation a, Operation b) {
+      if (a == null || b == null) return false;
+      if (Object.ReferenceEquals(a, b)) return true;
+      return Object.Equals(a, b);
+    }
+
+    public static int EstimateMateConstraintCount(Mate.MateType type) {
+      switch (type) {
+        case Mate.MateType.Coincidence: return 3;
+        case Mate.MateType.Concentricity: return 4;
+        case Mate.MateType.Parallelism: return 2;
+        case Mate.MateType.Perpendicularity: return 2;
+        case Mate.MateType.Tangency: return 1;
+        case Mate.MateType.Distance: return 1;
+        case Mate.MateType.Angle: return 1;
+        case Mate.MateType.AngAngTransmission: return 1;
+        case Mate.MateType.AngLinTransmission: return 1;
+        case Mate.MateType.LinLinTransmission: return 1;
+        default: return 1;
       }
     }
 
@@ -239,6 +362,14 @@ namespace TFlexEasy {
       EasyDiagnostics.Print(label + ".summary.fragmentCount", report.FragmentCount);
       EasyDiagnostics.Print(label + ".summary.connectedFragmentCount", report.ConnectedFragmentCount);
       EasyDiagnostics.Print(label + ".summary.floatingFragmentCount", report.FloatingFragmentCount);
+      EasyDiagnostics.Print(label + ".summary.groundedFragmentCount", report.GroundedFragmentCount);
+      EasyDiagnostics.Print(label + ".summary.ungroundedFragmentCount", report.UngroundedFragmentCount);
+      EasyDiagnostics.Print(label + ".summary.fullyConstrainedFragmentCount", report.FullyConstrainedFragmentCount);
+      EasyDiagnostics.Print(label + ".summary.underConstrainedFragmentCount", report.UnderConstrainedFragmentCount);
+      EasyDiagnostics.Print(label + ".summary.overConstrainedSuspectedFragmentCount", report.OverConstrainedSuspectedFragmentCount);
+      EasyDiagnostics.Print(label + ".summary.estimatedDofTotal", report.EstimatedDofTotal);
+      EasyDiagnostics.Print(label + ".summary.estimatedConstraintCount", report.EstimatedConstraintCount);
+      EasyDiagnostics.Print(label + ".summary.estimatedDofRemaining", report.EstimatedDofRemaining);
     }
   }
 }

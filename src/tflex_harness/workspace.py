@@ -65,7 +65,7 @@ Status: candidate, not verified.
 
 Promotion checklist:
 
-1. Add docs evidence from `dwnmf/tflex_api` or local `D:\\REALPROJECTS\\tflex_api`.
+1. Add docs evidence from `dwnmf/tflex_api` or local docs via `TFLEX_API_DOCS_DIR`.
 2. Compile through `run_csharp_tflex` and capture diagnostics.
 3. Run live against T-FLEX CAD when available.
 4. Record stdout/stderr, artifacts, blockers, assumptions, and limitations.

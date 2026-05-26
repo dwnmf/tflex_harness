@@ -1,0 +1,6 @@
+include README.md
+include install.md
+include SKILL.md
+include goal.md
+include pyproject.toml
+recursive-include src/tflex_harness/csharp_helpers *.cs

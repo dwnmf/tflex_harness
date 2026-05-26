@@ -4,6 +4,81 @@ Private T-FLEX CAD 17 harness/MCP workspace.
 
 This project follows `goal.md`: Python is the thin control plane for MCP, documentation search, diagnostics, artifacts, and process execution; C# is used for typed snippets against the real T-FLEX CAD 17 .NET API.
 
+## Setup prompt
+
+Paste into Codex or Claude Code:
+
+```text
+Set up https://github.com/dwnmf/tflex_harness for me.
+
+Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install it editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
+```
+
+See [`install.md`](install.md) for first-time install, MCP setup, release install, and skill registration.
+
+## Install for humans
+
+Clone once into a stable path and install editable:
+
+```powershell
+git clone https://github.com/dwnmf/tflex_harness <repo>
+cd <repo>
+uv tool install -e ".[mcp]"
+tflex-harness env
+tflex-harness recipes
+```
+
+Run MCP server:
+
+```powershell
+tflex-harness-mcp
+```
+
+MCP config example:
+
+```json
+{
+  "mcpServers": {
+    "tflex-harness": {
+      "command": "tflex-harness-mcp",
+      "env": {
+        "TFLEX_HARNESS_REPO_DIR": "<repo>",
+        "TFLEX_API_DOCS_DIR": "<tflex-api-docs>",
+        "TFLEX_INSTALL_DIR": "<tflex-install>"
+      }
+    }
+  }
+}
+```
+
+## Install for AI agents
+
+Register this repo's root [`SKILL.md`](SKILL.md) as a global skill.
+
+Codex on Windows:
+
+```powershell
+$skillRoot = Join-Path ($env:CODEX_HOME ?? "$env:USERPROFILE\.codex") "skills\tflex-harness"
+New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
+Copy-Item -Force .\SKILL.md (Join-Path $skillRoot "SKILL.md")
+```
+
+Prefer a symlink if available, so future repo updates update the skill too:
+
+```powershell
+$skillRoot = Join-Path ($env:CODEX_HOME ?? "$env:USERPROFILE\.codex") "skills\tflex-harness"
+New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
+New-Item -ItemType SymbolicLink -Force -Path (Join-Path $skillRoot "SKILL.md") -Target (Resolve-Path .\SKILL.md)
+```
+
+Claude Code can import:
+
+```text
+@<repo>\SKILL.md
+```
+
+Release wheels are published on GitHub releases for MCP/tool installs, but the recommended setup is still editable clone + `uv tool install -e ".[mcp]"` so checked-in recipes and C# helpers stay visible and editable.
+
 ## Quick checks
 
 ```powershell
@@ -22,7 +97,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 
 ## Implemented tools
 
-- `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `D:\REALPROJECTS\tflex_api\llm`.
+- `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `<tflex-api-docs>\llm`.
 - `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, runner skeleton build/env probe, and process state.
 - `run_csharp_tflex` / `python -m tflex_harness.cli run-csharp` — compiles and runs visible C# snippets via `csc.exe`, with successful builds cached by content hash.
 - `list_tflex_recipes` / `python -m tflex_harness.cli recipes` — lists verified recipes.
@@ -78,7 +153,7 @@ Initial helper sets:
 - `easy_variables` — prototype/session helpers plus text/real variable mutation helpers
 - `easy_text` — prototype/session helpers plus `RichText` table cell and visible 2D text replacement helpers
 - `easy_document_properties` — prototype/session helpers plus writable `Document.Properties` string mutation helpers
-- `easy_assembly_validation` — assembly collision/contact/floating-fragment validation helpers
+- `easy_assembly_validation` — assembly collision/contact/floating-fragment/DOF-lite validation helpers
 - `all` — all helper source files
 
 Every helper run copies helper `.cs` files into the run directory under `helpers/`, includes helper source content in the compile cache key, and records helper paths plus SHA256 hashes in `result.json`.
@@ -105,7 +180,7 @@ This is not full design-intent decompilation. Recognized shapes become helper ca
 Installed T-FLEX document prototypes are treated as a reference corpus:
 
 ```text
-C:\Program Files\T-FLEX CAD 17\Program\Прототипы
+<tflex-prototypes>
 ```
 
 Scan them with:
@@ -211,17 +286,17 @@ Verified live fragment LCS factory payload on 2026-05-26:
 Verified live assembly validation MVP on 2026-05-26:
 
 - command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`
-- run: `artifacts/runs/20260526_232620_098025_recipe_helper_assembly_validation`
+- run: `artifacts/runs/20260526_233717_009768_recipe_helper_assembly_validation`
 - helper set: `easy_assembly_validation`
 - helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`
 - bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`
-- bad floating reason: `bad.fragment.1.connectedByMate=False`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`
-- good assembly evidence: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`
-- touching evidence: `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.expectedContact=True`
+- bad floating/DOF reason: `bad.fragment.1.connectedByMate=False`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`, `bad.fragment.1.estimatedRemainingDof=6`, `bad.summary.estimatedDofRemaining=6`
+- good assembly evidence: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.summary.fullyConstrainedFragmentCount=2`, `good.summary.estimatedDofRemaining=0`, `good.expectedClean=True`
+- touching evidence: `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.summary.estimatedDofRemaining=0`, `touch.expectedContact=True`
 - mate inspector evidence: `bad.summary.mateCount=0`, `good.summary.mateCount=0`, `touch.summary.mateCount=0`
 - prototype mate scan: `artifacts/runs/20260526_232731_135336_probe_scan_prototype_mates`, `scan.opened=50`, `scan.withMates=0`
 - final evidence: `assemblyValidation.live=True`
-- collision path: inclusive AABB broad phase plus exact `BaseBody.Clash(...)`; strict AABB separates volume collision from face contact. Mate graph hook uses `Document3D.GetMates(doc)`, but positive native mate-edge case needs a real native-mate `.grb`.
+- collision path: inclusive AABB broad phase plus exact `BaseBody.Clash(...)`; strict AABB separates volume collision from face contact. DOF-lite starts each fragment at 6 DOF, LCS fixing removes 6, and mate graph hook uses `Document3D.GetMates(doc)` for future real native-mate files.
 
 Verified live metadata batch on 2026-05-25:
 
@@ -234,7 +309,7 @@ Verified live metadata batch on 2026-05-25:
 - csv: `artifacts/prototype_metadata/live_all_20260525/prototype_metadata_index.csv`
 - per-prototype JSON dir: `artifacts/prototype_metadata/live_all_20260525/metadata`
 
-The source `Program Files` tree is read-only input. Future prototype automation must copy selected `.grb` files into a run artifact directory before opening or saving.
+The source T-FLEX installation tree is read-only input. Future prototype automation must copy selected `.grb` files into a run artifact directory before opening or saving.
 
 ## Verified recipes
 
@@ -270,102 +345,102 @@ Verified live text-variable mutation on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe prototype_set_text_variable --arg 'prototype_id=2D Деталь' --arg 'variable_name=$Наименование' --arg 'text_value=Harness Recipe Test' --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_175508_317973_recipe_prototype_set_text_variable`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
+- source prototype: `<tflex-prototypes>\2D Деталь.grb`
 - verified stdout: `variable.exists=True`, `variable.set=True`, `document.saved=True`, `variable.reopened=Harness Recipe Test`, `variable.persisted=True`
 
 Verified live real-variable mutation on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe prototype_set_real_variable --arg 'prototype_id=2D Деталь' --arg 'variable_name=Nomer_Shem' --arg 'real_value=42' --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_180343_657081_recipe_prototype_set_real_variable`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
+- source prototype: `<tflex-prototypes>\2D Деталь.grb`
 - verified stdout: `variable.exists=True`, `variable.expression.Nomer_Shem=42`, `variable.set=True`, `document.saved=True`, `variable.reopened=42`, `variable.persisted=True`
 
 Verified live table-cell mutation on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe prototype_set_table_cell --arg 'prototype_id=Таблицы/Таблица параметров зубчатого колеса.grb' --arg 'cell_index=2' --arg 'text_value=Harness Table Test' --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_181242_346840_recipe_prototype_set_table_cell`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Таблицы\Таблица параметров зубчатого колеса.grb`
+- source prototype: `<tflex-prototypes>\Таблицы\Таблица параметров зубчатого колеса.grb`
 - verified stdout: `richText.count=1`, `table.cell.after=Harness Table Test`, `table.cell.set=True`, `document.saved=True`, `table.cell.reopened=Harness Table Test`, `table.cell.persisted=True`
 
 Verified live document-property mutation on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe prototype_set_document_property --arg 'prototype_id=2D Деталь' --arg 'property_name=Title' --arg 'text_value=Harness Document Property Test' --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_181851_320860_recipe_prototype_set_document_property`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
+- source prototype: `<tflex-prototypes>\2D Деталь.grb`
 - verified stdout: `documentProperty.exists=True`, `documentProperty.after.Title=Harness Document Property Test`, `documentProperty.set=True`, `document.saved=True`, `documentProperty.reopened=Harness Document Property Test`, `documentProperty.persisted=True`
 
 Verified live visible 2D text replacement on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe prototype_replace_visible_text --arg 'prototype_id=Электротехника/Клеммник.grb' --arg 'search_text=Цепь' --arg 'replacement_text=Harness Circuit' --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_182531_611149_recipe_prototype_replace_visible_text`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
+- source prototype: `<tflex-prototypes>\Электротехника\Клеммник.grb`
 - verified stdout: `visibleText.beforeCount=1`, `visibleText.line.after=Harness Circuit`, `visibleText.replaceCount=1`, `document.saved=True`, `visibleText.oldAfter=0`, `visibleText.newAfter=1`, `visibleText.persisted=True`
 
 Verified live category recipes on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe create_detail_drawing_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_212201_368610_recipe_create_detail_drawing_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Чертёж детали с форматкой.grb`
+- source prototype: `<tflex-prototypes>\Чертежи\Чертёж детали с форматкой.grb`
 - verified stdout: `documentProperty.after.Title=Harness Detail Drawing`, `document.saved=True`, `document.outputSize=25462`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_specification_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_212204_093117_recipe_create_specification_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Спецификации\Спецификация форма 1 ГОСТ 2.106-2019.grb`
+- source prototype: `<tflex-prototypes>\Спецификации\Спецификация форма 1 ГОСТ 2.106-2019.grb`
 - verified stdout: `documentProperty.after.Title=Harness Specification`, `document.saved=True`, `document.outputSize=29138`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_3d_part_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_213236_790332_recipe_create_3d_part_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Деталь.grb`
+- source prototype: `<tflex-prototypes>\3D Деталь.grb`
 - verified stdout: `documentProperty.after.Title=Harness 3D Part`, `document.saved=True`, `document.outputSize=28573`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_table_document_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_213238_919912_recipe_create_table_document_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Таблицы\Таблица параметров зубчатого колеса.grb`
+- source prototype: `<tflex-prototypes>\Таблицы\Таблица параметров зубчатого колеса.grb`
 - verified stdout: `richText.count=1`, `table.cell.after=Harness Table Document`, `document.saved=True`, `document.outputSize=63263`, `table.cell.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_electrical_doc_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_213241_046854_recipe_create_electrical_doc_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
+- source prototype: `<tflex-prototypes>\Электротехника\Клеммник.grb`
 - verified stdout: `visibleText.replaceCount=1`, `document.saved=True`, `document.outputSize=58724`, `visibleText.newAfter=1`, `visibleText.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_3d_assembly_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214100_314774_recipe_create_3d_assembly_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\3D Сборка.grb`
+- source prototype: `<tflex-prototypes>\3D Сборка.grb`
 - verified stdout: `documentProperty.after.Title=Harness 3D Assembly`, `document.saved=True`, `document.outputSize=28657`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_2d_assembly_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214103_281473_recipe_create_2d_assembly_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Сборка.grb`
+- source prototype: `<tflex-prototypes>\2D Сборка.grb`
 - verified stdout: `documentProperty.after.Title=Harness 2D Assembly`, `document.saved=True`, `document.outputSize=22489`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_fragment_3d_part_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214105_435010_recipe_create_fragment_3d_part_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Фрагменты\3D Деталь.grb`
+- source prototype: `<tflex-prototypes>\Фрагменты\3D Деталь.grb`
 - verified stdout: `documentProperty.after.Title=Harness Fragment 3D Part`, `document.saved=True`, `document.outputSize=27850`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_fragment_3d_assembly_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214107_547016_recipe_create_fragment_3d_assembly_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Фрагменты\3D Сборка.grb`
+- source prototype: `<tflex-prototypes>\Фрагменты\3D Сборка.grb`
 - verified stdout: `documentProperty.after.Title=Harness Fragment 3D Assembly`, `document.saved=True`, `document.outputSize=23888`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_fragment_sheet_metal_part_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214109_723882_recipe_create_fragment_sheet_metal_part_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Фрагменты\Листовая Деталь.grb`
+- source prototype: `<tflex-prototypes>\Фрагменты\Листовая Деталь.grb`
 - verified stdout: `documentProperty.after.Title=Harness Fragment Sheet Metal Part`, `document.saved=True`, `document.outputSize=27593`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_assembly_drawing_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214112_134234_recipe_create_assembly_drawing_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Сборочный чертёж с форматкой.grb`
+- source prototype: `<tflex-prototypes>\Чертежи\Сборочный чертёж с форматкой.grb`
 - verified stdout: `documentProperty.after.Title=Harness Assembly Drawing`, `document.saved=True`, `document.outputSize=25809`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_2d_detail_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214436_007919_recipe_create_2d_detail_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\2D Деталь.grb`
+- source prototype: `<tflex-prototypes>\2D Деталь.grb`
 - verified stdout: `documentProperty.after.Title=Harness 2D Detail`, `document.saved=True`, `document.outputSize=23230`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_sheet_metal_part_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214438_176369_recipe_create_sheet_metal_part_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Листовая Деталь.grb`
+- source prototype: `<tflex-prototypes>\Листовая Деталь.grb`
 - verified stdout: `documentProperty.after.Title=Harness Sheet Metal Part`, `document.saved=True`, `document.outputSize=28418`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_assembly_drawing_with_spec_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214440_312277_recipe_create_assembly_drawing_with_spec_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Сборочный чертёж со спецификацией.grb`
+- source prototype: `<tflex-prototypes>\Чертежи\Сборочный чертёж со спецификацией.grb`
 - verified stdout: `documentProperty.after.Title=Harness Assembly Drawing With Spec`, `document.saved=True`, `document.outputSize=47462`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_text_document_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214442_368731_recipe_create_text_document_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Чертежи\Текстовый документ с форматкой.grb`
+- source prototype: `<tflex-prototypes>\Чертежи\Текстовый документ с форматкой.grb`
 - verified stdout: `documentProperty.after.Title=Harness Text Document`, `document.saved=True`, `document.outputSize=20120`, `documentProperty.persisted=True`
 - command: `python -m tflex_harness.cli run-recipe create_tech_sketch_card_from_prototype --timeout-sec 120`
 - live run directory: `artifacts/runs/20260525_214444_473242_recipe_create_tech_sketch_card_from_prototype`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Техкарты\Карта эскизов ГОСТ 3.1105-2011 Ф7-7а.grb`
+- source prototype: `<tflex-prototypes>\Техкарты\Карта эскизов ГОСТ 3.1105-2011 Ф7-7а.grb`
 - verified stdout: `documentProperty.after.Title=Harness Tech Sketch Card`, `document.saved=True`, `document.outputSize=42281`, `documentProperty.persisted=True`
 
 ## Document factory payloads
@@ -471,7 +546,7 @@ Verified live PDF output on 2026-05-25:
 - PDF export run: `artifacts/runs/20260525_192245_937700_factory_pdf_export`
 - PDF output: `artifacts/outputs/phase6_drawing_pdf_export.pdf`, size `11109`
 - PDF header evidence: `%PDF-1.5`
-- stdout evidence: `easy.pdfModuleSource=C:\Program Files\T-FLEX CAD 17\Program\PDFExport.dll`, `easy.pdfModuleLocalExists=True`, `easy.pdfExportResult=True`, `easy.pdfSaved=True`, `factory.pdfExport.saved=True`
+- stdout evidence: `easy.pdfModuleSource=<tflex-program>\PDFExport.dll`, `easy.pdfModuleLocalExists=True`, `easy.pdfExportResult=True`, `easy.pdfSaved=True`, `factory.pdfExport.saved=True`
 
 Verified live DXF/DWG output on 2026-05-25:
 
@@ -489,7 +564,7 @@ Verified live multi-step factory payload on 2026-05-25:
 - factory run directory: `artifacts/runs/20260525_183813_757471_document_factory`
 - generated snippet: `artifacts/runs/20260525_183813_757471_document_factory/factory_snippet.cs`
 - snippet run directory: `artifacts/runs/20260525_183813_840239_factory_multi_step`
-- source prototype: `C:\Program Files\T-FLEX CAD 17\Program\Прототипы\Электротехника\Клеммник.grb`
+- source prototype: `<tflex-prototypes>\Электротехника\Клеммник.grb`
 - verified stdout: `documentProperty.after.Title=Harness Multi Step Test`, `visibleText.line.after=Harness Circuit Multi`, `factory.allSet=True`, `document.saved=True`, `factory.property.0=Harness Multi Step Test`, `factory.visibleText.oldAfter.1=0`, `factory.visibleText.newAfter.1=1`, `factory.allValid=True`
 
 Verified live factory sample matrix on 2026-05-25:

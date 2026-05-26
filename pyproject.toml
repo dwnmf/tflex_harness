@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tflex-harness"
-version = "0.1.0"
+version = "0.2.0"
 description = "Thin MCP/harness for T-FLEX CAD 17 API docs search and C# snippet execution"
 requires-python = ">=3.11"
 readme = "README.md"
@@ -20,6 +20,9 @@ tflex-harness-mcp = "tflex_harness.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+tflex_harness = ["csharp_helpers/*.cs"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -7,6 +7,7 @@ Create live T-FLEX assemblies and validate assembly correctness gates:
 - exact body collision detection using `Operation.Geometry.AABoundBox` broad phase plus `BaseBody.Clash(...)`;
 - floating fragment detection using `Fragment3D.Fixing`, `Fragment3D.TargetLCS`, and native mate operation links;
 - face-contact/tolerance-contact classification that does not false-fail as collision;
+- DOF-lite groundedness and estimated constraint counting;
 - native mate enumeration through `Document3D.GetMates(doc)` for future graph/BFS work.
 
 AABB is used in two ways:
@@ -55,7 +56,7 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120
 ```
 
-Run: `artifacts/runs/20260526_232620_098025_recipe_helper_assembly_validation`
+Run: `artifacts/runs/20260526_233717_009768_recipe_helper_assembly_validation`
 
 Result: recipe passed with `assemblyValidation.live=True`.
 
@@ -64,9 +65,9 @@ Blockers: positive native mate-edge classification is not live-proven yet; simpl
 Evidence:
 
 - bad assembly: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`;
-- bad floating reason: `bad.fragment.1.connectedByMate=False`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`;
-- good assembly: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`;
-- touching assembly: `touch.pair.0_1.bboxOverlap=False`, `touch.pair.0_1.broadPhaseCandidate=True`, `touch.pair.0_1.solid.0_0.clash.0.type=Interfere`, `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.expectedContact=True`;
+- bad floating/DOF reason: `bad.fragment.1.connectedByMate=False`, `bad.fragment.1.reason=no_lcs_fixing_or_mate`, `bad.fragment.1.estimatedRemainingDof=6`, `bad.summary.estimatedDofRemaining=6`;
+- good assembly: `good.summary.broadPhasePairCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.summary.fullyConstrainedFragmentCount=2`, `good.summary.estimatedDofRemaining=0`, `good.expectedClean=True`;
+- touching assembly: `touch.pair.0_1.bboxOverlap=False`, `touch.pair.0_1.broadPhaseCandidate=True`, `touch.pair.0_1.solid.0_0.clash.0.type=Interfere`, `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`, `touch.summary.collisionCount=0`, `touch.summary.contactCount=1`, `touch.summary.estimatedDofRemaining=0`, `touch.expectedContact=True`;
 - mate summary: `bad.summary.mateCount=0`, `good.summary.mateCount=0`, `touch.summary.mateCount=0`;
 - final: `assemblyValidation.live=True`.
 
@@ -82,4 +83,4 @@ Artifacts:
 - Collision is exact for solid body pairs via `BaseBody.Clash(...)`; AABB is only broad phase.
 - Touching faces are classified as contact when strict AABB volume overlap is false, even if the kernel reports `Interfere`.
 - Mate enumeration is live-proven for zero-mate generated assemblies. Positive native mate-edge classification needs a real native-mate `.grb` or a working creation recipe.
-- This is not a full DOF solver.
+- DOF-lite is an estimate: 6 DOF per fragment, LCS fixing removes 6, native mate types remove approximate counts when real mate edges exist. It is not a full geometric constraint rank solver.

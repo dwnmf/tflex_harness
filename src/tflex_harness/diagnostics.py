@@ -22,7 +22,10 @@ def find_csc() -> Path | None:
     found = shutil.which("csc.exe") or shutil.which("csc")
     if found:
         return Path(found)
-    candidates = sorted(Path(r"C:\Windows\Microsoft.NET\Framework64").glob(r"v*\csc.exe"), reverse=True)
+    windir = os.environ.get("WINDIR") or os.environ.get("SystemRoot")
+    if not windir:
+        return None
+    candidates = sorted((Path(windir) / "Microsoft.NET" / "Framework64").glob(r"v*\csc.exe"), reverse=True)
     return candidates[0] if candidates else None
 
 
@@ -30,8 +33,12 @@ def find_msbuild() -> Path | None:
     found = shutil.which("MSBuild.exe") or shutil.which("msbuild.exe") or shutil.which("msbuild")
     if found:
         return Path(found)
-    vswhere = Path(r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe")
-    if vswhere.exists():
+    env_msbuild = os.environ.get("TFLEX_MSBUILD_EXE")
+    if env_msbuild and Path(env_msbuild).exists():
+        return Path(env_msbuild)
+    program_files_x86 = os.environ.get("ProgramFiles(x86)")
+    vswhere = Path(program_files_x86) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe" if program_files_x86 else None
+    if vswhere and vswhere.exists():
         proc = subprocess.run(
             [str(vswhere), "-latest", "-products", "*", "-requires", "Microsoft.Component.MSBuild", "-find", r"MSBuild\**\Bin\MSBuild.exe"],
             text=True,
@@ -42,8 +49,7 @@ def find_msbuild() -> Path | None:
             line = next((l.strip() for l in proc.stdout.splitlines() if l.strip()), None)
             if line:
                 return Path(line)
-    common = Path(r"D:\VSBuildTools\MSBuild\Current\Bin\MSBuild.exe")
-    return common if common.exists() else None
+    return None
 
 
 def _version_command(command: list[str], timeout: int = 15) -> dict[str, Any]:
