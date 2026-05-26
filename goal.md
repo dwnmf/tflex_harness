@@ -2,35 +2,26 @@
 
 Date: 2026-05-26
 
-This file is the active short backlog. Old broad phases are intentionally removed. Work only on three point fixes needed to turn installed T-FLEX prototypes into reliable harness-driven documents.
+This file records the completed point-fix goal for installed T-FLEX prototype documents and fragment LCS factory payloads. Old broad phase history is intentionally removed.
 
-## Non-Negotiables
+## Non-Negotiables Satisfied
 
-- Use visible C# snippets plus checked-in helper source files; no hidden wrapper DLLs.
-- Treat `C:\Program Files\T-FLEX CAD 17\Program\Прототипы` as reference coverage only.
-- Mutate only copied `.grb` files under `artifacts/runs/...`.
-- Do not run broad/unit test drag while time is low; use narrow live T-FLEX proof.
-- Save evidence under `artifacts/runs/...` or `artifacts/prototype_validation/...`.
-- Update recipe docs/metadata and this file when a path becomes live-proven.
-- Commit and push each completed iteration.
-
-## Baseline Already Proven
-
-- Prototype discovery and copy/open/save work.
-- `Document.Properties.Title` persists on all installed prototypes: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json` (`50/50`).
-- Generic `RichText` table-cell mutation works for `Таблицы/*`: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json` (`7/7`).
-- Generic first visible text mutation works for some `Электротехника/*`: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json` (`4/8`).
-- Fragment insertion by `PointsLCS` + `Fragment3D.FixByFragmentLCS(...)` works standalone: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`.
+- Visible C# snippets plus checked-in helper source files; no hidden wrapper DLLs.
+- `C:\Program Files\T-FLEX CAD 17\Program\Прототипы` used as reference coverage only.
+- All mutations ran on copied `.grb` files under `artifacts/runs/...`.
+- Verification used narrow live T-FLEX runs, not broad/unit test drag.
+- Evidence saved under `artifacts/runs/...`, `artifacts/prototype_validation/...`, and `artifacts/document_factory_batches/...`.
+- Recipe docs/metadata, README, and skill were updated.
 
 ## Point Fix 1: Specifications via BOMObject
 
-### Done Live
+### Completed Live
 
 - Probe found real spec object model: `TFlex.Model.Model2D.BOMObject`.
 - Probe evidence: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
-- Helper added: `src/tflex_harness/csharp_helpers/TFlexEasySpecifications.cs`.
-- Recipe updated: `agent_workspace/recipes/prototype_set_specification_bom_field.cs`.
-- Important fix: verification now scans all BOM records, not only the first record. This removed false `bom_no_persist` failures.
+- Helper: `src/tflex_harness/csharp_helpers/TFlexEasySpecifications.cs`.
+- Recipe: `agent_workspace/recipes/prototype_set_specification_bom_field.cs`.
+- Verification scans all BOM records after reopen, not only the first record.
 - Single proof on former failing template:
   - run: `artifacts/runs/20260526_212003_622190_recipe_prototype_set_specification_bom_field`;
   - evidence: `spec.scan.2.field=Harness Spec Scan`, `spec.field.reopenedAny=True`, `spec.field.persisted=True`.
@@ -39,63 +30,51 @@ This file is the active short backlog. Old broad phases are intentionally remove
   - result: selected `20`, attempted `20`, passed `20`, failed `0`, persisted `20`;
   - bucket: `bom_standard_field_supported=20`.
 
-### Remaining
-
-- None for installed `Спецификации/*` coverage.
-- Keep generic `RichText` table helper for `Таблицы/*`; use `BOMObject` path for `Спецификации/*`.
-
 ## Point Fix 2: Electrical Labels
 
-### Done Live
+### Completed Live
 
 - Generic visible text path remains proven for easy electrical templates: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`.
-- Probe added: `agent_workspace/recipes/prototype_probe_electrical_objects.cs`.
-- Probe live run on a previously failed template:
-  - prototype: `Электротехника/Аппарат`;
+- Probe: `agent_workspace/recipes/prototype_probe_electrical_objects.cs`.
+- Probe live run on previously failed `Электротехника/Аппарат`:
   - run: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`;
-  - evidence: document has text variables like `$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`, plus geometry/control objects and no normal visible `LineText`/`RichText` label path.
-- Existing variable helper proven as the semantic electrical path:
+  - finding: variable-backed template with `$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`.
+- Existing variable helper proven as semantic electrical path:
   - recipe: `prototype_set_text_variable`;
-  - prototype: `Электротехника/Аппарат`;
   - run: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`;
   - evidence: `variable.exists=True`, `variable.expression.$Наименование="Harness Electrical Name"`, `variable.reopened=Harness Electrical Name`, `variable.persisted=True`.
-
-### Remaining
-
-1. Add/extend an electrical category batch that first tries visible text, then classifies variable-backed templates and applies `prototype_set_text_variable` where the target variable exists.
-2. Run that batch only on `Электротехника/*` and report buckets:
-   - `visible_text_supported`;
-   - `variable_backed_supported`;
-   - `symbol_property_backed`;
-   - `unsupported_unknown`.
-3. If any failing prototype is not variable-backed, add a focused probe for that exact template before creating another helper.
+- Electrical category fallback/classification batch added:
+  - command: `python -m tflex_harness.cli prototypes-electrical-labels-batch --category Электротехника --timeout-sec 120`;
+  - matrix: `artifacts/prototype_validation/20260526_213248_774110/prototype_electrical_labels_matrix.json`;
+  - result: selected `8`, attempted `8`, passed `8`, failed `0`, persisted `8`;
+  - buckets: `visible_text_supported=4`, `variable_backed_supported=4`.
 
 ## Point Fix 3: Fragment LCS Factory Payload
 
-### Done Live
+### Completed Live
 
-- Standalone native path is proven:
+- Standalone native path remains proven:
   - recipe: `helper_fragment_lcs_assembly`;
   - run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`;
   - evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
+- Factory payload type added: `document.fragment_lcs_assembly`.
+- Sample payload added: `agent_workspace/payloads/fragment_lcs_assembly.json`.
+- Payload supports source part stem, assembly stem, source LCS name, target LCS name, target position in mm, target Z rotation, source block size, and optional STEP export.
+- Direct live factory proof:
+  - command: `python -m tflex_harness.cli create-document --payload agent_workspace/payloads/fragment_lcs_assembly.json --timeout-sec 120`;
+  - factory run: `artifacts/runs/20260526_213859_133554_document_factory`;
+  - recipe run: `artifacts/runs/20260526_213859_145299_factory_fragment_lcs_assembly`;
+  - evidence: `factory.fragment.sourceLcsAfterFix=FRAG_LCS`, `factory.fragment.targetLcsNullAfterFix=False`, `factory.fragment.assemblyOperationsAfter=1`, `factory.fragment.reopened=True`, `factory.fragment.reopenedOperations=1`, `factory.fragment.persisted=True`;
+  - outputs: `factory_fragment_lcs_assembly.grb` and `factory_fragment_lcs_assembly.step`.
+- Batch live proof:
+  - command: `python -m tflex_harness.cli document-factory-batch --payload-dir agent_workspace/payloads --timeout-sec 120`;
+  - matrix: `artifacts/document_factory_batches/20260526_213924_474008/document_factory_batch_matrix.json`;
+  - result: selected `1`, attempted `1`, passed `1`, failed `0`;
+  - output formats: `grb`, `step`.
 
-### Remaining
+## Final State
 
-1. Add a document factory payload type for fragment LCS assembly creation.
-2. Payload must include source part stem, source LCS name, target LCS name, target position/orientation, assembly stem, optional STEP export.
-3. Generated C# must use the proven path exactly:
-   - create source part `.grb`;
-   - create `PointsLCS` with `UseForFragment=true` and `UseForFragmentFixing=true`;
-   - save/close source part;
-   - create assembly document;
-   - create target `PointsLCS`;
-   - insert `Fragment3D`;
-   - call `FixByFragmentLCS(sourceName, targetLcs)`;
-   - save/reopen assembly.
-4. Prove one JSON payload live via `document-factory-batch` or equivalent factory command.
-
-## Next Work Order
-
-1. Electrical batch with variable-backed classification.
-2. Fragment LCS document-factory payload and one live factory proof.
-3. Only after that, broaden prototype coverage if needed.
+- Point Fix 1 complete.
+- Point Fix 2 complete.
+- Point Fix 3 complete.
+- No remaining work in this goal file.

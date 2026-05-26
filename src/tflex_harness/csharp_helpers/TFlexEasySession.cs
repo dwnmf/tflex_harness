@@ -63,6 +63,13 @@ namespace TFlexEasy {
       return Path.Combine(artifactsDir, safeName);
     }
 
+    public void Close(Document doc) {
+      if (doc == null) return;
+      documents.Remove(doc);
+      doc.Close();
+      EasyDiagnostics.Print("document.closed", true);
+    }
+
     public void Dispose() {
       if (disposed) return;
       disposed = true;

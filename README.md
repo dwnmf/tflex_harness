@@ -184,12 +184,27 @@ Verified live electrical visible-text batch on 2026-05-25:
 - direct recipe proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`
 - electrical object probe: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`, classified `Электротехника/Аппарат` as variable-backed (`$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`)
 - variable-backed mutation proof: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`, `variable.reopened=Harness Electrical Name`, `variable.persisted=True`
+- electrical fallback batch command: `python -m tflex_harness.cli prototypes-electrical-labels-batch --category Электротехника --timeout-sec 120`
+- electrical fallback batch result: selected `8`, attempted `8`, passed `8`, failed `0`, persisted `8`; buckets `visible_text_supported=4`, `variable_backed_supported=4`
+- electrical fallback matrix: `artifacts/prototype_validation/20260526_213248_774110/prototype_electrical_labels_matrix.json`
 
 Verified live fragment assembly semantic insertion on 2026-05-25:
 
 - command: `python -m tflex_harness.cli run-recipe helper_fragment_lcs_assembly --timeout-sec 120`
 - run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`
 - evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`
+
+Verified live fragment LCS factory payload on 2026-05-26:
+
+- payload: `agent_workspace/payloads/fragment_lcs_assembly.json`
+- direct command: `python -m tflex_harness.cli create-document --payload agent_workspace/payloads/fragment_lcs_assembly.json --timeout-sec 120`
+- direct factory run: `artifacts/runs/20260526_213859_133554_document_factory`
+- generated snippet run: `artifacts/runs/20260526_213859_145299_factory_fragment_lcs_assembly`
+- evidence: `factory.fragment.sourceLcsAfterFix=FRAG_LCS`, `factory.fragment.targetLcsNullAfterFix=False`, `factory.fragment.reopened=True`, `factory.fragment.reopenedOperations=1`, `factory.fragment.persisted=True`
+- outputs: `factory_fragment_lcs_assembly.grb`, `factory_fragment_lcs_assembly.step`
+- batch command: `python -m tflex_harness.cli document-factory-batch --payload-dir agent_workspace/payloads --timeout-sec 120`
+- batch matrix: `artifacts/document_factory_batches/20260526_213924_474008/document_factory_batch_matrix.json`
+- batch result: selected `1`, attempted `1`, passed `1`, failed `0`; output formats `grb`, `step`
 
 Verified live metadata batch on 2026-05-25:
 

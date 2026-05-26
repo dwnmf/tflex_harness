@@ -61,6 +61,8 @@ def create_document_from_payload(
 
     if plan["recipe"] == "__factory_multi_step":
         recipe_result = _run_multi_step_plan(plan, factory_dir=factory_dir, timeout_sec=timeout_sec, config=cfg)
+    elif plan["recipe"] == "__factory_fragment_lcs_assembly":
+        recipe_result = _run_fragment_lcs_assembly_plan(plan, factory_dir=factory_dir, timeout_sec=timeout_sec, config=cfg)
     else:
         recipe_result = recipe_runner(plan["recipe"], args=plan["recipe_args"], timeout_sec=timeout_sec, config=cfg)
     outputs_result = _materialize_requested_outputs(plan, recipe_result, factory_dir, timeout_sec=timeout_sec, config=cfg)
@@ -77,6 +79,34 @@ def create_document_from_payload(
 
 
 def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
+    document = payload.get("document") or {}
+    if not isinstance(document, dict):
+        return {"ok": False, "stage": "input", "error": "document must be an object"}
+
+    if document.get("fragment_lcs_assembly"):
+        operation = _fragment_lcs_assembly_operation(document.get("fragment_lcs_assembly"))
+        if operation.get("ok") is False:
+            return operation
+        default_exports = ["grb", "step"] if operation.get("export_step") else ["grb"]
+        output_contract = _output_contract(payload.get("output") or {"name": operation["assembly_stem"], "exports": default_exports})
+        if output_contract.get("ok") is False:
+            return output_contract
+        if operation.get("export_step") and "step" not in output_contract["output"]["exports"]:
+            output_contract["output"]["exports"].append("step")
+        return {
+            "ok": True,
+            "recipe": "__factory_fragment_lcs_assembly",
+            "recipe_args": {},
+            "selection": "document.fragment_lcs_assembly",
+            "operation": operation,
+            "output": output_contract["output"],
+            "limitations": [
+                "Factory fragment LCS assembly uses generated visible C# with checked-in helper sources.",
+                "The path is based on the live-proven Fragment3D.FixByFragmentLCS recipe.",
+            ],
+            "pending_operations": [],
+        }
+
     prototype_args = _prototype_args(payload.get("prototype"))
     if prototype_args.get("ok") is False:
         return prototype_args
@@ -94,10 +124,6 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
         return _plan(str(recipe_name), recipe_args, payload, selection="explicit_recipe", output=output_contract)
     if isinstance(explicit, str) and explicit:
         return _plan(explicit, dict(prototype_args["args"]), payload, selection="explicit_recipe", output=output_contract)
-
-    document = payload.get("document") or {}
-    if not isinstance(document, dict):
-        return {"ok": False, "stage": "input", "error": "document must be an object"}
 
     operations = _collect_operations(document)
     if isinstance(operations, dict) and operations.get("ok") is False:
@@ -150,6 +176,57 @@ def plan_document_creation(payload: dict[str, Any]) -> dict[str, Any]:
         return _plan("prototype_set_table_cell", args, payload, selection="document.tables", output=output_contract)
 
     return _plan("prototype_open_copy_save", dict(prototype_args["args"]), payload, selection="open_copy_save", output=output_contract)
+
+
+def _fragment_lcs_assembly_operation(raw: Any) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        return {"ok": False, "stage": "input", "error": "document.fragment_lcs_assembly must be an object"}
+
+    position = raw.get("target_position_mm", raw.get("target_position", {"x": 100, "y": 50, "z": 20}))
+    if isinstance(position, dict):
+        try:
+            x = float(position.get("x", 100))
+            y = float(position.get("y", 50))
+            z = float(position.get("z", 20))
+        except (TypeError, ValueError):
+            return {"ok": False, "stage": "input", "error": "target_position_mm.x/y/z must be numbers"}
+    elif isinstance(position, list) and len(position) == 3:
+        try:
+            x, y, z = (float(position[0]), float(position[1]), float(position[2]))
+        except (TypeError, ValueError):
+            return {"ok": False, "stage": "input", "error": "target_position_mm array values must be numbers"}
+    else:
+        return {"ok": False, "stage": "input", "error": "target_position_mm must be an object or 3-value array"}
+
+    size = raw.get("source_block_size_mm", {"x": 40, "y": 20, "z": 10})
+    if not isinstance(size, dict):
+        return {"ok": False, "stage": "input", "error": "source_block_size_mm must be an object"}
+    try:
+        sx = float(size.get("x", 40))
+        sy = float(size.get("y", 20))
+        sz = float(size.get("z", 10))
+        angle = float(raw.get("target_rotation_deg_z", raw.get("target_rotation_deg", 0)))
+    except (TypeError, ValueError):
+        return {"ok": False, "stage": "input", "error": "source_block_size_mm and target_rotation_deg_z must be numeric"}
+
+    source_lcs = str(raw.get("source_lcs_name") or raw.get("source_lcs") or "FRAG_LCS")
+    target_lcs = str(raw.get("target_lcs_name") or raw.get("target_lcs") or "ASM_TARGET_LCS")
+    if not source_lcs:
+        return {"ok": False, "stage": "input", "error": "source_lcs_name is required"}
+    if not target_lcs:
+        return {"ok": False, "stage": "input", "error": "target_lcs_name is required"}
+
+    return {
+        "ok": True,
+        "source_part_stem": _safe_output_stem(str(raw.get("source_part_stem") or raw.get("part_stem") or "factory_fragment_lcs_part")),
+        "assembly_stem": _safe_output_stem(str(raw.get("assembly_stem") or raw.get("assembly_output_stem") or "factory_fragment_lcs_assembly")),
+        "source_lcs_name": source_lcs,
+        "target_lcs_name": target_lcs,
+        "target_position_mm": {"x": x, "y": y, "z": z},
+        "target_rotation_deg_z": angle,
+        "source_block_size_mm": {"x": sx, "y": sy, "z": sz},
+        "export_step": bool(raw.get("export_step", False)),
+    }
 
 
 def _collect_operations(document: dict[str, Any]) -> list[dict[str, Any]] | dict[str, Any]:
@@ -216,6 +293,145 @@ def _run_multi_step_plan(plan: dict[str, Any], *, factory_dir: Path, timeout_sec
     result["factory_source_path"] = str(source["source_path"])
     result["factory_operations"] = plan["operations"]
     return result
+
+
+def _run_fragment_lcs_assembly_plan(plan: dict[str, Any], *, factory_dir: Path, timeout_sec: int, config: HarnessConfig) -> dict[str, Any]:
+    operation = plan["operation"]
+    code = _generate_fragment_lcs_assembly_csharp(operation)
+    snippet_path = factory_dir / "factory_fragment_lcs_assembly.cs"
+    snippet_path.write_text(code, encoding="utf-8", newline="\n")
+    result = run_csharp_snippet(
+        code,
+        mode="run",
+        timeout_sec=timeout_sec,
+        helpers=["easy_prototype"],
+        artifact_prefix="factory_fragment_lcs_assembly",
+        config=config,
+    )
+    result["factory_generated_snippet_path"] = str(snippet_path)
+    result["factory_operation"] = operation
+    return result
+
+
+def _generate_fragment_lcs_assembly_csharp(operation: dict[str, Any]) -> str:
+    part_stem = _cs_string(operation["source_part_stem"])
+    assembly_stem = _cs_string(operation["assembly_stem"])
+    source_lcs = _cs_string(operation["source_lcs_name"])
+    target_lcs = _cs_string(operation["target_lcs_name"])
+    pos = operation["target_position_mm"]
+    size = operation["source_block_size_mm"]
+    tx = _cs_double(pos["x"])
+    ty = _cs_double(pos["y"])
+    tz = _cs_double(pos["z"])
+    angle = _cs_double(operation["target_rotation_deg_z"])
+    sx = _cs_double(size["x"])
+    sy = _cs_double(size["y"])
+    sz = _cs_double(size["z"])
+    return f'''using System;
+using System.IO;
+using TFlex.Model;
+using TFlex.Model.Model3D;
+using TFlexEasy;
+
+public class Program {{
+  static PointsLCS MakeLcs(Document doc, string name, double ox, double oy, double oz, double angleDeg) {{
+    double radians = angleDeg * Math.PI / 180.0;
+    double cx = Math.Cos(radians);
+    double sx = Math.Sin(radians);
+    CoordinateNode3D origin = new CoordinateNode3D(doc); origin.X = ox; origin.Y = oy; origin.Z = oz;
+    CoordinateNode3D xpt = new CoordinateNode3D(doc); xpt.X = ox + 10.0 * cx; xpt.Y = oy + 10.0 * sx; xpt.Z = oz;
+    CoordinateNode3D ypt = new CoordinateNode3D(doc); ypt.X = ox - 10.0 * sx; ypt.Y = oy + 10.0 * cx; ypt.Z = oz;
+    PointsLCS lcs = new PointsLCS(doc);
+    lcs.Name = name;
+    lcs.UseForFragment = true;
+    lcs.UseForFragmentFixing = true;
+    lcs.PointToOrigin = origin.Geometry.Point;
+    lcs.PointToAxisX = xpt.Geometry.Point;
+    lcs.PointToAxisY = ypt.Geometry.Point;
+    return lcs;
+  }}
+
+  public static int Main(){{
+    using (var sess = EasySession.Start3D()) {{
+      Document part = null;
+      Document asm = null;
+      Document reopened = null;
+      try {{
+        string partFile = sess.ArtifactPath({part_stem} + "_saved.grb");
+        string asmFile = sess.ArtifactPath({assembly_stem} + "_saved.grb");
+
+        part = sess.New3DDocument(false);
+        part.BeginChanges("factory source part with fragment LCS");
+        Block block = new Block(part);
+        block.Name = "factory_source_block";
+        block.Cube = false;
+        block.Symmetry = true;
+        block.XSize = {sx};
+        block.YSize = {sy};
+        block.ZSize = {sz};
+        PointsLCS source = MakeLcs(part, {source_lcs}, 0, 0, 0, 0);
+        var partEnd = part.EndChanges();
+        int partOps = Document3D.GetOperations(part).Count;
+        EasyDiagnostics.Print("factory.fragment.partEnd", partEnd);
+        EasyDiagnostics.Print("factory.fragment.partOperations", partOps);
+        EasyDiagnostics.Print("factory.fragment.sourceLcs", source.Name);
+        EasyDiagnostics.Print("factory.fragment.sourceUseForFragment", source.UseForFragment);
+        EasyDiagnostics.Print("factory.fragment.sourceUseForFragmentFixing", source.UseForFragmentFixing);
+        bool partSaved = part.SaveAs(partFile);
+        EasyDiagnostics.Print("factory.fragment.partSaved", partSaved);
+        EasyDiagnostics.Print("factory.fragment.partPath", partFile);
+        EasyDiagnostics.Print("factory.fragment.partExists", File.Exists(partFile));
+        if (File.Exists(partFile)) EasyDiagnostics.Print("factory.fragment.partSize", new FileInfo(partFile).Length);
+        sess.Close(part); part = null;
+
+        asm = sess.New3DDocument(false);
+        int before = Document3D.GetOperations(asm).Count;
+        asm.BeginChanges("factory assembly fragment by LCS");
+        PointsLCS target = MakeLcs(asm, {target_lcs}, {tx}, {ty}, {tz}, {angle});
+        Fragment3D fragment = new Fragment3D(partFile, asm);
+        fragment.Name = "factory_fragment";
+        fragment.FixByFragmentLCS({source_lcs}, target);
+        string sourceLcsAfterFix = fragment.SourceLCSName;
+        bool targetLinkedAfterFix = fragment.TargetLCS != null;
+        EasyDiagnostics.Print("factory.fragment.requestedSourceLcs", {source_lcs});
+        EasyDiagnostics.Print("factory.fragment.requestedTargetLcs", {target_lcs});
+        EasyDiagnostics.Print("factory.fragment.sourceLcsAfterFix", sourceLcsAfterFix);
+        EasyDiagnostics.Print("factory.fragment.targetLcsNullAfterFix", !targetLinkedAfterFix);
+        var asmEnd = asm.EndChanges();
+        int after = Document3D.GetOperations(asm).Count;
+        EasyDiagnostics.Print("factory.fragment.assemblyEnd", asmEnd);
+        EasyDiagnostics.Print("factory.fragment.assemblyOperationsBefore", before);
+        EasyDiagnostics.Print("factory.fragment.assemblyOperationsAfter", after);
+        EasyDiagnostics.Print("factory.fragment.filePath", fragment.FilePath);
+        bool asmSaved = asm.SaveAs(asmFile);
+        EasyDiagnostics.Print("factory.fragment.assemblySaved", asmSaved);
+        EasyDiagnostics.Print("factory.fragment.assemblyPath", asmFile);
+        EasyDiagnostics.Print("factory.fragment.assemblyExists", File.Exists(asmFile));
+        if (File.Exists(asmFile)) EasyDiagnostics.Print("factory.fragment.assemblySize", new FileInfo(asmFile).Length);
+        sess.Close(asm); asm = null;
+
+        reopened = EasyPrototype.OpenCopy(asmFile, false);
+        bool reopenedOk = reopened != null;
+        int reopenedOps = reopenedOk ? Document3D.GetOperations(reopened).Count : -1;
+        EasyDiagnostics.Print("factory.fragment.reopened", reopenedOk);
+        EasyDiagnostics.Print("factory.fragment.reopenedOperations", reopenedOps);
+        bool ok = partEnd.ToString() == "OK" && asmEnd.ToString() == "OK" && partSaved && asmSaved && after > before && sourceLcsAfterFix == {source_lcs} && targetLinkedAfterFix && File.Exists(partFile) && File.Exists(asmFile) && reopenedOk && reopenedOps > before;
+        EasyDiagnostics.Print("factory.fragment.persisted", ok);
+        return ok ? 0 : 20;
+      }} catch (Exception ex) {{
+        EasyDiagnostics.Print("factory.fragment.exceptionType", ex.GetType().FullName);
+        EasyDiagnostics.Print("factory.fragment.exception", ex.Message);
+        Console.WriteLine(ex.ToString());
+        return 99;
+      }} finally {{
+        try {{ if (reopened != null) sess.Close(reopened); }} catch {{}}
+        try {{ if (asm != null) sess.Close(asm); }} catch {{}}
+        try {{ if (part != null) sess.Close(part); }} catch {{}}
+      }}
+    }}
+  }}
+}}
+'''
 
 
 def _resolve_prototype_source(args: dict[str, Any]) -> dict[str, Any]:
@@ -639,6 +855,9 @@ def _select_primary_grb(recipe_result: dict[str, Any]) -> Path | None:
     existing = [path for path in candidates if path.exists() and path.is_file()]
     if not existing:
         return None
+    assembly = [path for path in existing if "assembly" in path.stem.lower() or path.stem.lower().endswith("_asm")]
+    if assembly:
+        return assembly[-1]
     saved = [path for path in existing if "saved" in path.stem.lower() or "output" in path.stem.lower()]
     return (saved or existing)[-1]
 

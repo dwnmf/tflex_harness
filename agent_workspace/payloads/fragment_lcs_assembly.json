@@ -1,0 +1,29 @@
+{
+  "document": {
+    "fragment_lcs_assembly": {
+      "source_part_stem": "factory_fragment_lcs_part",
+      "assembly_stem": "factory_fragment_lcs_assembly",
+      "source_lcs_name": "FRAG_LCS",
+      "target_lcs_name": "ASM_TARGET_LCS",
+      "target_position_mm": {
+        "x": 100,
+        "y": 50,
+        "z": 20
+      },
+      "target_rotation_deg_z": 30,
+      "source_block_size_mm": {
+        "x": 40,
+        "y": 20,
+        "z": 10
+      },
+      "export_step": true
+    }
+  },
+  "output": {
+    "name": "factory_fragment_lcs_assembly",
+    "exports": [
+      "grb",
+      "step"
+    ]
+  }
+}

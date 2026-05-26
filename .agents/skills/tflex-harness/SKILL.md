@@ -33,35 +33,30 @@ User-facing style:
 
 ## Current Focus: Point Fixes 1-3
 
-As of 2026-05-26, `goal.md` is the active compact backlog. Ignore older phase sprawl unless needed for evidence lookup. Current exact state:
+As of 2026-05-26, the active `goal.md` point fixes are live-complete:
 
 1. **Specifications**
-   - Generic `RichText` table-cell mutation is for `Таблицы/*`, not specifications.
-   - Real spec path is `TFlex.Model.Model2D.BOMObject` through `TFlexEasySpecifications.cs` and `prototype_set_specification_bom_field`.
-   - Probe run: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
-   - Final scan-based single proof: `artifacts/runs/20260526_212003_622190_recipe_prototype_set_specification_bom_field`, `spec.field.reopenedAny=True`, `spec.field.persisted=True`.
+   - Real spec path: `TFlex.Model.Model2D.BOMObject` through `TFlexEasySpecifications.cs` and `prototype_set_specification_bom_field`.
    - Final matrix: `artifacts/prototype_validation/20260526_212016_705556/prototype_specification_bom_field_matrix.json`.
    - Result: `Спецификации` selected `20`, passed `20`, failed `0`, persisted `20`; bucket `bom_standard_field_supported=20`.
-   - Do not reintroduce first-record-only verification; scan BOM records after reopen.
+   - Keep scan-based verification. Do not reintroduce first-record-only BOM checks.
 
 2. **Electrical documents**
-   - Generic visible text replacement works only where labels are exposed as `LineText` or non-table `RichText`.
-   - Visible-text batch: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`, selected `8`, passed `4`, failed `4`, persisted `4`.
-   - Electrical probe recipe exists: `prototype_probe_electrical_objects`.
-   - Probe run on failed `Электротехника/Аппарат`: `artifacts/runs/20260526_212519_855910_recipe_prototype_probe_electrical_objects`.
-   - Finding: `Аппарат` is variable-backed; key variables include `$Наименование`, `$Обозначение`, `$Tip_Doc`, `$Vid`.
-   - Mutation proof uses existing `prototype_set_text_variable`: `artifacts/runs/20260526_212542_998623_recipe_prototype_set_text_variable`, `variable.persisted=True`.
-   - Next: add electrical batch fallback/classification: visible text -> text variable -> symbol/property/unknown.
+   - Fallback batch exists: `prototypes-electrical-labels-batch`.
+   - It tries visible `LineText`/non-table `RichText`, then `$Наименование` text variable fallback.
+   - Final matrix: `artifacts/prototype_validation/20260526_213248_774110/prototype_electrical_labels_matrix.json`.
+   - Result: `Электротехника` selected `8`, passed `8`, failed `0`, persisted `8`.
+   - Buckets: `visible_text_supported=4`, `variable_backed_supported=4`.
 
 3. **Fragments/assemblies**
-   - Semantic Fragment3D LCS insertion is live-proven.
-   - Recipe: `helper_fragment_lcs_assembly`.
-   - Live run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`.
-   - Evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
-   - Next: wire this exact path into document factory payloads and prove one JSON payload live.
+   - Factory payload type exists: `document.fragment_lcs_assembly`.
+   - Sample payload: `agent_workspace/payloads/fragment_lcs_assembly.json`.
+   - Direct live factory run: `artifacts/runs/20260526_213859_133554_document_factory`.
+   - Generated snippet run: `artifacts/runs/20260526_213859_145299_factory_fragment_lcs_assembly`.
+   - Evidence: `factory.fragment.persisted=True`, `factory.fragment.reopened=True`, outputs `grb` and `step`.
+   - Batch matrix: `artifacts/document_factory_batches/20260526_213924_474008/document_factory_batch_matrix.json`, selected `1`, passed `1`, failed `0`.
 
-Do not mark electrical batch or fragment factory complete without fresh narrow live proof for the exact changed path.
-Do not run broad test drag while time is low; use direct live checks and `git diff --check`.
+For future work, use these as known-good baselines. Do not rerun broad tests unless changing the related code path.
 
 ## Hard Rules
 

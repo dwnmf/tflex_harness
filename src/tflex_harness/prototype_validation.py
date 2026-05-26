@@ -319,6 +319,111 @@ def validate_specification_bom_field_batch(
     return matrix
 
 
+def validate_electrical_labels_batch(
+    root: str | Path | None = None,
+    *,
+    category: str | None = "Электротехника",
+    limit: int | None = None,
+    timeout_sec: int = 120,
+    fail_fast: bool = False,
+    dry_run: bool = False,
+    output_dir: str | Path | None = None,
+    variable_name: str = "$Наименование",
+    value_prefix: str = "Harness Electrical Label Matrix",
+    recipe_runner: RecipeRunner | None = None,
+) -> dict[str, Any]:
+    catalog = scan_prototypes(root)
+    prototypes = [item for item in catalog["files"] if item["extension"] == ".grb"]
+    if category:
+        prototypes = [item for item in prototypes if item["category"] == category]
+    if limit is not None:
+        prototypes = prototypes[:limit]
+
+    out = _output_dir(output_dir)
+    rows: list[dict[str, Any]] = []
+    runner = recipe_runner or _run_recipe_adapter
+
+    for index, proto in enumerate(prototypes, start=1):
+        text_value = f"{value_prefix} {index:03d}"
+        row = _base_row(index, proto, dry_run=dry_run)
+        row["text_value"] = text_value
+        row["variable_name"] = variable_name
+        if dry_run:
+            row.update({"status": "dry_run", "ok": True, "electrical_bucket": "dry_run"})
+            rows.append(row)
+            continue
+
+        visible_result = runner(
+            "prototype_replace_first_visible_text",
+            {"source_path": proto["path"], "text_value": text_value},
+            timeout_sec,
+        )
+        visible_row = _first_visible_text_result_to_row(visible_result, text_value=text_value)
+        row.update(_prefixed_result_row(visible_row, "visible"))
+
+        if visible_row.get("visible_text_persisted"):
+            row.update({
+                "status": "passed",
+                "ok": True,
+                "run_dir": visible_row.get("run_dir"),
+                "copy_artifact": visible_row.get("copy_artifact"),
+                "output_artifact": visible_row.get("output_artifact"),
+                "electrical_bucket": "visible_text_supported",
+                "electrical_persisted": True,
+            })
+            rows.append(row)
+            continue
+
+        variable_result = runner(
+            "prototype_set_text_variable",
+            {"source_path": proto["path"], "variable_name": variable_name, "text_value": text_value},
+            timeout_sec,
+        )
+        variable_row = _text_variable_result_to_row(variable_result, variable_name=variable_name, text_value=text_value)
+        row.update(_prefixed_result_row(variable_row, "variable"))
+        row["run_dir"] = variable_row.get("run_dir") or visible_row.get("run_dir")
+        row["copy_artifact"] = variable_row.get("copy_artifact") or visible_row.get("copy_artifact")
+        row["output_artifact"] = variable_row.get("output_artifact") or visible_row.get("output_artifact")
+
+        if variable_row.get("text_variable_persisted"):
+            row["electrical_bucket"] = "variable_backed_supported"
+            row["electrical_persisted"] = True
+            row["ok"] = True
+            row["status"] = "passed"
+        elif not variable_row.get("text_variable_exists"):
+            row["electrical_bucket"] = "unsupported_unknown"
+            row["electrical_persisted"] = False
+            row["ok"] = False
+            row["status"] = "failed"
+        else:
+            row["electrical_bucket"] = "symbol_property_backed"
+            row["electrical_persisted"] = False
+            row["ok"] = False
+            row["status"] = "failed"
+
+        rows.append(row)
+        if fail_fast and not row["ok"]:
+            break
+
+    summary = _summary(catalog, prototypes, rows, root=Path(catalog["root"]), category=category, dry_run=dry_run)
+    summary["variable_name"] = variable_name
+    summary["value_prefix"] = value_prefix
+    summary["persisted"] = len([row for row in rows if row.get("electrical_persisted")])
+    buckets: dict[str, int] = {}
+    for row in rows:
+        bucket = str(row.get("electrical_bucket") or "unsupported_unknown")
+        buckets[bucket] = buckets.get(bucket, 0) + 1
+    summary["buckets"] = buckets
+    matrix = {"ok": summary["failed"] == 0, "summary": summary, "rows": rows}
+    matrix_path = out / "prototype_electrical_labels_matrix.json"
+    csv_path = out / "prototype_electrical_labels_matrix.csv"
+    matrix_path.write_text(json.dumps(matrix, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
+    _write_csv(csv_path, rows)
+    matrix["matrix_path"] = str(matrix_path)
+    matrix["csv_path"] = str(csv_path)
+    return matrix
+
+
 def _run_recipe_adapter(name: str, args: dict[str, Any], timeout_sec: int) -> dict[str, Any]:
     return run_recipe(name, args=args, timeout_sec=timeout_sec)
 
@@ -441,6 +546,56 @@ def _spec_bom_result_to_row(result: dict[str, Any], *, text_value: str) -> dict[
     return row
 
 
+def _text_variable_result_to_row(result: dict[str, Any], *, variable_name: str, text_value: str) -> dict[str, Any]:
+    row = _result_to_row(result)
+    stdout = str(result.get("stdout") or "")
+    saved_artifact = _first_artifact_named(result.get("artifacts") or [], "variable_mutation_saved.grb")
+    copy_artifact = _first_artifact_named(result.get("artifacts") or [], "variable_mutation_copy.grb")
+    if copy_artifact:
+        row["copy_artifact"] = copy_artifact.get("path")
+        row["copy_size"] = copy_artifact.get("size")
+    if saved_artifact:
+        row["output_artifact"] = saved_artifact.get("path")
+        row["output_size"] = saved_artifact.get("size")
+    row["text_variable_name"] = variable_name
+    row["text_variable_exists"] = "variable.exists=True" in stdout
+    row["text_variable_set"] = "variable.set=True" in stdout
+    row["text_variable_reopened"] = f"variable.reopened={text_value}" in stdout
+    row["text_variable_persisted"] = "variable.persisted=True" in stdout
+    row["ok"] = bool(row["ok"] and row["text_variable_persisted"])
+    row["status"] = "passed" if row["ok"] else "failed"
+    return row
+
+
+def _prefixed_result_row(row: dict[str, Any], prefix: str) -> dict[str, Any]:
+    keep = {
+        "status",
+        "ok",
+        "exit_code",
+        "run_dir",
+        "opened",
+        "saved",
+        "closed",
+        "session_closed",
+        "copy_artifact",
+        "copy_size",
+        "output_artifact",
+        "output_size",
+        "error",
+        "stage",
+        "phase",
+        "visible_text_after",
+        "visible_text_reopened",
+        "visible_text_persisted",
+        "text_variable_name",
+        "text_variable_exists",
+        "text_variable_set",
+        "text_variable_reopened",
+        "text_variable_persisted",
+    }
+    return {f"{prefix}_{key}": value for key, value in row.items() if key in keep}
+
+
 def _first_artifact_named(artifacts: list[dict[str, Any]], name: str) -> dict[str, Any] | None:
     for artifact in artifacts:
         if str(artifact.get("relative_path", "")).endswith(name) or str(artifact.get("path", "")).endswith(name):
@@ -496,6 +651,17 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "visible_text_after",
         "visible_text_reopened",
         "visible_text_persisted",
+        "variable_name",
+        "visible_ok",
+        "visible_run_dir",
+        "variable_ok",
+        "variable_run_dir",
+        "variable_text_variable_exists",
+        "variable_text_variable_set",
+        "variable_text_variable_reopened",
+        "variable_text_variable_persisted",
+        "electrical_bucket",
+        "electrical_persisted",
         "standard_field",
         "add_record",
         "spec_bom_exists",

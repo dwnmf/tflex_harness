@@ -14,6 +14,7 @@ from .grb_reverse import write_semantic_outputs
 from .prototype_metadata import capture_metadata_batch
 from .prototypes import list_prototypes, prototype_info, scan_and_write_catalog
 from .prototype_validation import (
+    validate_electrical_labels_batch,
     validate_first_visible_text_batch,
     validate_open_copy_save_batch,
     validate_specification_bom_field_batch,
@@ -150,6 +151,17 @@ def main(argv: list[str] | None = None) -> int:
     proto_visible_p.add_argument("--output-dir", default=None)
     proto_visible_p.add_argument("--value-prefix", default="Harness Visible Text Matrix")
 
+    proto_electrical_p = sub.add_parser("prototypes-electrical-labels-batch", help="Batch mutate electrical labels via visible text first, then text-variable fallback, and write classification matrix")
+    proto_electrical_p.add_argument("--root", default=None)
+    proto_electrical_p.add_argument("--category", default="Электротехника")
+    proto_electrical_p.add_argument("--limit", type=int, default=None)
+    proto_electrical_p.add_argument("--timeout-sec", type=int, default=120)
+    proto_electrical_p.add_argument("--fail-fast", action="store_true")
+    proto_electrical_p.add_argument("--dry-run", action="store_true")
+    proto_electrical_p.add_argument("--output-dir", default=None)
+    proto_electrical_p.add_argument("--variable-name", default="$Наименование")
+    proto_electrical_p.add_argument("--value-prefix", default="Harness Electrical Label Matrix")
+
     proto_spec_bom_p = sub.add_parser("prototypes-specification-bom-field-batch", help="Batch set one BOMObject standard field on copied specification .grb prototypes and write validation matrix")
     proto_spec_bom_p.add_argument("--root", default=None)
     proto_spec_bom_p.add_argument("--category", default="Спецификации")
@@ -249,6 +261,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "prototypes-first-visible-text-batch":
         emit(validate_first_visible_text_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir, value_prefix=args.value_prefix))
+        return 0
+    if args.command == "prototypes-electrical-labels-batch":
+        emit(validate_electrical_labels_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir, variable_name=args.variable_name, value_prefix=args.value_prefix))
         return 0
     if args.command == "prototypes-specification-bom-field-batch":
         emit(validate_specification_bom_field_batch(root=args.root, category=args.category, limit=args.limit, timeout_sec=args.timeout_sec, fail_fast=args.fail_fast, dry_run=args.dry_run, output_dir=args.output_dir, standard_field=args.standard_field, add_record=args.add_record, value_prefix=args.value_prefix))
