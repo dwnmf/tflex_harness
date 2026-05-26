@@ -31,9 +31,9 @@ User-facing style:
 - Local T-FLEX API docs: `D:\REALPROJECTS\tflex_api\llm`
 
 
-## Current Focus: Targeted Fixes 1-3
+## Current Focus: Point Fixes 1-3
 
-As of 2026-05-25, `goal.md` has been reset to a compact plan. Ignore older phase sprawl unless needed for evidence lookup. Current work is only:
+As of 2026-05-26, `goal.md` is the active compact backlog. Ignore older phase sprawl unless needed for evidence lookup. Current work is only:
 
 1. **Tables/specifications**
    - Generic `RichText` table-cell mutation works for `Таблицы/*`.
@@ -42,23 +42,24 @@ As of 2026-05-25, `goal.md` has been reset to a compact plan. Ignore older phase
    - Same raw path is weak for `Спецификации/*`.
    - Live matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`.
    - Result: `Спецификации` selected `20`, passed `1`, failed `19`, persisted `1`.
-   - Next: find specification-specific API; do not keep retrying raw `RichText.GetTableByIndex(0)` as the main fix.
+   - Next: add a specification-specific probe, classify object model evidence, then add the smallest helper only after a live writable path is proven.
 
 2. **Electrical documents**
    - Generic visible text replacement works only where `LineText` or non-table `RichText` is API-visible.
    - Direct proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`, `firstVisibleText.persisted=True`.
    - Batch matrix: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`.
    - Result: `Электротехника` selected `8`, passed `4`, failed `4`, persisted `4`.
-   - Next: probe failing electrical prototypes for variables, symbol-like objects, connector metadata, or electrical-specific API.
+   - Next: add an electrical metadata probe for failing prototypes, classify visible-text / variable-backed / symbol-property-backed / unsupported, then add one helper only after live persistence proof.
 
 3. **Fragments/assemblies**
    - Semantic Fragment3D LCS insertion is live-proven.
    - Recipe: `helper_fragment_lcs_assembly`.
    - Live run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`.
    - Evidence: `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
-   - Next: wire this path into document factory payloads.
+   - Next: wire this exact path into document factory payloads and prove one JSON payload live.
 
 Do not mark any of these complete without a fresh narrow live run for the exact changed path.
+Do not run broad test drag while time is low; use direct live checks and `git diff --check`.
 
 ## Hard Rules
 
@@ -85,6 +86,10 @@ python -m tflex_harness.cli search "TFlex.Model.Document" --limit 5
 python -m tflex_harness.cli recipes
 python -m tflex_harness.cli state
 python -m tflex_harness.cli run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"
+python -m tflex_harness.cli prototypes-title-batch --timeout-sec 120 --fail-fast
+python -m tflex_harness.cli prototypes-table-cell-batch --category Таблицы --timeout-sec 120 --fail-fast
+python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120
+python -m tflex_harness.cli prototypes-first-visible-text-batch --category Электротехника --timeout-sec 120
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --dry-run
 python -m tflex_harness.cli document-factory-batch --failed-matrix artifacts/my_batch/document_factory_batch_matrix.json
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --audit-open-only

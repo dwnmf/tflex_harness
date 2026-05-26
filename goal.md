@@ -1,188 +1,145 @@
-# T-FLEX Harness Goal: Targeted Fixes For Items 1-3
+# T-FLEX Harness Goal: Point Fixes 1-3
 
-Date: 2026-05-25
+Date: 2026-05-26
 
-This file is now intentionally compact. Old phase history was removed. Current work focuses only on three targeted fix tracks discovered by live T-FLEX evidence.
+This file is the only active plan. Old broad phase history is intentionally removed. Current work is narrow: fix three semantic gaps proven by live T-FLEX evidence, using only targeted live runs.
+
+## Non-Negotiables
+
+- Use visible C# snippets plus checked-in helper source files; no hidden wrapper DLLs.
+- Use `C:\Program Files\T-FLEX CAD 17\Program\Прототипы` as reference coverage, not as files to mutate in place.
+- Work only on artifact copies of `.grb` files.
+- Do not run broad/unit test drag unless a code path truly needs it.
+- Prefer one live T-FLEX proof for the exact changed path.
+- Save evidence under `artifacts/runs/...` or `artifacts/prototype_validation/...`.
+- Update recipe docs/metadata and this file when a path becomes live-proven.
+- Commit and push each completed iteration.
 
 ## Current Baseline
 
-The harness can already do the safe generic paths:
+Already live-proven:
 
-- scan installed prototypes from `C:\Program Files\T-FLEX CAD 17\Program\Прототипы`;
-- copy/open/save all installed `.grb` prototypes from artifact copies;
-- mutate `Document.Properties.Title` across all 50 installed `.grb` prototypes;
-- run visible C# snippets with helper source files, not hidden wrapper DLLs;
-- write run evidence under `artifacts/runs/...` and matrices under `artifacts/prototype_validation/...`.
+- Installed prototype scan works.
+- Copy/open/save works for installed `.grb` prototypes.
+- `Document.Properties.Title` mutation works for all 50 installed prototypes.
+- Generic `RichText` table-cell mutation works for `Таблицы/*`.
+- Generic first visible 2D text replacement works for some `Электротехника/*` prototypes.
+- Fragment insertion by `PointsLCS` + `Fragment3D.FixByFragmentLCS(...)` works as a standalone recipe.
 
-Recent live baseline:
+Key evidence:
 
-- `prototypes-title-batch --timeout-sec 120 --fail-fast`: selected `50`, attempted `50`, passed `50`, failed `0`, persisted `50`.
-- Matrix: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json`.
+- Title batch: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json` (`50/50`, persisted `50`).
+- Tables batch: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json` (`7/7`, persisted `7`).
+- Specification weak batch: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json` (`1/20`, persisted `1`).
+- Electrical visible text batch: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json` (`4/8`, persisted `4`).
+- Electrical direct proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text` (`firstVisibleText.persisted=True`).
+- Fragment LCS proof: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly` (`fragmentAssembly.persisted=True`).
 
-## Active Objective
+## Point Fix 1: Specifications
 
-Make the harness useful beyond safe generic `Title` mutation by fixing the three weak semantic areas:
+### Problem
 
-1. Tables and specifications.
-2. Electrical documents.
-3. Fragments and assemblies.
+`Таблицы/*` works through generic `RichText.GetTableByIndex(0)` cell mutation. Most `Спецификации/*` prototypes fail through that same path with `InvalidOperationException: Can not find object` or `Bad position`.
 
-Do this iteratively. Every meaningful fix must have live T-FLEX evidence before it is called done.
+### Next Exact Work
 
-## Hard Validation Rule
+1. Add a specification probe recipe/snippet that opens one copied failing `Спецификации/*` prototype and prints:
+   - 2D object type histogram;
+   - object names where readable;
+   - reflected public members containing `Spec`, `Table`, `Cell`, `Row`, `Text`, `Value`, `Data`;
+   - writable text-like/table-like properties;
+   - safe `RichText` table access results with per-object errors.
+2. Run it live on at least one currently failing specification prototype.
+3. From evidence, choose one writable path:
+   - real specification API row/cell field;
+   - variable-backed field;
+   - property-backed field;
+   - unsupported with proved object model reason.
+4. Add the smallest helper only for the proven path.
+5. Add a recipe named around the proven behavior, e.g. `prototype_set_specification_cell` or `prototype_set_specification_field`.
+6. Run a narrow live persist/reopen proof.
+7. Then rerun category matrix for `Спецификации` only if the single path works.
 
-No broad test drag unless explicitly needed. Prefer direct live checks:
+### Done
 
-```powershell
-python -m tflex_harness.cli run-recipe <recipe> --timeout-sec 120
-python -m tflex_harness.cli prototypes-table-cell-batch --category <category> --timeout-sec 120
-python -m tflex_harness.cli prototypes-first-visible-text-batch --category <category> --timeout-sec 120
-```
+- At least one common `Спецификации/*` prototype has a persisted semantic mutation after reopen, or the failure is classified with concrete reflected API evidence.
+- Matrix/report separates supported and unsupported spec templates.
 
-Use `git diff --check` and recipe freshness checks before commits. Push every completed iteration.
+## Point Fix 2: Electrical Labels
 
-## Item 1: Tables And Specifications
+### Problem
 
-### What Works Now
-
-Generic `RichText` table-cell mutation works for installed `Таблицы/*` prototypes.
-
-Live evidence:
-
-- Command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Таблицы --timeout-sec 120 --fail-fast`.
-- Matrix: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json`.
-- Result: selected `7`, attempted `7`, passed `7`, failed `0`, persisted `7`.
-
-### What Is Broken / Weak
-
-Most installed `Спецификации/*` prototypes do not work through the same raw `RichText.GetTableByIndex(0)` / cell index path.
-
-Live evidence:
-
-- Command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120`.
-- Matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`.
-- Result: selected `20`, attempted `20`, passed `1`, failed `19`, persisted `1`.
-- Failure evidence includes `InvalidOperationException: Can not find object` / `Bad position` on specification table access.
-
-### Targeted Fixes
-
-1. Add a specification-specific probe that enumerates 2D objects and reflected members around specification/table objects, instead of assuming first `RichText` table.
-2. Identify the real writable API for specification rows/cells.
-3. Add helper source only after live proof of the writable path.
-4. Add a recipe like `prototype_set_specification_cell` or `prototype_set_specification_row_field` only after the API path is proven.
-5. Re-run against `Спецификации` category and record pass/fail matrix.
-
-### Done Criteria
-
-- At least one common `Спецификации/*` prototype has a live row/cell/field mutation that persists after reopen.
-- The failure mode for unsupported specification templates is classified, not opaque.
-- `README.md`, recipe markdown, and `goal.md` contain exact run dirs and matrix paths.
-
-## Item 2: Electrical Documents
-
-### What Works Now
-
-Visible text replacement works on electrical prototypes that expose non-table `LineText` or non-table `RichText` through the 2D API.
-
-Live evidence:
-
-- Direct recipe: `prototype_replace_first_visible_text`.
-- Direct run: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text`.
-- Evidence: `firstVisibleText.before=Цепь`, `firstVisibleText.kind=LineText`, `firstVisibleText.after=Harness First Visible Direct`, `firstVisibleText.persisted=True`.
-
-Batch evidence:
-
-- Command: `python -m tflex_harness.cli prototypes-first-visible-text-batch --category Электротехника --timeout-sec 120`.
-- Matrix: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json`.
-- Result: selected `8`, attempted `8`, passed `4`, failed `4`, persisted `4`.
-
-### What Is Broken / Weak
-
-Four electrical prototypes do not expose a simple first visible non-table text object via the current helper path.
-
-Current failing/probably unsupported through this path:
+`prototype_replace_first_visible_text` works only where visible labels are exposed as `LineText` or non-table `RichText`. Four electrical prototypes still fail:
 
 - `Электротехника/Аппарат`
 - `Электротехника/Базовый компонент`
 - `Электротехника/Контактор`
 - `Электротехника/Схема`
 
-### Targeted Fixes
+### Next Exact Work
 
-1. Add an electrical metadata probe that records 2D object type names, reflected writable text-like properties, and symbol-like object properties.
-2. Find whether failing prototypes store labels in variables, object properties, hidden rich text, connector metadata, or electrical-specific API objects.
-3. Add the smallest helper for the first proven semantic path.
-4. Keep `prototype_replace_first_visible_text` as the generic visible-text path, but do not pretend it covers all electrical docs.
-5. Create a matrix that separates:
-   - visible-text supported;
-   - variable-backed label supported;
-   - symbol/property-backed label supported;
-   - unsupported/needs deeper API.
+1. Add an electrical metadata probe recipe/snippet for one failing prototype.
+2. Print:
+   - 2D object type histogram;
+   - writable reflected members containing `Text`, `Name`, `Value`, `Mark`, `Label`, `Reference`, `Variable`, `Connector`, `Contact`;
+   - document variables and text-like values;
+   - symbol/block-like objects and writable properties.
+3. Run it live on one failing electrical prototype.
+4. Classify storage:
+   - visible text;
+   - variable-backed label;
+   - symbol/property-backed label;
+   - unsupported/unknown API.
+5. Add one helper only after a persisted live mutation path is proven.
+6. Extend the electrical batch output with classification buckets instead of plain failed rows.
 
-### Done Criteria
+### Done
 
-- At least one currently failing electrical prototype has a live semantic mutation path that persists after reopen, or has a precise proved reason why no text/label mutation is available through current API.
-- Electrical batch report has failure buckets, not just failed rows.
-- Document factory can dispatch to the right electrical mutation helper when the payload requests it.
+- At least one currently failing electrical prototype is mutated semantically and persists after reopen, or has a proved unsupported classification.
+- Batch matrix has explicit buckets.
 
-## Item 3: Fragments And Assemblies
+## Point Fix 3: Fragment LCS Factory Payload
 
-### What Works Now
+### Problem
 
-A semantic fragment insertion path is live-proven.
+`helper_fragment_lcs_assembly` proves the native T-FLEX path, but document factory payloads do not yet expose it.
 
-Recipe:
+### Next Exact Work
 
-- `helper_fragment_lcs_assembly`
+1. Add a document factory payload type for fragment LCS assembly creation.
+2. Payload must include:
+   - source part name/output path stem;
+   - source LCS name;
+   - target LCS name;
+   - target position/orientation parameters;
+   - assembly output stem;
+   - optional STEP export flag.
+3. Generate visible C# that uses the proven path:
+   - create source part `.grb`;
+   - create `PointsLCS` with `UseForFragment=true` and `UseForFragmentFixing=true`;
+   - save/close part;
+   - create assembly document;
+   - create target `PointsLCS`;
+   - insert `Fragment3D`;
+   - call `FixByFragmentLCS(sourceName, targetLcs)`;
+   - save assembly.
+4. Validate live factory evidence:
+   - part saved and non-empty;
+   - assembly saved and non-empty;
+   - `SourceLCSName` equals requested source LCS;
+   - `TargetLCS` is non-null;
+   - assembly operation count increased;
+   - persisted reopen proof exists.
 
-Live evidence:
+### Done
 
-- Run: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly`.
-- Evidence: `part.end=OK`, `source.useForFragment=True`, `fragment.sourceLcs=FRAG_LCS`, `fragment.targetLcsNull=False`, `assembly.operationsAfter=1`, `assembly.saved=True`, `fragmentAssembly.persisted=True`.
+- `document-factory-batch` or equivalent factory command creates a part and assembly from one JSON payload live.
+- Evidence includes persisted assembly proof matching the standalone recipe.
 
-### What Is Broken / Weak
+## Work Order
 
-The current recipe is a standalone proof. It is not yet wired into the document factory payload model.
+1. Specification probe and first proven mutation/classification.
+2. Electrical probe and first proven mutation/classification.
+3. Fragment LCS payload wiring and one live factory proof.
 
-Missing pieces:
-
-- payload schema for part/assembly creation;
-- payload fields for source LCS, target LCS, placement coordinates;
-- output contract for generated part `.grb` and assembly `.grb`;
-- batch support for multiple fragments;
-- optional STEP export for resulting assembly.
-
-### Targeted Fixes
-
-1. Add a document factory payload type for fragment LCS insertion.
-2. Generate visible C# from payload using the already proven `PointsLCS` + `Fragment3D.FixByFragmentLCS` path.
-3. Save both source part and assembly outputs under the factory run artifacts.
-4. Validate operation count, `SourceLCSName`, non-null `TargetLCS`, and saved output sizes.
-5. Add one live factory payload proof.
-
-### Done Criteria
-
-- `create-document --payload <fragment-assembly-payload.json>` creates a part and assembly live.
-- Output includes named part `.grb` and assembly `.grb`.
-- Evidence includes `fragmentAssembly.persisted=True` or equivalent factory validation fields.
-- Optional later: STEP export of assembly if the generated assembly has exportable 3D bodies.
-
-## Next Work Order
-
-Do exactly this order unless new live evidence changes priority:
-
-1. Specification-specific probe and mutation helper.
-2. Electrical symbol/label metadata probe and first failing-prototype fix.
-3. Fragment LCS insertion wired into document factory payload.
-
-## Commit Discipline
-
-For each iteration:
-
-1. Run the narrow live command proving the exact path.
-2. Update recipe metadata/docs and this file with run dirs.
-3. Run `git diff --check`.
-4. Commit.
-5. Push.
-
-Do not claim completion without live evidence.
+Stop after each pushed iteration if time is low.
