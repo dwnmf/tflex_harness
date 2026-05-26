@@ -25,12 +25,14 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120
 ```
 
-Run: `artifacts/runs/20260526_225737_199228_recipe_helper_assembly_validation`
+Run: `artifacts/runs/20260526_230853_507662_recipe_helper_assembly_validation`
 
 Evidence:
 
 - bad assembly has overlapping fragments:
   - `bad.summary.bboxOverlapCount=1`
+  - `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`
+  - `bad.summary.clashPairCount=1`
   - `bad.summary.collisionCount=1`
   - `bad.expectedDetected=True`
 - bad assembly has one floating fragment:
@@ -46,7 +48,10 @@ Evidence:
 
 ## Important API Facts
 
-- Body envelope: `Operation.Geometry.AABoundBox`.
+- Body envelope: `Operation.Geometry.AABoundBox` for broad phase.
+- Exact body access: `Operation.Geometry.Solid[index]` returns `BaseBody`.
+- Exact clash: `BaseBody.Clash(BaseBody, false, true)` returns `ICollection<BaseClashResultItem>`.
+- Exact collision type live-proven: `BaseBody.TypeOfClash.Interfere`.
 - Fragment fixing/connectivity signals:
   - `Fragment3D.Fixing`
   - `Fragment3D.FixingType.NoFixing`
@@ -57,15 +62,15 @@ Evidence:
 
 ## Known Limitation
 
-Collision detection is currently AABB-based candidate detection. It is fast and live-proven, but not exact solid intersection. Local docs expose `BaseBody.ClashBody(BaseBody)`, but live compile showed `Operation.Body`, `Operation.Geometry`, and `Operation.Geometry.Solid` do not expose that method directly from visible snippets. Exact clash bridge is next work, not claimed done.
+Collision detection is now exact for solid body pairs: AABB broad phase, then `Operation.Geometry.Solid[index]` -> `BaseBody.Clash(...)`. `ClashBody(...)` is obsolete and not used.
 
 Floating detection is LCS/fixing based. It is not yet a full mate graph BFS/DOF solver.
 
 ## Next Target
 
-1. Find a live-compiling bridge from model operations/fragments to `BaseBody.ClashBody(...)`, or another exact kernel intersection API.
-2. Promote AABB overlap to broad phase only once exact clash is bridged.
-3. Extend floating analysis from simple LCS/fixing state to mate graph traversal when mate API is located and live-proven.
+1. Locate mate/constraint API and build fragment connectivity graph.
+2. Extend floating analysis from simple LCS/fixing state to BFS over mates/LCS links.
+3. Add contact-specific live case for `BaseBody.TypeOfClash.Abutment`.
 
 ## Done Criteria For This Iteration
 

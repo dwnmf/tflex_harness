@@ -65,8 +65,44 @@ namespace TFlexEasy {
           EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".bboxOverlap", bboxOverlap);
           if (!bboxOverlap) continue;
           report.BBoxOverlapCount++;
-          report.CollisionCount++;
-          EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".collisionMethod", "AABB");
+          bool pairClashed = false;
+          int bodyPairCount = 0;
+          try {
+            int aCount = a.Operation.Geometry.Solid.Length;
+            int bCount = b.Operation.Geometry.Solid.Length;
+            EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solidCountA", aCount);
+            EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solidCountB", bCount);
+            for (int ai = 0; ai < aCount; ai++) {
+              BaseBody bodyA = a.Operation.Geometry.Solid[ai];
+              if (bodyA == null) continue;
+              for (int bi = 0; bi < bCount; bi++) {
+                BaseBody bodyB = b.Operation.Geometry.Solid[bi];
+                if (bodyB == null) continue;
+                bodyPairCount++;
+                ICollection<BaseClashResultItem> clashes = bodyA.Clash(bodyB, false, true);
+                report.ClashPairCount++;
+                EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solid." + ai + "_" + bi + ".clashCount", clashes == null ? 0 : clashes.Count);
+                if (clashes == null) continue;
+                int clashIndex = 0;
+                foreach (BaseClashResultItem item in clashes) {
+                  BaseBody.TypeOfClash clash = item.Type;
+                  EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solid." + ai + "_" + bi + ".clash." + clashIndex + ".type", clash);
+                  if (clash == BaseBody.TypeOfClash.Interfere
+                      || clash == BaseBody.TypeOfClash.Exists
+                      || clash == BaseBody.TypeOfClash.TargetInTool
+                      || clash == BaseBody.TypeOfClash.ToolInTarget) pairClashed = true;
+                  else if (clash == BaseBody.TypeOfClash.Abutment) report.ContactCount++;
+                  clashIndex++;
+                }
+              }
+            }
+            EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".solidBodyPairCount", bodyPairCount);
+          } catch (Exception ex) {
+            EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".exactClashError", ex.GetType().Name + ": " + ex.Message);
+          }
+          EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".collisionMethod", "AABB+Clash");
+          EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".trueIntersect", pairClashed);
+          if (pairClashed) report.CollisionCount++;
         }
       }
     }

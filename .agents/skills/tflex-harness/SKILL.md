@@ -40,18 +40,18 @@ Live-proven now:
 - Helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`.
 - Helper set: `easy_assembly_validation`.
 - Recipe: `agent_workspace/recipes/helper_assembly_validation.cs`.
-- Live run: `artifacts/runs/20260526_225737_199228_recipe_helper_assembly_validation`.
+- Live run: `artifacts/runs/20260526_230853_507662_recipe_helper_assembly_validation`.
 - Command: `python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120`.
-- Bad assembly evidence: `bad.summary.bboxOverlapCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`.
+- Bad assembly evidence: `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`, `bad.summary.clashPairCount=1`, `bad.summary.collisionCount=1`, `bad.summary.floatingFragmentCount=1`, `bad.expectedDetected=True`.
 - Good assembly evidence: `good.summary.bboxOverlapCount=0`, `good.summary.collisionCount=0`, `good.summary.floatingFragmentCount=0`, `good.expectedClean=True`.
 - Final evidence: `assemblyValidation.live=True`.
 
-Important caveat:
+Important facts:
 
-- Collision is currently AABB candidate detection via `Operation.Geometry.AABoundBox`.
-- It is not exact solid intersection yet.
-- Docs expose `BaseBody.ClashBody(BaseBody)`, but live compile showed `Operation.Body`, `Operation.Geometry`, and `Operation.Geometry.Solid` do not expose `ClashBody` directly in snippets.
-- Next work: find a live-compiling bridge to exact kernel clash or another exact intersection API.
+- Collision now uses AABB broad phase via `Operation.Geometry.AABoundBox`, then exact `BaseBody.Clash(...)`.
+- Live compile fact: `Operation.Geometry.Solid[index]` returns `BaseBody`; `Operation.Geometry.Solid.Current` is only `object`.
+- Do not use obsolete `BaseBody.ClashBody(...)`; compiler warns to use `Clash(...)`.
+- Next work: mate graph/BFS and DOF analysis.
 
 Do not rerun broad prototype/document batches for this goal. Use only targeted live recipe/probes.
 
@@ -123,7 +123,7 @@ Known helper sets:
 - `easy_text`: prototype/session helpers plus `RichText` table cell, visible 2D text replacement helpers, and first visible non-table text helpers
 - `easy_specification`: prototype/session helpers plus `BOMObject` first-record standard field helpers for specification prototypes
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
-- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB collision-candidate and `Fragment3D` floating checks
+- `easy_assembly_validation`: session/prototype/diagnostics helpers plus AABB broad phase, exact `BaseBody.Clash(...)`, and `Fragment3D` floating checks
 - `all`: every helper source
 
 For gear assemblies:
