@@ -42,7 +42,12 @@ As of 2026-05-26, `goal.md` is the active compact backlog. Ignore older phase sp
    - Same raw path is weak for `Спецификации/*`.
    - Live matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`.
    - Result: `Спецификации` selected `20`, passed `1`, failed `19`, persisted `1`.
-   - Next: add a specification-specific probe, classify object model evidence, then add the smallest helper only after a live writable path is proven.
+   - New proven path: `TFlex.Model.Model2D.BOMObject` via `TFlexEasySpecifications.cs` and `prototype_set_specification_bom_field`.
+   - Probe run: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
+   - Single mutation run: `artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field`, `spec.field.persisted=True`.
+   - Batch matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`.
+   - Result: `Спецификации` selected `20`, passed `17`, failed `3`, persisted `17`; buckets `bom_standard_field_supported=17`, `bom_no_persist=3`.
+   - Next: classify the three `bom_no_persist` templates; do not retry raw `RichText.GetTableByIndex(0)` as the main spec path.
 
 2. **Electrical documents**
    - Generic visible text replacement works only where `LineText` or non-table `RichText` is API-visible.
@@ -89,6 +94,7 @@ python -m tflex_harness.cli run-csharp --mode compile_only --code "public class 
 python -m tflex_harness.cli prototypes-title-batch --timeout-sec 120 --fail-fast
 python -m tflex_harness.cli prototypes-table-cell-batch --category Таблицы --timeout-sec 120 --fail-fast
 python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120
+python -m tflex_harness.cli prototypes-specification-bom-field-batch --category Спецификации --timeout-sec 120
 python -m tflex_harness.cli prototypes-first-visible-text-batch --category Электротехника --timeout-sec 120
 python -m tflex_harness.cli document-factory-batch --payload-dir payloads --dry-run
 python -m tflex_harness.cli document-factory-batch --failed-matrix artifacts/my_batch/document_factory_batch_matrix.json
@@ -126,6 +132,7 @@ Known helper sets:
 - `easy_prototype`: installed `.grb` prototype copy/open/save helpers
 - `easy_variables`: prototype/session helpers plus text/real variable mutation helpers
 - `easy_text`: prototype/session helpers plus `RichText` table cell, visible 2D text replacement helpers, and first visible non-table text helpers
+- `easy_specification`: prototype/session helpers plus `BOMObject` first-record standard field helpers for specification prototypes
 - `easy_document_properties`: prototype/session helpers plus writable `Document.Properties` string mutation helpers
 - `all`: every helper source
 

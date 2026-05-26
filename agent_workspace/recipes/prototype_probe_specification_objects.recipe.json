@@ -1,0 +1,17 @@
+{
+  "name": "prototype_probe_specification_objects",
+  "description": "Copy/open a specification prototype and print reflected RichText, BOMObject, ProductStructure, row, cell, field, and variable evidence without mutation.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional"
+  },
+  "verified": true,
+  "helpers": [
+    "easy_text"
+  ],
+  "source_sha256": "cfb2d316b8206bc49e318506ceb83589d13b57ee235e523af4615b50fa15713a",
+  "markdown_sha256": "54efa85cc61a3a5e7d01c1134ddcff5fa4e222cec50f6ee9f170dc1c94135086",
+  "last_run_dir": "artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects",
+  "last_verified_at": "2026-05-26"
+}

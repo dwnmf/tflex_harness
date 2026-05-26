@@ -1,0 +1,20 @@
+{
+  "name": "prototype_set_specification_bom_field",
+  "description": "Copy/open a specification prototype, set a standard field on the first BOMObject record, save, reopen, and verify persistence.",
+  "args": {
+    "source_path": "absolute .grb prototype path, optional when prototype_id is provided",
+    "prototype_id": "catalog id, optional when source_path is provided",
+    "prototype_selector": "catalog id/name/relative path alias, optional",
+    "standard_field": "BOMObject.StandardField name, defaults to Desc",
+    "text_value": "new field text, defaults to empty string",
+    "add_record": "true/false; when true, add a BOM record before setting the field (useful for empty specification prototypes)"
+  },
+  "verified": true,
+  "last_run_dir": "artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field",
+  "last_verified_at": "2026-05-26",
+  "helpers": [
+    "easy_specification"
+  ],
+  "source_sha256": "c7978668adec9b34c2b37615b5827299ac06ddb45af10de88e8b9586017efe75",
+  "markdown_sha256": "bae426730ab93911c7b4d15c003ffe5053b7c9aa40aaf1a3e4dab5360de9f7fc"
+}

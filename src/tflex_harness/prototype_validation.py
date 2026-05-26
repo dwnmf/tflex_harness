@@ -248,6 +248,77 @@ def validate_first_visible_text_batch(
     return matrix
 
 
+def validate_specification_bom_field_batch(
+    root: str | Path | None = None,
+    *,
+    category: str | None = "Спецификации",
+    limit: int | None = None,
+    timeout_sec: int = 120,
+    fail_fast: bool = False,
+    dry_run: bool = False,
+    output_dir: str | Path | None = None,
+    standard_field: str = "Desc",
+    add_record: bool = True,
+    value_prefix: str = "Harness Spec BOM Matrix",
+    recipe_runner: RecipeRunner | None = None,
+) -> dict[str, Any]:
+    catalog = scan_prototypes(root)
+    prototypes = [item for item in catalog["files"] if item["extension"] == ".grb"]
+    if category:
+        prototypes = [item for item in prototypes if item["category"] == category]
+    if limit is not None:
+        prototypes = prototypes[:limit]
+
+    out = _output_dir(output_dir)
+    rows: list[dict[str, Any]] = []
+    runner = recipe_runner or _run_recipe_adapter
+
+    for index, proto in enumerate(prototypes, start=1):
+        text_value = f"{value_prefix} {index:03d}"
+        row = _base_row(index, proto, dry_run=dry_run)
+        row["standard_field"] = standard_field
+        row["add_record"] = add_record
+        row["text_value"] = text_value
+        if dry_run:
+            row.update({"status": "dry_run", "ok": True, "spec_field_persisted": None, "spec_bucket": "dry_run"})
+            rows.append(row)
+            continue
+
+        result = runner(
+            "prototype_set_specification_bom_field",
+            {
+                "source_path": proto["path"],
+                "standard_field": standard_field,
+                "text_value": text_value,
+                "add_record": "true" if add_record else "false",
+            },
+            timeout_sec,
+        )
+        row.update(_spec_bom_result_to_row(result, text_value=text_value))
+        rows.append(row)
+        if fail_fast and not row["ok"]:
+            break
+
+    summary = _summary(catalog, prototypes, rows, root=Path(catalog["root"]), category=category, dry_run=dry_run)
+    summary["standard_field"] = standard_field
+    summary["add_record"] = add_record
+    summary["value_prefix"] = value_prefix
+    summary["persisted"] = len([row for row in rows if row.get("spec_field_persisted")])
+    buckets: dict[str, int] = {}
+    for row in rows:
+        bucket = str(row.get("spec_bucket") or "unknown")
+        buckets[bucket] = buckets.get(bucket, 0) + 1
+    summary["buckets"] = buckets
+    matrix = {"ok": summary["failed"] == 0, "summary": summary, "rows": rows}
+    matrix_path = out / "prototype_specification_bom_field_matrix.json"
+    csv_path = out / "prototype_specification_bom_field_matrix.csv"
+    matrix_path.write_text(json.dumps(matrix, ensure_ascii=False, indent=2, default=json_default) + "\n", encoding="utf-8")
+    _write_csv(csv_path, rows)
+    matrix["matrix_path"] = str(matrix_path)
+    matrix["csv_path"] = str(csv_path)
+    return matrix
+
+
 def _run_recipe_adapter(name: str, args: dict[str, Any], timeout_sec: int) -> dict[str, Any]:
     return run_recipe(name, args=args, timeout_sec=timeout_sec)
 
@@ -341,6 +412,35 @@ def _first_visible_text_result_to_row(result: dict[str, Any], *, text_value: str
     return row
 
 
+def _spec_bom_result_to_row(result: dict[str, Any], *, text_value: str) -> dict[str, Any]:
+    row = _result_to_row(result)
+    stdout = str(result.get("stdout") or "")
+    saved_artifact = _first_artifact_named(result.get("artifacts") or [], "spec_field_mutation_saved.grb")
+    copy_artifact = _first_artifact_named(result.get("artifacts") or [], "spec_field_mutation_copy.grb")
+    if copy_artifact:
+        row["copy_artifact"] = copy_artifact.get("path")
+        row["copy_size"] = copy_artifact.get("size")
+    if saved_artifact:
+        row["output_artifact"] = saved_artifact.get("path")
+        row["output_size"] = saved_artifact.get("size")
+    row["spec_bom_exists"] = "spec.bom.exists=True" in stdout
+    row["spec_record_added"] = "spec.record.added=True" in stdout
+    row["spec_field_after"] = f"spec.field.after={text_value}" in stdout
+    row["spec_field_reopened"] = f"spec.field.reopened={text_value}" in stdout
+    row["spec_field_persisted"] = "spec.field.persisted=True" in stdout
+    if row["spec_field_persisted"]:
+        row["spec_bucket"] = "bom_standard_field_supported"
+    elif not row["spec_bom_exists"]:
+        row["spec_bucket"] = "no_bom_object"
+    elif "spec.error=" in stdout:
+        row["spec_bucket"] = "bom_api_error"
+    else:
+        row["spec_bucket"] = "bom_no_persist"
+    row["ok"] = bool(row["ok"] and row["spec_field_persisted"])
+    row["status"] = "passed" if row["ok"] else "failed"
+    return row
+
+
 def _first_artifact_named(artifacts: list[dict[str, Any]], name: str) -> dict[str, Any] | None:
     for artifact in artifacts:
         if str(artifact.get("relative_path", "")).endswith(name) or str(artifact.get("path", "")).endswith(name):
@@ -396,6 +496,14 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "visible_text_after",
         "visible_text_reopened",
         "visible_text_persisted",
+        "standard_field",
+        "add_record",
+        "spec_bom_exists",
+        "spec_record_added",
+        "spec_field_after",
+        "spec_field_reopened",
+        "spec_field_persisted",
+        "spec_bucket",
         "source_size",
         "copy_size",
         "output_size",

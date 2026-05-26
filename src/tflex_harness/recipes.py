@@ -301,13 +301,26 @@ def run_recipe(name: str, args: dict[str, Any] | None = None, timeout_sec: int =
         env["TFLEX_RECIPE_OUTPUT_FILE"] = str(output_file)
         artifacts["output_file"] = str(output_file)
 
-    if name == "prototype_open_copy_save":
+    if name in {"prototype_open_copy_save", "prototype_probe_specification_objects"}:
         source_result = _resolve_prototype_source_arg(args, name, recipe_info)
         if source_result.get("ok") is False:
             return source_result
         source_path = Path(str(source_result["source_path"])).resolve()
         env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
         artifacts["source_path"] = str(source_path)
+
+    if name == "prototype_set_specification_bom_field":
+        source_result = _resolve_prototype_source_arg(args, name, recipe_info)
+        if source_result.get("ok") is False:
+            return source_result
+        source_path = Path(str(source_result["source_path"])).resolve()
+        env["TFLEX_PROTOTYPE_SOURCE_PATH"] = str(source_path)
+        env["TFLEX_SPEC_STANDARD_FIELD"] = str(args.get("standard_field") or args.get("field_name") or "Desc")
+        env["TFLEX_SPEC_FIELD_TEXT"] = str(args.get("text_value") or "")
+        env["TFLEX_SPEC_ADD_RECORD"] = str(args.get("add_record") or "false")
+        artifacts["source_path"] = str(source_path)
+        artifacts["standard_field"] = env["TFLEX_SPEC_STANDARD_FIELD"]
+        artifacts["add_record"] = env["TFLEX_SPEC_ADD_RECORD"]
 
     if name in {"prototype_set_text_variable", "prototype_set_real_variable"}:
         source_result = _resolve_prototype_source_arg(args, name, recipe_info)

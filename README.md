@@ -36,6 +36,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 - `python -m tflex_harness.cli prototypes-open-save-batch` — batch validates safe copy/open/save for `.grb` prototypes and writes JSON/CSV validation matrices.
 - `python -m tflex_harness.cli prototypes-title-batch` — batch copies `.grb` prototypes, sets `Document.Properties.Title`, saves, reopens, verifies persistence, and writes JSON/CSV mutation matrices.
 - `python -m tflex_harness.cli prototypes-table-cell-batch` — batch mutates one `RichText` table cell on copied `.grb` prototypes and writes JSON/CSV matrices.
+- `python -m tflex_harness.cli prototypes-specification-bom-field-batch` — batch mutates one `BOMObject` standard field on copied specification `.grb` prototypes and writes support buckets.
 - `python -m tflex_harness.cli prototypes-first-visible-text-batch` — batch replaces first API-visible non-table text on copied `.grb` prototypes and writes JSON/CSV matrices.
 - `python -m tflex_harness.cli prototypes-metadata` — opens copied `.grb` prototypes and extracts document/page/2D/3D/variable/fragment metadata into JSON/CSV indexes.
 - `create_tflex_document` / `python -m tflex_harness.cli create-document --payload input.json` — dispatches a document factory JSON payload to one verified prototype recipe, writes `input_payload.json` and `factory_plan.json`, and can run live or `--dry-run`.
@@ -157,6 +158,19 @@ Verified live table-cell batches on 2026-05-25:
 - command: `python -m tflex_harness.cli prototypes-table-cell-batch --category Спецификации --timeout-sec 120`
 - specification result: selected `20`, attempted `20`, passed `1`, failed `19`, persisted `1`
 - specification matrix: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json`
+
+Verified live specification BOM-field path on 2026-05-26:
+
+- probe command: `python -m tflex_harness.cli run-recipe prototype_probe_specification_objects --arg 'prototype_id=Спецификации/Спецификация форма 1 ГОСТ 2.106-2019' --timeout-sec 120`
+- probe run: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`
+- probe evidence: `object.6.type=TFlex.Model.Model2D.BOMObject`; raw `RichText.GetTableByIndex(0)` failed with `InvalidOperationException: Can not find object / Bad position`
+- mutation command: `python -m tflex_harness.cli run-recipe prototype_set_specification_bom_field --arg 'prototype_id=Спецификации/Спецификация форма 1 ГОСТ 2.106-2019' --arg 'standard_field=Desc' --arg 'text_value=Harness Spec BOM Desc' --arg 'add_record=true' --timeout-sec 120`
+- mutation run: `artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field`
+- mutation evidence: `spec.record.added=True`, `spec.field.after=Harness Spec BOM Desc`, `spec.field.reopened=Harness Spec BOM Desc`, `spec.field.persisted=True`
+- batch command: `python -m tflex_harness.cli prototypes-specification-bom-field-batch --category Спецификации --timeout-sec 120`
+- batch result: selected `20`, attempted `20`, passed `17`, failed `3`, persisted `17`
+- buckets: `bom_standard_field_supported=17`, `bom_no_persist=3`
+- matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`
 
 Verified live electrical visible-text batch on 2026-05-25:
 

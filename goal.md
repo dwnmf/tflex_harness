@@ -31,6 +31,7 @@ Key evidence:
 - Title batch: `artifacts/prototype_validation/20260525_215002_183343/prototype_title_mutation_matrix.json` (`50/50`, persisted `50`).
 - Tables batch: `artifacts/prototype_validation/20260525_220550_733488/prototype_table_cell_matrix.json` (`7/7`, persisted `7`).
 - Specification weak batch: `artifacts/prototype_validation/20260525_220918_092578/prototype_table_cell_matrix.json` (`1/20`, persisted `1`).
+- Specification BOM field batch: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json` (`17/20`, persisted `17`, buckets `bom_standard_field_supported=17`, `bom_no_persist=3`).
 - Electrical visible text batch: `artifacts/prototype_validation/20260525_220808_834096/prototype_first_visible_text_matrix.json` (`4/8`, persisted `4`).
 - Electrical direct proof: `artifacts/runs/20260525_220841_828547_recipe_prototype_replace_first_visible_text` (`firstVisibleText.persisted=True`).
 - Fragment LCS proof: `artifacts/runs/20260525_220748_356485_recipe_helper_fragment_lcs_assembly` (`fragmentAssembly.persisted=True`).
@@ -42,6 +43,24 @@ Key evidence:
 `Таблицы/*` works through generic `RichText.GetTableByIndex(0)` cell mutation. Most `Спецификации/*` prototypes fail through that same path with `InvalidOperationException: Can not find object` or `Bad position`.
 
 ### Next Exact Work
+
+Done now:
+
+- Probe recipe: `prototype_probe_specification_objects`.
+- Probe live run: `artifacts/runs/20260526_210936_525247_recipe_prototype_probe_specification_objects`.
+- Finding: failing specification prototypes expose `TFlex.Model.Model2D.BOMObject`; raw `RichText.GetTableByIndex(0)` reports `InvalidOperationException: Can not find object / Bad position`.
+- Mutation helper: `TFlexEasySpecifications.cs`.
+- Mutation recipe: `prototype_set_specification_bom_field`.
+- Single live proof: `artifacts/runs/20260526_211159_374848_recipe_prototype_set_specification_bom_field`, with `spec.field.persisted=True`.
+- Category matrix: `artifacts/prototype_validation/20260526_211323_125648/prototype_specification_bom_field_matrix.json`, selected `20`, passed `17`, failed `3`, persisted `17`.
+
+Remaining exact work:
+
+1. For the three `bom_no_persist` specification-like templates, run focused probes and determine whether they need a different standard field, user field, or table-specific path.
+2. If a second path is found, add it as a separate helper/recipe instead of weakening `prototype_set_specification_bom_field`.
+3. Keep the `RichText` table helper for `Таблицы/*`; use `BOMObject` for normal `Спецификации/*`.
+
+Historical probe requirements already satisfied:
 
 1. Add a specification probe recipe/snippet that opens one copied failing `Спецификации/*` prototype and prints:
    - 2D object type histogram;
@@ -62,8 +81,8 @@ Key evidence:
 
 ### Done
 
-- At least one common `Спецификации/*` prototype has a persisted semantic mutation after reopen, or the failure is classified with concrete reflected API evidence.
-- Matrix/report separates supported and unsupported spec templates.
+- At least one common `Спецификации/*` prototype has a persisted semantic mutation after reopen. Done: `Спецификация форма 1 ГОСТ 2.106-2019`.
+- Matrix/report separates supported and unsupported spec templates. Partly done: `17` supported, `3` are `bom_no_persist`; the three still need deeper classification.
 
 ## Point Fix 2: Electrical Labels
 
