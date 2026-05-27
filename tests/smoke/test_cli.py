@@ -44,6 +44,17 @@ def test_cli_env_reports_runner_and_docs():
     assert result["dlls"]["TFlexAPI.dll"]["exists"] is True
 
 
+def test_cli_bootstrap_dry_path_has_no_external_side_effects():
+    result = _cli("bootstrap", "--no-docs", "--no-checks")
+
+    assert result["ok"] is True
+    assert result["repo_dir"].endswith("tflex_harness")
+    assert result["docs_dir"].endswith("tflex_api")
+    assert result["persist_env"] is False
+    assert result["env"] == []
+    assert result["skill"] is None
+
+
 def test_cli_recipes_lists_verified_sources():
     result = _cli("recipes")
     recipes = {recipe["name"]: recipe for recipe in result["recipes"]}

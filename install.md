@@ -18,50 +18,70 @@ Use this file only for first-time install, reconnect, release install, or cold-s
 - Windows with T-FLEX CAD 17 installed.
 - Python 3.11+.
 - `uv` recommended.
-- T-FLEX API docs from `https://github.com/dwnmf/tflex_api`.
+- `git` for automatic docs clone.
 - Default T-FLEX install: `<tflex-install>`; override with `TFLEX_INSTALL_DIR` or `TFLEX_PROGRAM_DIR`.
 
-## T-FLEX API docs source
+## Simple install
 
-`tflex-harness` does not vendor the API docs. Clone the docs repo separately:
-
-```powershell
-git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
-```
-
-Then point the harness at it:
-
-```powershell
-$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
-```
-
-If `TFLEX_API_DOCS_DIR` is not set, the harness also tries a sibling checkout named `tflex_api` next to `<repo>`.
-
-## Human install
-
-Clone once into a stable path and install editable so CLI/MCP always sees the repo recipes and helper sources:
+Recommended path: clone once, install editable, let `bootstrap` do the rest.
 
 ```powershell
 git clone https://github.com/dwnmf/tflex_harness <repo>
-git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
 cd <repo>
-$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
 uv tool install -e ".[mcp]"
+tflex-harness bootstrap --persist-env --register-codex-skill
 tflex-harness env
 tflex-harness recipes
 ```
 
-If you install from a GitHub release wheel instead of editable source, set the repo path when you want checked-in recipes:
+What `bootstrap` does:
+
+- clones T-FLEX API docs from `https://github.com/dwnmf/tflex_api` into sibling `<repo>\..\tflex_api` when missing;
+- sets `TFLEX_HARNESS_REPO_DIR` and `TFLEX_API_DOCS_DIR` for future terminals with `--persist-env`;
+- copies root `SKILL.md` into Codex global skills with `--register-codex-skill`;
+- checks docs completeness.
+
+Restart the terminal after `--persist-env`.
+
+If you do not have `uv`:
 
 ```powershell
-$env:TFLEX_HARNESS_REPO_DIR = "<repo>"
+py -m pip install -e ".[mcp]"
+python -m tflex_harness.cli bootstrap --persist-env --register-codex-skill
 ```
 
-For persistent Windows user env:
+## Custom docs path
+
+Use this only when docs must live outside the default sibling path:
 
 ```powershell
-setx TFLEX_HARNESS_REPO_DIR "<repo>"
+git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
+cd <repo>
+uv tool install -e ".[mcp]"
+tflex-harness bootstrap --docs-dir "<tflex-api-docs>" --persist-env
 ```
+
+If you install from a GitHub release wheel instead of editable source, keep a repo checkout and persist the repo path:
+
+```powershell
+tflex-harness bootstrap --docs-dir "<tflex-api-docs>" --persist-env
+```
+
+## Bootstrap options
+
+```powershell
+tflex-harness bootstrap --help
+```
+
+Useful flags:
+
+- `--docs-dir <path>` — use a custom T-FLEX API docs checkout.
+- `--update-docs` — run `git pull --ff-only` in an existing docs checkout.
+- `--no-docs` — skip docs clone/update.
+- `--persist-env` — persist `TFLEX_HARNESS_REPO_DIR` and `TFLEX_API_DOCS_DIR`.
+- `--register-codex-skill` — copy root `SKILL.md` into Codex global skills.
+- `--symlink-skill` — prefer a symlink instead of copying `SKILL.md`.
+- `--no-checks` — skip docs completeness checks.
 
 ## MCP server
 
@@ -95,23 +115,7 @@ Paste this into Codex or Claude Code:
 ```text
 Set up https://github.com/dwnmf/tflex_harness for me.
 
-Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Also clone https://github.com/dwnmf/tflex_api into <tflex-api-docs> and set `TFLEX_API_DOCS_DIR`. Install the harness editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
-```
-
-Register skill for Codex on Windows:
-
-```powershell
-$skillRoot = Join-Path ($env:CODEX_HOME ?? "$env:USERPROFILE\.codex") "skills\tflex-harness"
-New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
-Copy-Item -Force .\SKILL.md (Join-Path $skillRoot "SKILL.md")
-```
-
-If symlinks are available and you want the skill to update with the repo:
-
-```powershell
-$skillRoot = Join-Path ($env:CODEX_HOME ?? "$env:USERPROFILE\.codex") "skills\tflex-harness"
-New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
-New-Item -ItemType SymbolicLink -Force -Path (Join-Path $skillRoot "SKILL.md") -Target (Resolve-Path .\SKILL.md)
+Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install editable with MCP extras (`uv tool install -e ".[mcp]"`). Then run `tflex-harness bootstrap --persist-env --register-codex-skill`. Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
 ```
 
 Claude Code can import this file from its global memory, for example:
@@ -164,6 +168,7 @@ Update editable install:
 cd <repo>
 git pull --ff-only
 uv tool install -e ".[mcp]" --force
+tflex-harness bootstrap --update-docs --persist-env
 tflex-harness env
 ```
 

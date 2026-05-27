@@ -11,7 +11,7 @@ Paste into Codex or Claude Code:
 ```text
 Set up https://github.com/dwnmf/tflex_harness for me.
 
-Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Also clone https://github.com/dwnmf/tflex_api into <tflex-api-docs> and set `TFLEX_API_DOCS_DIR`. Install the harness editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
+Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install editable with MCP extras (`uv tool install -e ".[mcp]"`). Then run `tflex-harness bootstrap --persist-env --register-codex-skill`. Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
 ```
 
 See [`install.md`](install.md) for first-time install, MCP setup, release install, and skill registration.
@@ -22,15 +22,14 @@ Clone once into a stable path and install editable:
 
 ```powershell
 git clone https://github.com/dwnmf/tflex_harness <repo>
-git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
 cd <repo>
-$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
 uv tool install -e ".[mcp]"
+tflex-harness bootstrap --persist-env --register-codex-skill
 tflex-harness env
 tflex-harness recipes
 ```
 
-The T-FLEX API docs source is `https://github.com/dwnmf/tflex_api`. If `TFLEX_API_DOCS_DIR` is not set, the harness tries a sibling checkout named `tflex_api` next to `<repo>`.
+`bootstrap` clones `https://github.com/dwnmf/tflex_api` into sibling `tflex_api` when missing, persists `TFLEX_HARNESS_REPO_DIR` / `TFLEX_API_DOCS_DIR`, and can register the Codex skill. Use `--docs-dir <path>` when the docs checkout must live elsewhere.
 
 Run MCP server:
 
@@ -57,22 +56,8 @@ MCP config example:
 
 ## Install for AI agents
 
-Register this repo's root [`SKILL.md`](SKILL.md) as a global skill.
-
-Codex on Windows:
-
 ```powershell
-$skillRoot = Join-Path ($env:CODEX_HOME ?? "$env:USERPROFILE\.codex") "skills\tflex-harness"
-New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
-Copy-Item -Force .\SKILL.md (Join-Path $skillRoot "SKILL.md")
-```
-
-Prefer a symlink if available, so future repo updates update the skill too:
-
-```powershell
-$skillRoot = Join-Path ($env:CODEX_HOME ?? "$env:USERPROFILE\.codex") "skills\tflex-harness"
-New-Item -ItemType Directory -Force -Path $skillRoot | Out-Null
-New-Item -ItemType SymbolicLink -Force -Path (Join-Path $skillRoot "SKILL.md") -Target (Resolve-Path .\SKILL.md)
+tflex-harness bootstrap --persist-env --register-codex-skill
 ```
 
 Claude Code can import:
@@ -101,6 +86,7 @@ Live T-FLEX integration checks are marked `integration` and may skip when the CA
 
 ## Implemented tools
 
+- `python -m tflex_harness.cli bootstrap` / `tflex-harness bootstrap` — clones/updates docs, persists harness env, and optionally registers the Codex skill.
 - `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `<tflex-api-docs>\llm`.
 - `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, runner skeleton build/env probe, and process state.
 - `run_csharp_tflex` / `python -m tflex_harness.cli run-csharp` — compiles and runs visible C# snippets via `csc.exe`, with successful builds cached by content hash.

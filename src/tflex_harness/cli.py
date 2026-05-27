@@ -5,6 +5,7 @@ import json
 import sys
 
 from .artifacts import json_default
+from .bootstrap import bootstrap
 from .diagnostics import get_environment
 from .document_factory_batch import create_documents_from_payload_dir
 from .document_factory import create_document_from_payload
@@ -40,6 +41,16 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     env_p = sub.add_parser("env", help="Print environment diagnostics")
+
+    bootstrap_p = sub.add_parser("bootstrap", help="Clone docs, set env, and optionally register Codex skill")
+    bootstrap_p.add_argument("--docs-dir", default=None, help="T-FLEX API docs checkout path; defaults to sibling tflex_api")
+    bootstrap_p.add_argument("--docs-url", default=None, help="Docs git URL; defaults to dwnmf/tflex_api")
+    bootstrap_p.add_argument("--no-docs", action="store_true", help="Do not clone or update docs")
+    bootstrap_p.add_argument("--update-docs", action="store_true", help="Run git pull --ff-only when docs repo already exists")
+    bootstrap_p.add_argument("--persist-env", action="store_true", help="Persist TFLEX_HARNESS_REPO_DIR and TFLEX_API_DOCS_DIR with setx")
+    bootstrap_p.add_argument("--register-codex-skill", action="store_true", help="Copy root SKILL.md into CODEX_HOME/.codex skills")
+    bootstrap_p.add_argument("--symlink-skill", action="store_true", help="Prefer a symlink for Codex skill registration")
+    bootstrap_p.add_argument("--no-checks", action="store_true", help="Skip docs completeness checks")
 
     search_p = sub.add_parser("search", help="Search T-FLEX API docs")
     search_p.add_argument("query")
@@ -195,6 +206,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "env":
         emit(get_environment())
+        return 0
+    if args.command == "bootstrap":
+        emit(
+            bootstrap(
+                docs_dir=args.docs_dir,
+                docs_url=args.docs_url or "https://github.com/dwnmf/tflex_api",
+                no_docs=args.no_docs,
+                update_docs=args.update_docs,
+                persist_env=args.persist_env,
+                register_codex_skill=args.register_codex_skill,
+                symlink_skill=args.symlink_skill,
+                no_checks=args.no_checks,
+            )
+        )
         return 0
     if args.command == "search":
         emit(DocsSearch().search(args.query, scope=args.scope, assembly=args.assembly, limit=args.limit))
