@@ -247,6 +247,83 @@ def list_recipes(config: HarnessConfig | None = None) -> list[dict[str, Any]]:
     return RecipeRegistry(config).list()
 
 
+def new_helper_recipe(name: str, helpers: list[str] | None = None, config: HarnessConfig | None = None) -> dict[str, Any]:
+    cfg = config or load_config()
+    safe = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in name.strip()).strip("_-")
+    if not safe:
+      return {"ok": False, "stage": "input", "error": "name is required"}
+    helpers = helpers or []
+    recipes_dir = cfg.repo_dir / "agent_workspace" / "recipes"
+    recipes_dir.mkdir(parents=True, exist_ok=True)
+    source_path = recipes_dir / f"{safe}.cs"
+    markdown_path = recipes_dir / f"{safe}.md"
+    metadata_path = recipes_dir / f"{safe}.recipe.json"
+    if source_path.exists() or markdown_path.exists() or metadata_path.exists():
+        return {
+            "ok": False,
+            "stage": "input",
+            "error": "recipe already exists",
+            "source_path": str(source_path),
+            "markdown_path": str(markdown_path),
+            "metadata_path": str(metadata_path),
+        }
+    source = """using TFlex.Model;
+using TFlex.Model.Model3D;
+using TFlexEasy;
+
+public class Program {
+  public static int Main(){
+    using (var sess = EasySession.Start3D()) {
+      var doc = sess.New3DDocument(false);
+      doc.BeginChanges("helper recipe scaffold");
+      var block = EasySolids.BlockMm(doc, 20.0, 20.0, 10.0, 0.0, 0.0, 0.0, "scaffold_block");
+      var end = doc.EndChanges();
+      EasyDiagnostics.Print("endChanges", end);
+      EasyEvidence.PrintOperationSummary(doc);
+      bool saved = EasyExport.Grb(doc, sess.ArtifactPath("{{NAME}}.grb"));
+      return end.ToString() == "OK" && saved ? 0 : 10;
+    }
+  }
+}
+""".replace("{{NAME}}", safe)
+    markdown = f"""# {safe}
+
+## Live Verification Report
+
+Test: pending.
+
+Docs used: pending.
+
+Snippet: `agent_workspace/recipes/{safe}.cs`
+
+Result: pending.
+
+Evidence: pending.
+
+Blockers: pending.
+"""
+    source_path.write_text(source, encoding="utf-8")
+    markdown_path.write_text(markdown, encoding="utf-8")
+    metadata = {
+        "name": safe,
+        "description": f"Helper live-proof scaffold for {safe}.",
+        "args": {},
+        "helpers": helpers,
+        "verified": False,
+        "source_sha256": _sha256(source_path),
+        "markdown_sha256": _sha256(markdown_path),
+    }
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {
+        "ok": True,
+        "name": safe,
+        "source_path": str(source_path),
+        "markdown_path": str(markdown_path),
+        "metadata_path": str(metadata_path),
+        "helpers": helpers,
+    }
+
+
 def _recipe_source(name: str, cfg: HarnessConfig) -> str:
     return RecipeRegistry(cfg).source(name)
 

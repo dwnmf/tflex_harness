@@ -21,10 +21,11 @@ from .prototype_validation import (
     validate_table_cell_batch,
     validate_title_mutation_batch,
 )
-from .recipes import list_recipes, run_recipe
+from .recipes import list_recipes, new_helper_recipe, run_recipe
 from .runner import run_csharp_snippet
 from .schemas import DOCS_SEARCH_SCOPES, TFLEX_DOC_ASSEMBLIES
 from .state import capture_tflex_state
+from .ui_plugin import run_ui_plugin_probe
 from .workspace import save_snippet_candidate
 
 
@@ -62,6 +63,10 @@ def main(argv: list[str] | None = None) -> int:
     recipe_p.add_argument("--arg", action="append", default=[], help="Recipe argument in NAME=VALUE form")
     recipe_p.add_argument("--timeout-sec", type=int, default=60)
 
+    new_recipe_p = sub.add_parser("new-helper-recipe", help="Create a helper recipe scaffold")
+    new_recipe_p.add_argument("name")
+    new_recipe_p.add_argument("--helper", action="append", dest="helpers", default=None, help="Helper set or helper source to include")
+
     create_doc_p = sub.add_parser("create-document", help="Create a document from a JSON payload by dispatching a verified recipe")
     create_doc_p.add_argument("--payload", required=True, help="Path to document factory JSON payload")
     create_doc_p.add_argument("--timeout-sec", type=int, default=120)
@@ -86,6 +91,11 @@ def main(argv: list[str] | None = None) -> int:
 
     state_p = sub.add_parser("state", help="Capture read-only live T-FLEX state")
     state_p.add_argument("--timeout-sec", type=int, default=60)
+
+    ui_probe_p = sub.add_parser("ui-plugin-probe", help="Build and live-probe a minimal T-FLEX UI plugin registration path")
+    ui_probe_p.add_argument("--timeout-sec", type=int, default=90)
+    ui_probe_p.add_argument("--startup-wait-sec", type=int, default=10)
+    ui_probe_p.add_argument("--compile-only", action="store_true")
 
     save_p = sub.add_parser("save-snippet", help="Save a C# snippet candidate under agent_workspace/snippets")
     save_p.add_argument("name")
@@ -210,6 +220,9 @@ def main(argv: list[str] | None = None) -> int:
             recipe_args[key] = value
         emit(run_recipe(args.name, args=recipe_args, timeout_sec=args.timeout_sec))
         return 0
+    if args.command == "new-helper-recipe":
+        emit(new_helper_recipe(args.name, helpers=args.helpers))
+        return 0
     if args.command == "create-document":
         emit(create_document_from_payload(args.payload, timeout_sec=args.timeout_sec, dry_run=args.dry_run))
         return 0
@@ -233,6 +246,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "state":
         emit(capture_tflex_state(timeout_sec=args.timeout_sec))
+        return 0
+    if args.command == "ui-plugin-probe":
+        emit(run_ui_plugin_probe(timeout_sec=args.timeout_sec, startup_wait_sec=args.startup_wait_sec, compile_only=args.compile_only))
         return 0
     if args.command == "save-snippet":
         emit(save_snippet_candidate(args.name, code=args.code, markdown=args.markdown))

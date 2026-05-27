@@ -1,0 +1,13 @@
+{
+  "name": "helper_profile_workplanes_backlog",
+  "description": "Live proof for profile/workplane helper coverage.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "b327eed7f35f5da4037e11c2680fe7ce399ed7e2cdf022e2cc2fa6458e749e28",
+  "markdown_sha256": "6c0a65ad467f1c0947edecd6c26eac7a6aa13f7d566ddce183649763108958c4",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_111707_207555_recipe_helper_profile_workplanes_backlog"
+}

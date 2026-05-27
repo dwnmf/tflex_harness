@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tflex_harness.runner import HELPER_SETS
+
 
 def _cli(*args: str, timeout: int = 60) -> dict:
     env = os.environ.copy()
@@ -136,7 +138,7 @@ def test_cli_run_csharp_compile_only_accepts_all_helpers():
 
     assert result["ok"] is True, result
     assert result["stage"] == "compile"
-    assert len(result["helper_sources"]) == 12
+    assert len(result["helper_sources"]) == len(HELPER_SETS["all"])
 
 
 def test_cli_reverse_evidence_writes_semantic_outputs(tmp_path):
@@ -321,3 +323,13 @@ def test_cli_document_factory_batch_audit_open_only_dry_run(tmp_path):
     assert result["audit_open_only"] is True
     assert result["rows"][0]["stage"] == "audit_dry_run"
     assert result["rows"][0]["audit_open_only"] is True
+
+
+def test_cli_ui_plugin_probe_compile_only():
+    result = _cli("ui-plugin-probe", "--compile-only", "--timeout-sec", "60", timeout=120)
+
+    assert result["ok"] is True
+    assert result["stage"] == "compile"
+    assert result["compile"]["ok"] is True
+    assert Path(result["source_path"]).exists()
+    assert Path(result["dll_path"]).exists()

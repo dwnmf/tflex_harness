@@ -1,0 +1,13 @@
+{
+  "name": "helper_export_matrix_backlog",
+  "description": "Live proof for EasyExport.All export matrix.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "356d25f2f237d3d87c937f6e7d8f0155212442c74c16f4003f8c2ccea1cb97d4",
+  "markdown_sha256": "27997774213895c4123bdf01dce7bb3ebe71e4ed491c1429d5583d07761b8da8",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_112035_438821_recipe_helper_export_matrix_backlog"
+}

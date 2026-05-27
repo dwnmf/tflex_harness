@@ -1,0 +1,13 @@
+{
+  "name": "helper_solid_primitives_backlog",
+  "description": "Live proof for solid primitive helper axis coverage.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "21f4c29c7e3790ee07f52b580c05ac737621ba9872fa95eb131a037aca1bbee3",
+  "markdown_sha256": "553d12f977426c0780b066198a97e22873e3a2023d5343b09c813fb1a2c93e75",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_113601_563578_recipe_helper_solid_primitives_backlog"
+}

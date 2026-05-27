@@ -1,4 +1,5 @@
 using System.IO;
+using System.Collections.Generic;
 using TFlex.Model;
 
 namespace TFlexEasy {
@@ -78,6 +79,66 @@ namespace TFlexEasy {
       EasyDiagnostics.Print("easy.dwgPath", path);
       if (exists) EasyDiagnostics.Print("easy.dwgSize", size);
       return ok;
+    }
+
+    public static bool All(Document doc, string basePath, bool grb = true, bool step = true, bool dxf = false, bool dwg = false, bool pdf = false) {
+      bool ok = true;
+      Dictionary<string, string> manifest = new Dictionary<string, string>();
+      manifest["basePath"] = basePath;
+      if (grb) {
+        string path = basePath + ".grb";
+        bool saved = Grb(doc, path);
+        manifest["grb"] = saved.ToString();
+        manifest["grbPath"] = path;
+        ok = ok && saved;
+      }
+      if (step) {
+        string path = basePath + ".stp";
+        bool saved = Step(doc, path);
+        manifest["step"] = saved.ToString();
+        manifest["stepPath"] = path;
+        ok = ok && saved;
+      }
+      if (dxf) {
+        string path = basePath + ".dxf";
+        bool saved = Dxf(doc, path);
+        manifest["dxf"] = saved.ToString();
+        manifest["dxfPath"] = path;
+        ok = ok && saved;
+      }
+      if (dwg) {
+        string path = basePath + ".dwg";
+        bool saved = Dwg(doc, path);
+        manifest["dwg"] = saved.ToString();
+        manifest["dwgPath"] = path;
+        ok = ok && saved;
+      }
+      if (pdf) {
+        string path = basePath + ".pdf";
+        bool saved = Pdf(doc, path);
+        manifest["pdf"] = saved.ToString();
+        manifest["pdfPath"] = path;
+        ok = ok && saved;
+      }
+      manifest["ok"] = ok.ToString();
+      ExportManifest(basePath + ".export_manifest.json", manifest);
+      return ok;
+    }
+
+    public static bool VerifyNonEmpty(string path) {
+      bool exists = File.Exists(path);
+      long size = exists ? new FileInfo(path).Length : 0;
+      bool ok = exists && size > 0;
+      EasyDiagnostics.Print("easy.export.verifyPath", path);
+      EasyDiagnostics.Print("easy.export.verifyExists", exists);
+      EasyDiagnostics.Print("easy.export.verifySize", size);
+      EasyDiagnostics.Print("easy.export.verifyNonEmpty", ok);
+      return ok;
+    }
+
+    public static void ExportManifest(string path, IDictionary<string, string> values) {
+      EasyEvidence.WriteManifest(path, values);
+      EasyDiagnostics.Print("easy.export.manifestPath", path);
     }
 
     static void EnsurePdfExportModule() {

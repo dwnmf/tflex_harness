@@ -3,7 +3,7 @@ from pathlib import Path
 
 from tflex_harness.config import HarnessConfig
 from tflex_harness import runner as runner_module
-from tflex_harness.runner import CompileCache, RunStore, SnippetRunner, parse_csc_diagnostics, resolve_csharp_helpers, run_csharp_snippet, write_run_artifacts
+from tflex_harness.runner import CompileCache, RunStore, SnippetRunner, _runtime_env, parse_csc_diagnostics, resolve_csharp_helpers, run_csharp_snippet, write_run_artifacts
 
 
 def _config(tmp_path):
@@ -115,6 +115,15 @@ def test_resolve_csharp_helpers_expands_easy_gears(tmp_path):
     ]
 
 
+def test_runtime_env_exposes_tflex_program_dir(tmp_path):
+    cfg = _config(tmp_path)
+
+    env = _runtime_env(cfg)
+
+    assert env["TFLEX_PROGRAM_DIR"] == str(cfg.tflex_program_dir)
+    assert env["PATH"].startswith(str(cfg.tflex_program_dir))
+
+
 def test_resolve_csharp_helpers_expands_easy_prototype(tmp_path):
     cfg = _config(tmp_path)
     helper_dir = tmp_path / "src" / "tflex_harness" / "csharp_helpers"
@@ -194,6 +203,23 @@ def test_resolve_csharp_helpers_expands_easy_document_properties(tmp_path):
         "TFlexEasyPrototype.cs",
         "TFlexEasyDocumentProperties.cs",
     ]
+
+
+def test_helper_backlog_sets_are_registered():
+    assert "easy_modeling" in runner_module.HELPER_SETS
+    assert "TFlexEasyBoolean.cs" in runner_module.HELPER_SETS["easy_modeling"]
+    assert "TFlexEasySketchProfiles.cs" in runner_module.HELPER_SETS["easy_modeling"]
+    assert "TFlexEasyEvidence.cs" in runner_module.HELPER_SETS["easy_modeling"]
+    assert "easy_part_features" in runner_module.HELPER_SETS
+    assert "TFlexEasyFeatures.cs" in runner_module.HELPER_SETS["easy_part_features"]
+    assert "easy_reopen" in runner_module.HELPER_SETS
+    assert "TFlexEasyReopen.cs" in runner_module.HELPER_SETS["easy_reopen"]
+    assert "easy_assembly_build" in runner_module.HELPER_SETS
+    assert "TFlexEasyAssemblyBuild.cs" in runner_module.HELPER_SETS["easy_assembly_build"]
+    assert "easy_mate_inspection" in runner_module.HELPER_SETS
+    assert "TFlexEasyMateInspector.cs" in runner_module.HELPER_SETS["easy_mate_inspection"]
+    assert "easy_all_live" in runner_module.HELPER_SETS
+    assert "TFlexEasyCommandProbe.cs" in runner_module.HELPER_SETS["easy_all_live"]
 
 
 def test_compile_cache_key_includes_helper_content(tmp_path):

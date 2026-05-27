@@ -5,7 +5,7 @@ using TFlex.Model.Model2D;
 using TFlex.Model.Model3D;
 
 namespace TFlexEasy {
-  public static class EasyProfiles {
+  public static partial class EasyProfiles {
     public static AreaProfile Circle(Document doc, double diameterMm, string name) {
       Area area = new Area(doc);
       AddClosedPolylineContour(doc, area, BuildCircle(0.0, 0.0, diameterMm / 2.0, 96), true);

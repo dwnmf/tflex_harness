@@ -1,0 +1,13 @@
+{
+  "name": "helper_evidence_unit_backlog",
+  "description": "Run proof for pure EasyEvidence helper behavior.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "7885de983693c102d9fffde0655240e053b780b34590360334677eb034a24e92",
+  "markdown_sha256": "cdbf0f33f581c0afbc399ec61383dcacb53c3586aed15585f2f6bace0b673110",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_113128_534143_recipe_helper_evidence_unit_backlog"
+}

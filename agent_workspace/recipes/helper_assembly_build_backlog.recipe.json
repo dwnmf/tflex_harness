@@ -1,0 +1,13 @@
+{
+  "name": "helper_assembly_build_backlog",
+  "description": "Live proof for assembly build, validation policy, mate inspection helpers.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "d90a366fd23fd9f33efff384b46dd883afdb255bd5522bf27479456082472e62",
+  "markdown_sha256": "e2c65578cdd5f3962e2b8847775399af9eb04c27ef6a923ef061b1979a195bea",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_110934_645111_recipe_helper_assembly_build_backlog"
+}

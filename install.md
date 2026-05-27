@@ -18,8 +18,24 @@ Use this file only for first-time install, reconnect, release install, or cold-s
 - Windows with T-FLEX CAD 17 installed.
 - Python 3.11+.
 - `uv` recommended.
-- T-FLEX API docs at `<tflex-api-docs>` or set `TFLEX_API_DOCS_DIR`.
+- T-FLEX API docs from `https://github.com/dwnmf/tflex_api`.
 - Default T-FLEX install: `<tflex-install>`; override with `TFLEX_INSTALL_DIR` or `TFLEX_PROGRAM_DIR`.
+
+## T-FLEX API docs source
+
+`tflex-harness` does not vendor the API docs. Clone the docs repo separately:
+
+```powershell
+git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
+```
+
+Then point the harness at it:
+
+```powershell
+$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
+```
+
+If `TFLEX_API_DOCS_DIR` is not set, the harness also tries a sibling checkout named `tflex_api` next to `<repo>`.
 
 ## Human install
 
@@ -27,7 +43,9 @@ Clone once into a stable path and install editable so CLI/MCP always sees the re
 
 ```powershell
 git clone https://github.com/dwnmf/tflex_harness <repo>
+git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
 cd <repo>
+$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
 uv tool install -e ".[mcp]"
 tflex-harness env
 tflex-harness recipes
@@ -77,7 +95,7 @@ Paste this into Codex or Claude Code:
 ```text
 Set up https://github.com/dwnmf/tflex_harness for me.
 
-Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install it editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
+Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Also clone https://github.com/dwnmf/tflex_api into <tflex-api-docs> and set `TFLEX_API_DOCS_DIR`. Install the harness editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
 ```
 
 Register skill for Codex on Windows:

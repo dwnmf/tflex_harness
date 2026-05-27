@@ -1,0 +1,13 @@
+{
+  "name": "helper_command_probe_backlog",
+  "description": "Live proof for EasyCommandProbe with known forum command name.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "2ba396d8720e931cbcffaf6baf71d82592b19605e9b36149386e042b23da9cf3",
+  "markdown_sha256": "108a480bcbd9524f045356826b7ec70fc57c017ab206ba15a6aeddf11664ac5e",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_121244_863443_recipe_helper_command_probe_backlog"
+}

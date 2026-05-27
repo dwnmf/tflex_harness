@@ -11,7 +11,7 @@ Paste into Codex or Claude Code:
 ```text
 Set up https://github.com/dwnmf/tflex_harness for me.
 
-Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install it editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
+Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Also clone https://github.com/dwnmf/tflex_api into <tflex-api-docs> and set `TFLEX_API_DOCS_DIR`. Install the harness editable with MCP extras (`uv tool install -e ".[mcp]"`). Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Then register this repo's `SKILL.md` as a global agent skill so future sessions know how to use the harness. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
 ```
 
 See [`install.md`](install.md) for first-time install, MCP setup, release install, and skill registration.
@@ -22,11 +22,15 @@ Clone once into a stable path and install editable:
 
 ```powershell
 git clone https://github.com/dwnmf/tflex_harness <repo>
+git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
 cd <repo>
+$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
 uv tool install -e ".[mcp]"
 tflex-harness env
 tflex-harness recipes
 ```
+
+The T-FLEX API docs source is `https://github.com/dwnmf/tflex_api`. If `TFLEX_API_DOCS_DIR` is not set, the harness tries a sibling checkout named `tflex_api` next to `<repo>`.
 
 Run MCP server:
 

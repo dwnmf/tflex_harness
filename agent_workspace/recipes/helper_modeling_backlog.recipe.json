@@ -1,0 +1,13 @@
+{
+  "name": "helper_modeling_backlog",
+  "description": "Live proof for helper backlog implementation.",
+  "args": {},
+  "helpers": [
+    "easy_all_live"
+  ],
+  "verified": true,
+  "source_sha256": "c1ff177e0576ee044319570a8f6c13cd68489cfe81f753f0c3ee6c96be2aaad5",
+  "markdown_sha256": "17b7a33e790db8901377e8a431f0ad28309a5c7cb99d3fcb2519dd9ccb90ebcd",
+  "last_verified": "2026-05-27",
+  "live_run": "artifacts/runs/20260527_113643_330344_recipe_helper_modeling_backlog"
+}

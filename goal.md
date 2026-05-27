@@ -1,132 +1,240 @@
-# T-FLEX Harness Goal: Assembly Validation
+﻿# T-FLEX Harness — Полный план имплементации
 
-Date: 2026-05-26
+Дата: 2026-05-27
+Статус: рабочий план к исполнению
 
-Current objective: production-ready MVP for assembly validation through `tflex_harness` helpers.
+---
 
-Failure classes in scope:
+## 1) Цель
 
-1. bodies/fragments placed inside each other;
-2. `Fragment3D` objects floating without LCS/fixing/mate connection;
-3. face-contact/tolerance-contact that must not become a false collision;
-4. DOF-lite groundedness and constraint counting;
-5. native mate graph evidence for future BFS/DOF checks.
+Сделать `tflex_harness` быстрым и надёжным контуром для:
 
-## What Is Implemented
+1. генерации 3D-деталей и сборок через helper-слой;
+2. верификации геометрии и артефактов (GRB/STEP/DXF/DWG/PDF);
+3. контроля сборочных ошибок (коллизии, плавающие фрагменты, контакт);
+4. исследования и автоматизации native mates с доказуемыми live-результатами.
 
-- Visible helper source: `src/tflex_harness/csharp_helpers/TFlexEasyAssemblyValidation.cs`.
-- Helper set: `easy_assembly_validation`.
-- Verified recipe:
-  - `agent_workspace/recipes/helper_assembly_validation.cs`
-  - `agent_workspace/recipes/helper_assembly_validation.md`
-  - `agent_workspace/recipes/helper_assembly_validation.recipe.json`
+---
 
-## Live-Proven Behavior
+## 2) Базовые принципы
 
-Command:
+1. Минимальные, прозрачные helper’ы — без «магии».
+2. Любой API-факт: сначала `compile_only`, потом live-run.
+3. Любое сильное утверждение — только с `run_dir` и stdout-доказательством.
+4. Артефакты писать только в `artifacts/runs/...` / `artifacts/tflex_docs/...`.
+5. Не расширять scope: закрывать текущие блокеры по очереди.
 
-```powershell
-$env:PYTHONPATH = Join-Path (Get-Location) 'src'
-python -m tflex_harness.cli run-recipe helper_assembly_validation --timeout-sec 120
-```
+---
 
-Run: `artifacts/runs/20260526_233717_009768_recipe_helper_assembly_validation`
+## 3) Текущее состояние (кратко)
 
-Evidence:
+Уже есть рабочий helper-backlog (моделирование, булевы, профили, экспорт, сборка, валидация, инспектор mates, probe команд) и свежие рецепты с live-подтверждениями.
 
-- bad assembly has exact solid collision:
-  - `bad.summary.broadPhasePairCount=1`
-  - `bad.summary.bboxOverlapCount=1`
-  - `bad.pair.0_1.solid.0_0.clash.0.type=Interfere`
-  - `bad.summary.clashPairCount=1`
-  - `bad.summary.collisionCount=1`
-  - `bad.expectedDetected=True`
-- bad assembly has one floating/underconstrained fragment:
-  - `bad.fragment.1.fixing=NoFixing`
-  - `bad.fragment.1.targetLcsNull=True`
-  - `bad.fragment.1.connectedByMate=False`
-  - `bad.fragment.1.reason=no_lcs_fixing_or_mate`
-  - `bad.fragment.1.estimatedRemainingDof=6`
-  - `bad.summary.floatingFragmentCount=1`
-  - `bad.summary.groundedFragmentCount=1`
-  - `bad.summary.ungroundedFragmentCount=1`
-  - `bad.summary.estimatedDofRemaining=6`
-- good assembly is clean and fully constrained by LCS fixing:
-  - `good.summary.broadPhasePairCount=0`
-  - `good.summary.collisionCount=0`
-  - `good.summary.floatingFragmentCount=0`
-  - `good.summary.groundedFragmentCount=2`
-  - `good.summary.fullyConstrainedFragmentCount=2`
-  - `good.summary.estimatedDofRemaining=0`
-  - `good.expectedClean=True`
-- touching assembly is contact, not collision:
-  - `touch.pair.0_1.bboxOverlap=False`
-  - `touch.pair.0_1.broadPhaseCandidate=True`
-  - `touch.pair.0_1.solid.0_0.clash.0.type=Interfere`
-  - `touch.pair.0_1.solid.0_0.clash.0.classification=contact_by_bbox_no_volume_overlap`
-  - `touch.summary.bboxContactCandidateCount=1`
-  - `touch.summary.collisionCount=0`
-  - `touch.summary.contactCount=1`
-  - `touch.summary.groundedFragmentCount=2`
-  - `touch.summary.estimatedDofRemaining=0`
-  - `touch.expectedContact=True`
-- native mate inspector runs live:
-  - `bad.summary.mateCount=0`
-  - `good.summary.mateCount=0`
-  - `touch.summary.mateCount=0`
-- final pass: `assemblyValidation.live=True`.
+Критический открытый блокер:
 
-## Important API Facts
+- в harness-сессии нет полноценного UI-контекста команд:
+  - `ActiveDocument == null`;
+  - `ActiveViewDocument == null`;
+  - `Document.IsUIVisible == false`;
+  - `Document.Views` пуст;
+  - `RibbonBar.TabCount == 0`.
 
-- Body envelope: `Operation.Geometry.AABoundBox` for broad phase.
-- Exact body access: `Operation.Geometry.Solid[index]` returns `BaseBody`.
-- Exact clash: `BaseBody.Clash(BaseBody, false, true)` returns `ICollection<BaseClashResultItem>`.
-- Exact collision type live-proven: `BaseBody.TypeOfClash.Interfere`.
-- Face contact can be returned by the kernel as `Interfere`; helper classifies it as contact when strict AABB volume overlap is false.
-- Broad phase is inclusive-with-tolerance for exact checks, but strict `BoxesOverlap(...)` still separates volume overlap from face contact.
-- Fragment fixing/connectivity signals:
-  - `Fragment3D.Fixing`
-  - `Fragment3D.FixingType.NoFixing`
-  - `Fragment3D.SourceLCSName`
-  - `Fragment3D.TargetLCS`
-  - `Fragment3D.FixByFragmentLCS(...)`
-- DOF-lite/constraint counting:
-  - each `Fragment3D` starts with 6 estimated DOF;
-  - `FixByFragmentLCS(...)`/target LCS contributes 6 constraints and grounds the fragment;
-  - native mate edges contribute estimated constraints by mate type when real `Mate.Operation1/2` edges exist;
-  - BFS from LCS-fixed roots through mate edges computes grounded vs ungrounded fragments.
-- Native mate enumeration:
-  - `Document3D.GetMates(doc)` returns assembly mates.
-  - `Mate.Operation1` and `Mate.Operation2` expose linked operations when available.
-  - `Mate.Element1`, `Mate.Element2`, `Mate.Type`, and `Mate.Suppressed` compile and are logged.
-- `CoordinateNode3D` LCS placement uses model units; recipe converts mm with `EasyUnits.MmToModel(...)`.
+Следствие: интерактивные mate-команды (`CreateMate` и соседние) через `RunSystemCommand(...)` не стартуют, даже при корректной 3D-сборке.
 
-## Mate Status
+---
 
-Positive native mate-edge classification remains blocked by input data/API behavior, not by the validator hook:
+## 4) Область имплементации
 
-- direct native mate creation probes returned `CompleteError`, including `artifacts/runs/20260526_231412_287906_probe_create_lcs_mate`;
-- installed prototype scan opened 50 `.grb` prototypes and found no native mates: `artifacts/runs/20260526_232731_135336_probe_scan_prototype_mates`, `scan.opened=50`, `scan.withMates=0`;
-- DeepWiki/local docs confirm the visible API shape (`new Mate(document)`, `Type`, `Element1`, `Element2`, `Document3D.GetMates(doc)`), but no working creation recipe is documented.
+### 4.1 Helper-слой (обязательный)
 
-This is production-ready for generated/legacy assemblies where collisions, contacts, floating fragments, and LCS-based DOF-lite checks are the gates. It is still not a full geometric constraint rank solver and does not yet prove positive `MateEdgeCount>0` on a real native-mate file.
+1. `TFlexEasyBoolean`
+2. `TFlexEasySketchProfiles`
+3. `TFlexEasyEvidence`
+4. `TFlexEasyReopen`
+5. расширение `TFlexEasySolids`
+6. `TFlexEasyWorkplanes`
+7. `TFlexEasyFeatures`
+8. `TFlexEasyAssemblyBuild`
+9. расширение `TFlexEasyAssemblyValidation`
+10. `TFlexEasyMateInspector`
+11. `TFlexEasyCommandProbe`
+12. расширение `TFlexEasyExport`
 
-## Next Target
+### 4.2 Recipe/CLI слой (обязательный)
 
-1. Obtain or create a real native-mate `.grb` and prove `MateEdgeCount>0`.
-2. Prove mate-edge BFS/constraint counting on that real native-mate file.
-3. Add policy options: fail on contact vs allow contact, allowed overlap pairs, ignored body names.
+1. Полный набор helper-рецептов с metadata/markdown.
+2. Проверки freshness/verified для recipe-контрактов.
+3. `new-helper-recipe` scaffold (если не закрыто полностью — дозакрыть).
 
-## Done Criteria For Current MVP
+### 4.3 Native mate track (обязательный)
 
-- Helper source exists and is registered: done.
-- Recipe exists with markdown/metadata: done.
-- Recipe compiles and runs live: done.
-- Live stdout proves bad collision/floating case: done.
-- Live stdout proves clean separated case: done.
-- Live stdout proves face-contact is not false collision: done.
-- Live stdout proves DOF-lite and constraint counting for LCS-fixed/floating fragments: done.
-- Mate enumeration compiles and runs in live recipe: done.
-- Installed prototypes scanned for positive mate file: done, none found.
-- Positive mate-edge case: blocked until real native-mate input exists or working creation API is discovered.
-- Commit and push: pending.
+1. Подтвердить путь получения **положительного** native mate (`MateEdgeCount > 0`).
+2. Развести два режима:
+   - headless harness (ограниченный по UI);
+   - in-process UI plugin режим (полный UI-контекст команд).
+
+---
+
+## 5) Детальный план по фазам
+
+## Фаза A — Стабилизация helper-платформы
+
+### A1. API-контракты helper’ов
+- Уточнить/зафиксировать публичные сигнатуры helper-классов.
+- Проверить обратную совместимость helper-set’ов в `runner.py`.
+
+**Критерий готовности:** все helper-сборки проходят `compile_only`.
+
+### A2. Единый формат live-evidence
+- Нормализовать ключи stdout (`*.expectedClean`, `*.saved`, `*.bbox`, `*.count`).
+- Зафиксировать шаблон markdown-отчёта recipe.
+
+**Критерий готовности:** у каждого helper-рецепта есть одинаково читаемое доказательство.
+
+---
+
+## Фаза B — Закрытие функционального helper-backlog
+
+### B1. Геометрия детали
+- Профили: rectangle/rounded rectangle/triangle/slot/obround/lug.
+- Примитивы: block/cylinder по осям X/Y/Z, именованные cutters.
+- Булевы: unite/subtract + предсказуемые параметры blend/chamfer.
+
+**Критерий:** live-рецепт строит целевые тела с валидным bbox.
+
+### B2. Готовые feature-блоки
+- base plate, lug pair, mounting hole pattern;
+- horizontal bore cutter;
+- triangular lightening cutout;
+- reinforcing rib;
+- round transitions.
+
+**Критерий:** feature-рецепты дают ожидаемое число операций/тел + сохранение GRB.
+
+### B3. Save/Reopen/Evidence/Export
+- `SaveCloseReopen3D`, `VerifyReopened`.
+- `Export.All`, `VerifyNonEmpty`, `ExportManifest`.
+- Учет известной особенности STEP (файл может сохраниться при `Export=false`).
+
+**Критерий:** live-пакет экспортов стабильно не-пустой; reopen-проверка положительная.
+
+---
+
+## Фаза C — Сборка и валидация
+
+### C1. Сборочный bootstrap
+- Надёжный путь через `Fragment3D + PointsLCS + FixByFragmentLCS`.
+- Фиксированные и плавающие фрагменты через helper-API.
+
+**Критерий:** рецепты корректно различают grounded/floating.
+
+### C2. Политики валидации
+- `allowContact`;
+- `allowedOverlapPairs`;
+- `ignoredOperationNames`;
+- `ignoredBodyNames`;
+- JSON summary writer.
+
+**Критерий:** policy-рецепты показывают разные исходы при одинаковой геометрии.
+
+---
+
+## Фаза D — Native mates (главный риск и главный блокер)
+
+### D1. Разделение execution-контуров
+
+#### D1.1 Headless harness контур
+- Сохранить текущую диагностику UI-ограничения как факт.
+- Не ожидать от него интерактивных mate-команд.
+
+#### D1.2 UI plugin контур (новый обязательный шаг)
+- Поднять in-process плагин в живом окне T-FLEX.
+- Включить «имена команд Open API» в подсказках.
+- Проверить `RunSystemCommand("CreateMate", ...)` в активном UI-документе.
+
+**Критерий:** есть run-доказательство, что в UI-контуре команда хотя бы стартует.
+
+### D2. Положительный native mate кейс
+- Создать/открыть сборку с реальным mate (через UI).
+- Сохранить `.grb`.
+- Переоткрыть в harness и получить `Document3D.GetMates(doc).Count > 0`.
+- Подтвердить ребра графа: `Operation1/Operation2` или эквивалентное связанное доказательство.
+
+**Критерий:** зафиксирован первый `MateEdgeCount > 0` с run_dir.
+
+### D3. Инспекция и граф
+- Расширить `EasyMateInspector`: owner mapping, relation graph dump.
+- Вывести причины «не связалось» в понятных кодах.
+
+**Критерий:** диагностический отчёт объясняет каждую связь/несвязь.
+
+---
+
+## Фаза E — Тесты, документация, контракт релиза
+
+### E1. Тесты
+- Unit: recipes metadata/freshness/helper contracts.
+- Smoke: ключевые helper-рецепты.
+- Live (точечно): только критические ветки.
+
+### E2. Документация
+- `verified-api-facts.md` — только подтверждённые live-факты.
+- `fragments-mates-selection.md` — актуальные гипотезы/ограничения/пруфы.
+- `README.md`/`install.md` — команды запуска и ожидания.
+
+### E3. Гейт «готово»
+- Любой заявленный сценарий имеет compile + live evidence.
+- Нет «success без доказательства».
+
+---
+
+## 6) Порядок исполнения (приоритеты)
+
+1. **P0:** UI plugin контур для native mate команд (разблокировка основной неопределенности).
+2. **P1:** Положительный native mate `.grb` + `MateEdgeCount > 0`.
+3. **P2:** Завершение policy-расширений assembly validation.
+4. **P3:** Финишное выравнивание helper-рецептов и metadata freshness.
+5. **P4:** Документация/тестовый гейт релиза.
+
+---
+
+## 7) Артефакты, которые должны появиться
+
+1. Live run dirs для UI plugin mate-проверок.
+2. Минимум один эталонный `.grb` с реальным native mate.
+3. JSON/markdown отчёт инспектора mate-графа.
+4. Обновлённые recipe metadata с fresh hashes.
+
+---
+
+## 8) Риски и меры
+
+### Риск R1: Команда существует, но не стартует в headless
+**Мера:** запуск через UI plugin контур, не тратить циклы на blind brute-force в headless.
+
+### Риск R2: Нестабильность макро/loader окружения
+**Мера:** зафиксировать зависимости окружения и отдельный bootstrap для plugin-контура.
+
+### Риск R3: Ложные выводы из docs/forum
+**Мера:** считать источники только гипотезой, истина — только live evidence.
+
+---
+
+## 9) Definition of Done (финал)
+
+План считается реализованным, когда:
+
+1. helper-backlog закрыт и подтверждён live-рецептами;
+2. assembly validation имеет policy-режимы и стабильные отчёты;
+3. native mate путь доказан положительным кейсом (`MateEdgeCount > 0`);
+4. документация и тесты синхронизированы с фактическим состоянием.
+
+---
+
+## 10) Ближайшие практические шаги (следующий спринт)
+
+1. Поднять минимальный UI plugin execution path для команды mate.
+2. Снять первый live run: активный UI-документ + `RunSystemCommand("CreateMate", ...)`.
+3. Создать и сохранить эталонную сборку с UI-created mate.
+4. Переоткрыть в harness, подтвердить `GetMates(...) > 0`.
+5. Добавить recipe-пруф + обновить verified facts.

@@ -3,7 +3,7 @@ import json
 
 from tflex_harness.config import HarnessConfig, load_config
 from tflex_harness import recipes as recipes_module
-from tflex_harness.recipes import RecipeRegistry, list_recipes, run_recipe
+from tflex_harness.recipes import RecipeRegistry, list_recipes, new_helper_recipe, run_recipe
 
 
 def _hash(path):
@@ -324,3 +324,43 @@ def test_recipe_registry_marks_hash_mismatch_unverified(tmp_path):
     assert stale["verified"] is False
     assert stale["freshness"]["status"] == "stale"
     assert "source hash mismatch" in stale["freshness"]["reasons"]
+
+
+def test_new_helper_recipe_scaffolds_source_markdown_metadata(tmp_path):
+    cfg = HarnessConfig(
+        repo_dir=tmp_path,
+        docs_dir=tmp_path / "docs",
+        tflex_install_dir=tmp_path / "tflex",
+        tflex_program_dir=tmp_path / "tflex" / "Program",
+        runner_dir=tmp_path / "runner",
+        artifacts_dir=tmp_path / "artifacts",
+        logs_dir=tmp_path / "logs",
+    )
+
+    result = new_helper_recipe("demo helper", helpers=["easy_modeling", "easy_export"], config=cfg)
+
+    assert result["ok"] is True
+    assert result["name"] == "demo_helper"
+    source = tmp_path / "agent_workspace" / "recipes" / "demo_helper.cs"
+    markdown = tmp_path / "agent_workspace" / "recipes" / "demo_helper.md"
+    metadata = tmp_path / "agent_workspace" / "recipes" / "demo_helper.recipe.json"
+    assert source.exists()
+    assert markdown.exists()
+    assert metadata.exists()
+    assert "EasySession.Start3D" in source.read_text(encoding="utf-8")
+    text = markdown.read_text(encoding="utf-8")
+    for phrase in [
+        "## Live Verification Report",
+        "Test:",
+        "Docs used:",
+        "Snippet:",
+        "Result:",
+        "Evidence:",
+        "Blockers:",
+    ]:
+        assert phrase in text
+    data = json.loads(metadata.read_text(encoding="utf-8"))
+    assert data["helpers"] == ["easy_modeling", "easy_export"]
+    assert data["verified"] is False
+    assert data["source_sha256"] == _hash(source)
+    assert data["markdown_sha256"] == _hash(markdown)
