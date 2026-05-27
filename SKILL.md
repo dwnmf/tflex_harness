@@ -27,6 +27,15 @@ If commands cannot find checked-in recipes/helpers, set:
 $env:TFLEX_HARNESS_REPO_DIR = "<repo>"
 ```
 
+API docs are not bundled. Use the docs repo:
+
+```powershell
+git clone https://github.com/dwnmf/tflex_api <tflex-api-docs>
+$env:TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
+```
+
+If `TFLEX_API_DOCS_DIR` is not set, the harness tries a sibling checkout named `tflex_api` next to `<repo>`.
+
 ## Normal workflow
 
 1. Search exact symbols first:
@@ -49,6 +58,32 @@ tflex-harness run-csharp --mode compile_only --reference TFlexAPI --reference TF
 
 Helpers are visible `.cs` source compiled with the snippet, not hidden wrapper DLLs.
 
+Helper files live under `src/tflex_harness/csharp_helpers/`:
+
+- `TFlexEasyUnits.cs` — unit conversion helpers.
+- `TFlexEasyDiagnostics.cs` — key/value evidence, bbox evidence, simple assertions.
+- `TFlexEasySession.cs` — T-FLEX session start/stop and artifact paths.
+- `TFlexEasyPrototype.cs` — open/copy installed prototype documents.
+- `TFlexEasyProfiles.cs` — basic 2D profiles.
+- `TFlexEasySketchProfiles.cs` — higher-level sketch/profile shapes.
+- `TFlexEasySolids.cs` — blocks, cylinders, extrusions, cutters.
+- `TFlexEasyPlacement.cs` — object transformations and placement.
+- `TFlexEasyWorkplanes.cs` — standard workplanes and axis mapping.
+- `TFlexEasyBoolean.cs` — boolean add/subtract/intersect helpers.
+- `TFlexEasyFeatures.cs` — reusable part feature builders.
+- `TFlexEasyEvidence.cs` — manifest and validation evidence helpers.
+- `TFlexEasyExport.cs` — GRB/STEP/PDF/DXF/DWG export helpers.
+- `TFlexEasyReopen.cs` — save/close/reopen verification helpers.
+- `TFlexEasyVariables.cs` — document variable helpers.
+- `TFlexEasyText.cs` — text/table text helpers.
+- `TFlexEasyDocumentProperties.cs` — document property helpers.
+- `TFlexEasySpecifications.cs` — BOM/specification helpers.
+- `TFlexEasyAssemblyBuild.cs` — fragment part creation, target LCS, fragment insertion.
+- `TFlexEasyAssemblyValidation.cs` — collision/contact, fragment DOF-lite, mate graph validation.
+- `TFlexEasyMateInspector.cs` — existing native mate graph/owner dump.
+- `TFlexEasyNativeMates.cs` — create native mates from real body topology, e.g. edge-axis concentricity.
+- `TFlexEasyCommandProbe.cs` — command list and `RunSystemCommand` probing.
+
 Known helper sets:
 
 - `easy_core`
@@ -62,6 +97,10 @@ Known helper sets:
 - `easy_specification`
 - `easy_document_properties`
 - `easy_assembly_validation`
+- `easy_assembly_build`
+- `easy_mate_inspection`
+- `easy_native_mates`
+- `easy_all_live`
 - `all`
 
 Example:
@@ -102,7 +141,24 @@ touch.summary.estimatedDofRemaining=0
 assemblyValidation.live=True
 ```
 
-Limit: positive native `MateEdgeCount>0` still needs a real native-mate `.grb` or a working mate creation recipe.
+Native mate creation is live-proven through body topology:
+
+- use `TFlexEasyNativeMates.cs`;
+- take `ModelEdge.Geometry.Axis` or `ModelFace.Geometry.Surface/Plane`;
+- do not use `fragment.Geometry.Axis/Plane` directly.
+
+Evidence:
+
+```text
+artifacts/runs/20260527_144832_474157_fragment_native_mate_positive_probe
+asm.mate.end=OK
+asm.mateCount=1
+asm.mate.0.op1=fixed_fragment
+asm.mate.0.op2=mated_fragment
+
+artifacts/runs/20260527_144900_168574_reopen_fragment_native_mate_positive
+reopen.mateCount=1
+```
 
 ## Safety rules
 

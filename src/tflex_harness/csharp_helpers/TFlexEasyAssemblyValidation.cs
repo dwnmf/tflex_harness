@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using TFlex.Model;
 using TFlex.Model.Model3D;
 using TFlex.Model.Model3D.Geometry;
@@ -35,6 +38,15 @@ namespace TFlexEasy {
     public int EstimatedDofTotal;
     public int EstimatedDofRemaining;
     public int EstimatedConstraintCount;
+    public int PolicyViolationCount;
+  }
+
+  public sealed class AssemblyValidationOptions {
+    public bool AllowContact = true;
+    public HashSet<string> AllowedOverlapPairs = new HashSet<string>();
+    public HashSet<string> IgnoredOperationNames = new HashSet<string>();
+    public HashSet<string> IgnoredBodyNames = new HashSet<string>();
+    public double MaxAllowedCollisionVolume = 0.0;
   }
 
   public sealed class MateEdgeRecord {
@@ -51,43 +63,72 @@ namespace TFlexEasy {
 
   public static class EasyAssemblyValidation {
     public static AssemblyValidationReport Validate(Document doc, string label) {
+      return Validate(doc, label, null);
+    }
+
+    public static AssemblyValidationReport Validate(Document doc, string label, AssemblyValidationOptions options) {
       AssemblyValidationReport report = new AssemblyValidationReport();
-      List<AssemblyBodyRecord> bodies = CollectBodies(doc, label);
+      List<AssemblyBodyRecord> bodies = CollectBodies(doc, label, options);
       report.BodyCount = bodies.Count;
-      ValidateBodyClashes(bodies, report, label);
+      ValidateBodyClashes(bodies, report, label, options);
       MateAnalysisResult mates = ValidateMates(doc, report, label);
       ValidateFragments(doc, report, label, mates);
+      ApplyPolicy(report, label, options);
       PrintReport(report, label);
       return report;
     }
 
     public static List<AssemblyBodyRecord> CollectBodies(Document doc, string label) {
+      return CollectBodies(doc, label, null);
+    }
+
+    public static List<AssemblyBodyRecord> CollectBodies(Document doc, string label, AssemblyValidationOptions options) {
       List<AssemblyBodyRecord> bodies = new List<AssemblyBodyRecord>();
       ICollection<Operation> operations = Document3D.GetOperations(doc);
       int index = 0;
-      foreach (Operation op in operations) {
+      foreach (Object3D obj in EnumerateObjects(operations)) {
+        Operation op = obj as Operation;
+        if (op == null) {
+          EasyDiagnostics.Print(label + ".body." + index + ".name", String.IsNullOrWhiteSpace(obj.Name) ? obj.GetType().Name + "_" + index : obj.Name);
+          EasyDiagnostics.Print(label + ".body." + index + ".type", obj.GetType().FullName);
+          EasyDiagnostics.Print(label + ".body." + index + ".usable", false);
+          EasyDiagnostics.Print(label + ".body." + index + ".ignoredReason", "not_operation_body_record");
+          index++;
+          continue;
+        }
         string name = String.IsNullOrWhiteSpace(op.Name) ? op.GetType().Name + "_" + index : op.Name;
         BodyBoxMm box = EasyDiagnostics.GetBodyBoxMm(op);
         bool usable = op.Body != null && op.Geometry != null && box.Valid;
         EasyDiagnostics.Print(label + ".body." + index + ".name", name);
         EasyDiagnostics.Print(label + ".body." + index + ".type", op.GetType().FullName);
         EasyDiagnostics.Print(label + ".body." + index + ".usable", usable);
+        if (IsIgnoredName(name, options)) {
+          EasyDiagnostics.Print(label + ".body." + index + ".ignored", true);
+          index++;
+          continue;
+        }
         if (usable) {
           EasyDiagnostics.PrintBodyBoxMm(label + ".body." + index, op);
           bodies.Add(new AssemblyBodyRecord { Index = index, Name = name, Operation = op, Box = box });
         }
         index++;
       }
-      EasyDiagnostics.Print(label + ".operationCount", operations.Count);
+      EasyDiagnostics.Print(label + ".operationCount", CountObjects(operations));
       EasyDiagnostics.Print(label + ".bodyCount", bodies.Count);
       return bodies;
     }
 
     public static void ValidateBodyClashes(List<AssemblyBodyRecord> bodies, AssemblyValidationReport report, string label) {
+      ValidateBodyClashes(bodies, report, label, null);
+    }
+
+    public static void ValidateBodyClashes(List<AssemblyBodyRecord> bodies, AssemblyValidationReport report, string label, AssemblyValidationOptions options) {
       for (int i = 0; i < bodies.Count; i++) {
         for (int j = i + 1; j < bodies.Count; j++) {
           AssemblyBodyRecord a = bodies[i];
           AssemblyBodyRecord b = bodies[j];
+          bool allowedPair = IsAllowedPair(a.Name, b.Name, options);
+          EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".allowedPair", allowedPair);
           bool bboxOverlap = BoxesOverlap(a.Box, b.Box);
           bool broadPhaseCandidate = BoxesMayTouchOrOverlap(a.Box, b.Box, 0.001);
           EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".bboxOverlap", bboxOverlap);
@@ -138,7 +179,10 @@ namespace TFlexEasy {
           }
           EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".collisionMethod", "AABB+Clash");
           EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".trueIntersect", pairClashed);
-          if (pairClashed) report.CollisionCount++;
+          if (pairClashed) {
+            if (allowedPair) EasyDiagnostics.Print(label + ".pair." + i + "_" + j + ".collisionIgnoredByPolicy", true);
+            else report.CollisionCount++;
+          }
         }
       }
     }
@@ -189,11 +233,11 @@ namespace TFlexEasy {
     public static void ValidateFragments(Document doc, AssemblyValidationReport report, string label, MateAnalysisResult mates) {
       HashSet<Operation> fixedRoots = new HashSet<Operation>();
       List<Fragment3D> fragments = new List<Fragment3D>();
-      foreach (Operation op in Document3D.GetOperations(doc)) {
+      foreach (Object3D op in EnumerateObjects(Document3D.GetOperations(doc))) {
         Fragment3D fragment = op as Fragment3D;
         if (fragment == null) continue;
         fragments.Add(fragment);
-        if (IsFragmentFixedByLcs(fragment)) fixedRoots.Add(fragment);
+        if (IsFragmentGroundedRoot(fragment)) fixedRoots.Add(fragment);
       }
       HashSet<Operation> groundedByGraph = BuildGroundedOperationSet(fixedRoots, mates);
       int index = 0;
@@ -201,6 +245,7 @@ namespace TFlexEasy {
         Operation op = fragment;
         report.FragmentCount++;
         bool connectedByLcs = false;
+        bool connectedByFixed = false;
         bool connectedByMate = mates != null && mates.LinkedOperations.Contains(op);
         bool grounded = groundedByGraph.Contains(op);
         string reason = "";
@@ -211,20 +256,23 @@ namespace TFlexEasy {
         bool overConstrained = false;
         try {
           Fragment3D.FixingType fixing = fragment.Fixing;
+          connectedByFixed = fragment.Fixed;
           bool targetLcsNull = fragment.TargetLCS == null;
           string source = "";
           try { source = fragment.SourceLCSName; } catch {}
           EasyDiagnostics.Print(label + ".fragment." + index + ".name", String.IsNullOrWhiteSpace(fragment.Name) ? "Fragment3D_" + index : fragment.Name);
+          EasyDiagnostics.Print(label + ".fragment." + index + ".fixed", connectedByFixed);
           EasyDiagnostics.Print(label + ".fragment." + index + ".fixing", fixing);
           EasyDiagnostics.Print(label + ".fragment." + index + ".sourceLcs", source);
           EasyDiagnostics.Print(label + ".fragment." + index + ".targetLcsNull", targetLcsNull);
           EasyDiagnostics.Print(label + ".fragment." + index + ".connectedByMate", connectedByMate);
           connectedByLcs = fixing != Fragment3D.FixingType.NoFixing && !targetLcsNull;
-          lcsConstraints = connectedByLcs ? 6 : 0;
-          estimatedConstraints = lcsConstraints + mateConstraints;
+          lcsConstraints = (connectedByLcs || connectedByFixed) ? 6 : 0;
+          estimatedConstraints = lcsConstraints > 0 ? lcsConstraints : mateConstraints;
           overConstrained = estimatedConstraints > 6;
           remainingDof = overConstrained ? 0 : Math.Max(0, 6 - estimatedConstraints);
-          if (connectedByLcs) reason = "grounded_by_target_lcs";
+          if (connectedByFixed) reason = "grounded_by_fixed_fragment";
+          else if (connectedByLcs) reason = "grounded_by_target_lcs";
           else if (grounded && connectedByMate) reason = "grounded_by_mate_path";
           else if (connectedByMate) reason = "mate_linked_but_not_grounded";
           else reason = "no_lcs_fixing_or_mate";
@@ -264,6 +312,14 @@ namespace TFlexEasy {
       } catch {
         return false;
       }
+    }
+
+    public static bool IsFragmentGroundedRoot(Fragment3D fragment) {
+      if (fragment == null) return false;
+      try {
+        if (fragment.Fixed) return true;
+      } catch {}
+      return IsFragmentFixedByLcs(fragment);
     }
 
     public static HashSet<Operation> BuildGroundedOperationSet(HashSet<Operation> fixedRoots, MateAnalysisResult mates) {
@@ -326,6 +382,20 @@ namespace TFlexEasy {
       return op.Name;
     }
 
+    public static IEnumerable<Object3D> EnumerateObjects(IEnumerable source) {
+      if (source == null) yield break;
+      foreach (object item in source) {
+        Object3D obj = item as Object3D;
+        if (obj != null) yield return obj;
+      }
+    }
+
+    public static int CountObjects(IEnumerable source) {
+      int count = 0;
+      foreach (Object3D ignored in EnumerateObjects(source)) count++;
+      return count;
+    }
+
     public static bool BoxesOverlap(BodyBoxMm a, BodyBoxMm b) {
       if (!a.Valid || !b.Valid) return false;
       return a.MinX < b.MaxX && a.MaxX > b.MinX
@@ -370,6 +440,64 @@ namespace TFlexEasy {
       EasyDiagnostics.Print(label + ".summary.estimatedDofTotal", report.EstimatedDofTotal);
       EasyDiagnostics.Print(label + ".summary.estimatedConstraintCount", report.EstimatedConstraintCount);
       EasyDiagnostics.Print(label + ".summary.estimatedDofRemaining", report.EstimatedDofRemaining);
+      EasyDiagnostics.Print(label + ".summary.policyViolationCount", report.PolicyViolationCount);
+    }
+
+    public static bool PassesPolicy(AssemblyValidationReport report, AssemblyValidationOptions options) {
+      if (report == null) return false;
+      if (report.CollisionCount > 0) return false;
+      if (options != null && !options.AllowContact && report.ContactCount > 0) return false;
+      return report.PolicyViolationCount == 0;
+    }
+
+    public static void WriteJsonSummary(AssemblyValidationReport report, string path) {
+      string dir = Path.GetDirectoryName(path);
+      if (!String.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
+      StringBuilder sb = new StringBuilder();
+      sb.AppendLine("{");
+      AppendJson(sb, "bodyCount", report.BodyCount, true);
+      AppendJson(sb, "broadPhasePairCount", report.BroadPhasePairCount, true);
+      AppendJson(sb, "bboxOverlapCount", report.BBoxOverlapCount, true);
+      AppendJson(sb, "bboxContactCandidateCount", report.BBoxContactCandidateCount, true);
+      AppendJson(sb, "clashPairCount", report.ClashPairCount, true);
+      AppendJson(sb, "collisionCount", report.CollisionCount, true);
+      AppendJson(sb, "contactCount", report.ContactCount, true);
+      AppendJson(sb, "mateCount", report.MateCount, true);
+      AppendJson(sb, "mateEdgeCount", report.MateEdgeCount, true);
+      AppendJson(sb, "fragmentCount", report.FragmentCount, true);
+      AppendJson(sb, "floatingFragmentCount", report.FloatingFragmentCount, true);
+      AppendJson(sb, "groundedFragmentCount", report.GroundedFragmentCount, true);
+      AppendJson(sb, "estimatedDofRemaining", report.EstimatedDofRemaining, true);
+      AppendJson(sb, "policyViolationCount", report.PolicyViolationCount, false);
+      sb.AppendLine("}");
+      File.WriteAllText(path, sb.ToString());
+      EasyDiagnostics.Print("assemblyValidation.summaryPath", path);
+      EasyDiagnostics.Print("assemblyValidation.summaryExists", File.Exists(path));
+    }
+
+    static void ApplyPolicy(AssemblyValidationReport report, string label, AssemblyValidationOptions options) {
+      int violations = 0;
+      if (report.CollisionCount > 0) violations += report.CollisionCount;
+      if (options != null && !options.AllowContact && report.ContactCount > 0) violations += report.ContactCount;
+      report.PolicyViolationCount = violations;
+      EasyDiagnostics.Print(label + ".policy.allowContact", options == null || options.AllowContact);
+      EasyDiagnostics.Print(label + ".policy.violationCount", violations);
+    }
+
+    static bool IsIgnoredName(string name, AssemblyValidationOptions options) {
+      if (options == null) return false;
+      return options.IgnoredOperationNames.Contains(name) || options.IgnoredBodyNames.Contains(name);
+    }
+
+    static bool IsAllowedPair(string a, string b, AssemblyValidationOptions options) {
+      if (options == null || options.AllowedOverlapPairs == null) return false;
+      return options.AllowedOverlapPairs.Contains(a + "|" + b) || options.AllowedOverlapPairs.Contains(b + "|" + a);
+    }
+
+    static void AppendJson(StringBuilder sb, string name, int value, bool comma) {
+      sb.Append("  \"").Append(name).Append("\": ").Append(value);
+      if (comma) sb.Append(",");
+      sb.AppendLine();
     }
   }
 }
