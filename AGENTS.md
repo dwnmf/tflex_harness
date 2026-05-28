@@ -59,9 +59,9 @@ Important roots:
 - `TFLEX_LOGS_DIR` -> logs root, default `logs`.
 - `TFLEX_PROTOTYPES_DIR` -> prototype corpus override.
 
-The code currently still uses presence of `goal.md` plus `.agents` when trying
-to auto-detect the repo root. If repo-root detection changes, update tests and
-this file together.
+The code currently uses presence of `AGENTS.md`, `.agents`, and `install.md`
+when trying to auto-detect the repo root. If repo-root detection changes, update
+tests and this file together.
 
 ## Evidence And Artifacts
 

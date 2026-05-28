@@ -6,12 +6,13 @@ import sys
 
 from .artifacts import json_default
 from .bootstrap import bootstrap
-from .diagnostics import get_environment
+from .diagnostics import get_environment, get_install_doctor
 from .document_factory_batch import create_documents_from_payload_dir
 from .document_factory import create_document_from_payload
 from .document_factory_validation import validate_document_factory_samples
 from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
+from .mcp_config import MCP_CLIENTS, generate_mcp_config
 from .prototype_metadata import capture_metadata_batch
 from .prototypes import list_prototypes, prototype_info, scan_and_write_catalog
 from .prototype_validation import (
@@ -41,10 +42,15 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     env_p = sub.add_parser("env", help="Print environment diagnostics")
+    doctor_p = sub.add_parser("doctor", help="Print install readiness checks with fix hints")
+
+    mcp_config_p = sub.add_parser("mcp-config", help="Print ready-to-copy MCP server config")
+    mcp_config_p.add_argument("--for", choices=MCP_CLIENTS, default="codex", dest="client", help="MCP client config flavor")
 
     bootstrap_p = sub.add_parser("bootstrap", help="Clone docs, set env, and optionally register Codex skill")
     bootstrap_p.add_argument("--docs-dir", default=None, help="T-FLEX API docs checkout path; defaults to sibling tflex_api")
     bootstrap_p.add_argument("--docs-url", default=None, help="Docs git URL; defaults to dwnmf/tflex_api")
+    bootstrap_p.add_argument("--full", action="store_true", help="Recommended first install: docs, persisted env, Codex skill, and checks")
     bootstrap_p.add_argument("--no-docs", action="store_true", help="Do not clone or update docs")
     bootstrap_p.add_argument("--update-docs", action="store_true", help="Run git pull --ff-only when docs repo already exists")
     bootstrap_p.add_argument("--persist-env", action="store_true", help="Persist TFLEX_HARNESS_REPO_DIR and TFLEX_API_DOCS_DIR with setx")
@@ -207,11 +213,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "env":
         emit(get_environment())
         return 0
+    if args.command == "doctor":
+        emit(get_install_doctor())
+        return 0
+    if args.command == "mcp-config":
+        emit(generate_mcp_config(args.client))
+        return 0
     if args.command == "bootstrap":
         emit(
             bootstrap(
                 docs_dir=args.docs_dir,
                 docs_url=args.docs_url or "https://github.com/dwnmf/tflex_api",
+                full=args.full,
                 no_docs=args.no_docs,
                 update_docs=args.update_docs,
                 persist_env=args.persist_env,

@@ -44,6 +44,24 @@ def test_cli_env_reports_runner_and_docs():
     assert result["dlls"]["TFlexAPI.dll"]["exists"] is True
 
 
+def test_cli_doctor_reports_install_checks():
+    result = _cli("doctor", timeout=90)
+
+    assert "checks" in result
+    assert result["score"]["total"] == len(result["checks"])
+    assert {item["name"] for item in result["checks"]} >= {"tflex_install_dir", "tflex_api_docs", "repo_workspace", "runner"}
+
+
+def test_cli_mcp_config_prints_ready_json():
+    result = _cli("mcp-config", "--for", "codex")
+    server = result["mcpServers"]["tflex-harness"]
+
+    assert result["client"] == "codex"
+    assert server["command"] == "tflex-harness-mcp"
+    assert server["env"]["TFLEX_HARNESS_REPO_DIR"].endswith("tflex_harness")
+    assert server["env"]["TFLEX_API_DOCS_DIR"].endswith("tflex_api")
+
+
 def test_cli_bootstrap_dry_path_has_no_external_side_effects():
     result = _cli("bootstrap", "--no-docs", "--no-checks")
 

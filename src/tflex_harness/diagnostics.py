@@ -195,6 +195,8 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
         "runner": _runner_environment(cfg, csc),
         "tools": {
             "python": _version_command([shutil.which("python") or "python", "--version"]),
+            "git": _version_command([shutil.which("git") or "git", "--version"]),
+            "uv": _version_command([shutil.which("uv") or "uv", "--version"]),
             "dotnet": dotnet,
             "csc": {"available": csc is not None, "path": str(csc) if csc else None},
             "msbuild": {"available": msbuild is not None, "path": str(msbuild) if msbuild else None},
@@ -229,3 +231,135 @@ def get_live_environment_blockers(environment: dict[str, Any] | None = None, con
         blockers.append(f"runner unavailable: {detail}")
 
     return blockers
+
+
+def get_install_doctor(environment: dict[str, Any] | None = None, config: HarnessConfig | None = None) -> dict[str, Any]:
+    cfg = config or load_config()
+    env = environment or get_environment(cfg)
+    checks: list[dict[str, Any]] = []
+
+    def add(name: str, ok: bool, message: str, fix: str | None = None, detail: Any = None) -> None:
+        item: dict[str, Any] = {"name": name, "ok": ok, "message": message}
+        if fix:
+            item["fix"] = fix
+        if detail is not None:
+            item["detail"] = detail
+        checks.append(item)
+
+    add(
+        "tflex_install_dir",
+        bool(env["tflex_install_dir"]["exists"]),
+        f"T-FLEX CAD 17 install dir: {env['tflex_install_dir']['path']}",
+        f'setx TFLEX_INSTALL_DIR "{env["tflex_install_dir"]["path"]}" or install T-FLEX CAD 17',
+    )
+    add(
+        "tflex_program_dir",
+        bool(env["tflex_program_dir"]["exists"]),
+        f"T-FLEX CAD 17 Program dir: {env['tflex_program_dir']['path']}",
+        f'setx TFLEX_PROGRAM_DIR "{env["tflex_program_dir"]["path"]}"',
+    )
+
+    missing_dlls = [status["path"] for status in env["dlls"].values() if not status["exists"]]
+    add(
+        "tflex_dlls",
+        not missing_dlls,
+        "T-FLEX API DLLs found" if not missing_dlls else "T-FLEX API DLLs missing",
+        f'setx TFLEX_PROGRAM_DIR "{env["tflex_program_dir"]["path"]}" or repair T-FLEX CAD 17 install',
+        missing_dlls or None,
+    )
+
+    docs = env["docs"]
+    docs_ok = bool(docs["exists"] and docs["symbols_jsonl"] and docs["chm_pages_jsonl"] and docs["types_dir"])
+    add(
+        "tflex_api_docs",
+        docs_ok,
+        f"T-FLEX API docs: {docs['dir']}",
+        f'tflex-harness bootstrap --docs-dir "{docs["dir"]}" --full',
+        {
+            "exists": docs["exists"],
+            "symbols_jsonl": docs["symbols_jsonl"],
+            "chm_pages_jsonl": docs["chm_pages_jsonl"],
+            "types_dir": docs["types_dir"],
+        },
+    )
+
+    recipes_dir = cfg.repo_dir / "agent_workspace" / "recipes"
+    workspace_ok = bool((cfg.repo_dir / "install.md").exists() and (cfg.repo_dir / "SKILL.md").exists() and recipes_dir.exists())
+    add(
+        "repo_workspace",
+        workspace_ok,
+        f"tflex-harness repo workspace: {cfg.repo_dir}",
+        f'Clone https://github.com/dwnmf/tflex_harness and setx TFLEX_HARNESS_REPO_DIR "{cfg.repo_dir}"',
+        {
+            "install_md": (cfg.repo_dir / "install.md").exists(),
+            "skill_md": (cfg.repo_dir / "SKILL.md").exists(),
+            "recipes_dir": recipes_dir.exists(),
+        },
+    )
+
+    python_status = env["tools"]["python"]
+    add(
+        "python",
+        bool(python_status["available"]),
+        f"Python available: {python_status.get('stdout') or python_status.get('error')}",
+        "Install Python 3.11+ and reopen the terminal",
+    )
+    git_status = env["tools"].get("git") or {"available": False, "stdout": "", "error": "git not checked"}
+    add(
+        "git",
+        bool(git_status["available"]),
+        f"git available: {git_status.get('stdout') or git_status.get('error')}",
+        "Install git or clone T-FLEX API docs manually and pass --docs-dir",
+    )
+    uv_status = env["tools"].get("uv") or {"available": False, "stdout": "", "error": "uv not checked"}
+    add(
+        "uv",
+        True,
+        f"uv available: {uv_status.get('stdout')}" if uv_status.get("available") else "uv not found; pip fallback is supported",
+        "Optional: install uv for the recommended install path, or use py -m pip install -e \".[mcp]\"",
+        {"available": bool(uv_status.get("available"))},
+    )
+    add(
+        "dotnet",
+        bool(env["tools"]["dotnet"]["available"]),
+        f"dotnet available: {env['tools']['dotnet'].get('version')}",
+        "Install .NET runtime/build tools if runner build fails",
+    )
+    add(
+        "csc",
+        bool(env["tools"]["csc"]["available"]),
+        f"csc.exe: {env['tools']['csc'].get('path')}",
+        "Install .NET Framework developer tools or Visual Studio Build Tools",
+    )
+
+    runner = env["runner"]
+    runner_ok = bool(runner["project_exists"] and runner["build_script_exists"] and runner["build_ok"])
+    runner_fix = "Run: tflex-harness env; if still failing, check TFLEX_HARNESS_REPO_DIR and csc.exe"
+    add(
+        "runner",
+        runner_ok,
+        "runner build/probe ok" if runner_ok else (runner.get("error") or runner.get("env_probe_error") or runner.get("build_error") or "runner unavailable"),
+        runner_fix,
+        {
+            "project_exists": runner["project_exists"],
+            "build_script_exists": runner["build_script_exists"],
+            "build_ok": runner["build_ok"],
+            "env_probe_ok": runner["env_probe_ok"],
+        },
+    )
+
+    blockers = [item for item in checks if not item["ok"]]
+    return {
+        "ok": not blockers,
+        "score": {"passed": len(checks) - len(blockers), "total": len(checks)},
+        "checks": checks,
+        "blockers": blockers,
+        "next": [
+            "fix blockers in order",
+            "run: tflex-harness bootstrap --full",
+            "run: tflex-harness env",
+            "run: tflex-harness recipes",
+        ],
+        "repo_dir": str(cfg.repo_dir),
+        "docs_dir": str(cfg.docs_dir),
+    }

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import load_config
-from .diagnostics import check_docs_repo
+from .diagnostics import check_docs_repo, get_install_doctor
 
 DEFAULT_DOCS_URL = "https://github.com/dwnmf/tflex_api"
 
@@ -69,6 +69,7 @@ def bootstrap(
     *,
     docs_dir: str | None = None,
     docs_url: str = DEFAULT_DOCS_URL,
+    full: bool = False,
     no_docs: bool = False,
     update_docs: bool = False,
     persist_env: bool = False,
@@ -76,9 +77,15 @@ def bootstrap(
     symlink_skill: bool = False,
     no_checks: bool = False,
 ) -> dict[str, Any]:
+    if full:
+        persist_env = True
+        register_codex_skill = True
+
     cfg = load_config()
     repo_dir = cfg.repo_dir
     resolved_docs_dir = Path(docs_dir).expanduser().resolve() if docs_dir else cfg.docs_dir.resolve()
+    os.environ["TFLEX_HARNESS_REPO_DIR"] = str(repo_dir)
+    os.environ["TFLEX_API_DOCS_DIR"] = str(resolved_docs_dir)
 
     actions: list[dict[str, Any]] = []
     blockers: list[str] = []
@@ -111,9 +118,6 @@ def bootstrap(
         for item in env:
             if not item.get("ok"):
                 blockers.append(f"persist env failed: {item.get('name')}")
-    else:
-        os.environ["TFLEX_HARNESS_REPO_DIR"] = str(repo_dir)
-        os.environ["TFLEX_API_DOCS_DIR"] = str(resolved_docs_dir)
 
     skill = None
     if register_codex_skill:
@@ -127,20 +131,42 @@ def bootstrap(
         docs_ok = checks["docs"]["symbols_jsonl"] and checks["docs"]["chm_pages_jsonl"] and checks["docs"]["types_dir"]
         if not docs_ok:
             blockers.append(f"T-FLEX API docs incomplete: {resolved_docs_dir}")
+        if full:
+            checks["doctor"] = get_install_doctor(config=load_config(repo_dir))
+            if not checks["doctor"]["ok"]:
+                names = ", ".join(item["name"] for item in checks["doctor"]["blockers"])
+                blockers.append(f"install doctor blockers: {names}")
+
+    next_steps = []
+    if persist_env:
+        next_steps.append("restart terminal after --persist-env")
+    if full:
+        next_steps.extend(
+            [
+                "bootstrap --full already ran install readiness checks",
+                "optional: tflex-harness recipes",
+                'optional: tflex-harness run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"',
+            ]
+        )
+    else:
+        next_steps.extend(
+            [
+                "run: tflex-harness env",
+                "run: tflex-harness recipes",
+                'run: tflex-harness run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"',
+            ]
+        )
 
     return {
         "ok": not blockers,
         "repo_dir": str(repo_dir),
         "docs_dir": str(resolved_docs_dir),
+        "full": full,
         "actions": actions,
         "persist_env": persist_env,
         "env": env,
         "skill": skill,
         "checks": checks,
         "blockers": blockers,
-        "next": [
-            "restart terminal after --persist-env",
-            "run: tflex-harness env",
-            "run: tflex-harness recipes",
-        ],
+        "next": next_steps,
     }

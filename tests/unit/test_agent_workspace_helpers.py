@@ -15,7 +15,8 @@ def test_agent_workspace_helpers_find_repo_and_recipes():
 
     root = helpers.repo_root()
 
-    assert (root / "goal.md").exists()
+    assert (root / "AGENTS.md").exists()
+    assert (root / "install.md").exists()
     assert helpers.recipes_dir(root).name == "recipes"
     assert helpers.recipe_source_path("environment_probe", ".cs", root).exists()
     assert helpers.recipe_source_path("environment_probe", ".md", root).exists()

@@ -47,7 +47,7 @@ def find_repo_dir(start: Path | None = None) -> Path:
     if current.is_file():
         current = current.parent
     for parent in [current, *current.parents]:
-        if (parent / "goal.md").exists() and (parent / ".agents").exists():
+        if (parent / "AGENTS.md").exists() and (parent / ".agents").exists() and (parent / "install.md").exists():
             return parent
     return Path.cwd().resolve()
 

@@ -10,7 +10,7 @@ def repo_root(start: Path | None = None) -> Path:
     if current.is_file():
         current = current.parent
     for parent in [current, *current.parents]:
-        if (parent / "goal.md").exists() and (parent / "agent_workspace").exists():
+        if (parent / "AGENTS.md").exists() and (parent / "install.md").exists() and (parent / "agent_workspace").exists():
             return parent
     raise RuntimeError("Could not locate tflex_harness repo root")
 

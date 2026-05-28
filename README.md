@@ -1,6 +1,6 @@
 # tflex_harness
 
-Private T-FLEX CAD 17 harness/MCP workspace.
+Thin T-FLEX CAD 17 harness/MCP workspace.
 
 This project follows `goal.md`: Python is the thin control plane for MCP, documentation search, diagnostics, artifacts, and process execution; C# is used for typed snippets against the real T-FLEX CAD 17 .NET API.
 
@@ -11,25 +11,49 @@ Paste into Codex or Claude Code:
 ```text
 Set up https://github.com/dwnmf/tflex_harness for me.
 
-Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install editable with MCP extras (`uv tool install -e ".[mcp]"`). Then run `tflex-harness bootstrap --persist-env --register-codex-skill`. Verify `tflex-harness env`, `tflex-harness recipes`, and one compile-only C# snippet. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
+Read `install.md` first. Install the repo into a durable local path, preferably <repo> on Windows. Install editable with MCP extras (`uv tool install -e ".[mcp]"`). Then run `tflex-harness bootstrap --full`; it performs install readiness checks. Optional follow-up checks are `tflex-harness recipes` and one compile-only C# snippet. Do not run broad live prototype batches during setup; use only small verification commands unless I ask for more.
 ```
 
-See [`install.md`](install.md) for first-time install, MCP setup, release install, and skill registration.
+## Requirements
+
+- Windows.
+- T-FLEX CAD 17 installed.
+- Python 3.11+.
+- `git`.
+- `uv` recommended.
+
+See [`install.md`](install.md) for first-time install, MCP setup, wheel/checkout notes, and skill registration.
 
 ## Install for humans
 
 Clone once into a stable path and install editable:
 
 ```powershell
-git clone https://github.com/dwnmf/tflex_harness <repo>
-cd <repo>
+git clone https://github.com/dwnmf/tflex_harness C:\tflex_harness
+cd C:\tflex_harness
 uv tool install -e ".[mcp]"
-tflex-harness bootstrap --persist-env --register-codex-skill
-tflex-harness env
-tflex-harness recipes
+tflex-harness bootstrap --full
 ```
 
-`bootstrap` clones `https://github.com/dwnmf/tflex_api` into sibling `tflex_api` when missing, persists `TFLEX_HARNESS_REPO_DIR` / `TFLEX_API_DOCS_DIR`, and can register the Codex skill. Use `--docs-dir <path>` when the docs checkout must live elsewhere.
+`bootstrap --full` clones `https://github.com/dwnmf/tflex_api` into sibling `tflex_api` when missing, persists `TFLEX_HARNESS_REPO_DIR` / `TFLEX_API_DOCS_DIR`, registers the Codex skill, checks docs, and runs install readiness checks. Restart the terminal after it persists env vars.
+
+`tflex-harness doctor` prints install readiness checks with fix commands for missing T-FLEX paths, docs, repo checkout, compilers, and runner setup.
+
+Green `tflex-harness env` should show:
+
+- `dlls.*.exists = true`
+- `docs.exists = true`
+- `runner.build_ok = true`
+- `tools.csc.available = true`
+
+Use `--docs-dir <path>` when the docs checkout must live elsewhere.
+
+Optional follow-up checks:
+
+```powershell
+tflex-harness recipes
+tflex-harness run-csharp --mode compile_only --code "public class Program { public static int Main(){ return 0; } }"
+```
 
 Run MCP server:
 
@@ -37,7 +61,14 @@ Run MCP server:
 tflex-harness-mcp
 ```
 
-MCP config example:
+Generate MCP config:
+
+```powershell
+tflex-harness mcp-config --for codex
+tflex-harness mcp-config --for claude
+```
+
+MCP config shape:
 
 ```json
 {
@@ -57,7 +88,7 @@ MCP config example:
 ## Install for AI agents
 
 ```powershell
-tflex-harness bootstrap --persist-env --register-codex-skill
+tflex-harness bootstrap --full
 ```
 
 Claude Code can import:
@@ -66,7 +97,7 @@ Claude Code can import:
 @<repo>\SKILL.md
 ```
 
-Release wheels are published on GitHub releases for MCP/tool installs, but the recommended setup is still editable clone + `uv tool install -e ".[mcp]"` so checked-in recipes and C# helpers stay visible and editable.
+Editable clone + `uv tool install -e ".[mcp]"` is the recommended install so checked-in recipes and C# helpers stay visible and editable. Wheel installs are secondary and still need a repo checkout for full recipe/helper workspace behavior.
 
 ## Quick checks
 
@@ -84,9 +115,19 @@ tflex-harness-mcp
 
 Live T-FLEX integration checks are marked `integration` and may skip when the CAD runtime is unavailable.
 
+## Install smoke CI
+
+GitHub Actions workflow `.github/workflows/install-smoke.yml` verifies editable install on `windows-latest` without live T-FLEX: command discovery, dry bootstrap, recipe listing, MCP config generation, doctor output, and safe install tests.
+
+## Release assets
+
+GitHub Actions workflow `.github/workflows/release-build.yml` builds wheel + sdist, smoke-installs the wheel, uploads package artifacts on PR/manual runs, and creates or updates GitHub release assets when a `v*` tag is pushed. It can also be run manually with `publish_release=true` and `tag=v<version>` to update release assets.
+
 ## Implemented tools
 
 - `python -m tflex_harness.cli bootstrap` / `tflex-harness bootstrap` — clones/updates docs, persists harness env, and optionally registers the Codex skill.
+- `python -m tflex_harness.cli doctor` / `tflex-harness doctor` — reports install readiness checks with fix hints.
+- `python -m tflex_harness.cli mcp-config` / `tflex-harness mcp-config` — prints ready-to-copy MCP server JSON.
 - `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `<tflex-api-docs>\llm`.
 - `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, runner skeleton build/env probe, and process state.
 - `run_csharp_tflex` / `python -m tflex_harness.cli run-csharp` — compiles and runs visible C# snippets via `csc.exe`, with successful builds cached by content hash.

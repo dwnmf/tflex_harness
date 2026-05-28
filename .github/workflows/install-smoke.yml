@@ -1,0 +1,51 @@
+name: install-smoke
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  windows-editable-install:
+    name: Windows editable install
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install editable package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[mcp,test]"
+
+      - name: Verify installed commands
+        shell: pwsh
+        run: |
+          tflex-harness --help
+          python -c "import mcp; import tflex_harness.mcp_server; print('mcp-import-ok')"
+
+      - name: Verify setup-safe commands
+        shell: pwsh
+        run: |
+          tflex-harness bootstrap --no-docs --no-checks
+          tflex-harness recipes
+          tflex-harness mcp-config --for codex
+          tflex-harness doctor
+
+      - name: Run install smoke tests
+        run: |
+          python -m pytest `
+            tests/unit/test_bootstrap.py `
+            tests/unit/test_mcp_config.py `
+            tests/smoke/test_cli.py::test_cli_bootstrap_dry_path_has_no_external_side_effects `
+            tests/smoke/test_cli.py::test_cli_doctor_reports_install_checks `
+            tests/smoke/test_cli.py::test_cli_mcp_config_prints_ready_json `
+            -v
