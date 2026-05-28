@@ -96,6 +96,7 @@ Passed after current edits:
 - GitHub releases API check for `dwnmf/tflex_harness` returned `404`; release workflow is prepared to create first release or update existing tag release.
 - Release update workflow contract check — `release-update-workflow-ok`.
 - Manual release workflow contract check — `manual-release-workflow-ok`.
+- First `release-build` tag run reached build/smoke but failed on `actions/upload-artifact` quota; made artifact upload non-blocking with one-day retention because release assets are uploaded through GitHub releases.
 - `python -m pytest tests/smoke/test_environment.py::test_install_doctor_reports_missing_repo_workspace tests/smoke/test_cli.py::test_cli_doctor_reports_install_checks -v` — `2 passed`
 - `$env:PYTHONPATH='src'; python -m tflex_harness.cli doctor` — local score `11/11`, `ok=true`
 - `python -m pytest tests/unit/test_bootstrap.py tests/smoke/test_environment.py::test_install_doctor_returns_fix_hints_for_missing_components tests/smoke/test_environment.py::test_install_doctor_reports_missing_repo_workspace tests/smoke/test_cli.py::test_cli_doctor_reports_install_checks -v` — `4 passed`
