@@ -1,5 +1,6 @@
 .chunkhound/
 .pytest_cache/
+.pytest-tmp/
 artifacts/*
 !artifacts/.gitkeep
 logs/*

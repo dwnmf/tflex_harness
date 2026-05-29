@@ -22,7 +22,7 @@ User-facing style:
 
 - Repo root: `<repo>`
 - Package: `src/tflex_harness`
-- Tests: `tests/unit`, `tests/smoke`, `tests/integration`
+- Tests: `tests/smoke`, `tests/integration`
 - Local skills: `.agents/skills`
 - Generated run dirs: `artifacts/runs`
 - Generated T-FLEX files: `artifacts/tflex_docs`
@@ -62,7 +62,7 @@ Do not rerun broad prototype/document batches for this goal. Use only targeted l
 4. Use exact search first: `rg`, `fff`, local docs grep.
 5. For T-FLEX API behavior, also use `deepwiki-tflex-api`.
 6. Prefer smallest validation:
-   - Harness code: targeted unit/smoke test.
+   - Harness code: targeted smoke test through CLI/MCP/runner seam.
    - T-FLEX API shape: `compile_only` first.
    - T-FLEX behavior: live run only when needed.
 7. For live snippets, capture run dir and stdout evidence.

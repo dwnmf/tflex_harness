@@ -242,7 +242,6 @@ writes JSON/CSV indexes.
 
 Test roots:
 
-- `tests/unit`
 - `tests/smoke`
 - `tests/integration`
 
@@ -253,10 +252,9 @@ Pytest markers:
 
 Validation ladder:
 
-1. For pure Python changes, run targeted unit tests first.
-2. For CLI/MCP contract changes, run targeted smoke tests.
-3. For T-FLEX API shape, run `run-csharp --mode compile_only` first.
-4. For live behavior claims, run a live recipe/probe and cite the run dir.
+1. For harness changes, run targeted smoke tests through CLI/MCP/runner seams.
+2. For T-FLEX API shape, run `run-csharp --mode compile_only` first.
+3. For live behavior claims, run a live recipe/probe and cite the run dir.
 
 Do not claim live T-FLEX behavior works without live evidence for that exact
 path.

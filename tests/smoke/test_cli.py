@@ -2,12 +2,17 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 from tflex_harness.runner import HELPER_SETS
 
 
 def _cli(*args: str, timeout: int = 60) -> dict:
+    return json.loads(_cli_raw(*args, timeout=timeout))
+
+
+def _cli_raw(*args: str, timeout: int = 60) -> str:
     env = os.environ.copy()
     src = str(Path.cwd() / "src")
     env["PYTHONPATH"] = src + os.pathsep + env.get("PYTHONPATH", "")
@@ -19,7 +24,7 @@ def _cli(*args: str, timeout: int = 60) -> dict:
         env=env,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    return json.loads(proc.stdout)
+    return proc.stdout
 
 
 def test_cli_search_returns_unified_results():
@@ -52,11 +57,10 @@ def test_cli_doctor_reports_install_checks():
     assert {item["name"] for item in result["checks"]} >= {"tflex_install_dir", "tflex_api_docs", "repo_workspace", "runner"}
 
 
-def test_cli_mcp_config_prints_ready_json():
-    result = _cli("mcp-config", "--for", "codex")
-    server = result["mcpServers"]["tflex-harness"]
+def test_cli_mcp_config_prints_codex_toml():
+    result = tomllib.loads(_cli_raw("mcp-config", "--for", "codex"))
+    server = result["mcp_servers"]["tflex-harness"]
 
-    assert result["client"] == "codex"
     assert server["command"] == "tflex-harness-mcp"
     assert server["env"]["TFLEX_HARNESS_REPO_DIR"].endswith("tflex_harness")
     assert server["env"]["TFLEX_API_DOCS_DIR"].endswith("tflex_api")

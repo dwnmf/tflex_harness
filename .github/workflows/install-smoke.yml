@@ -43,9 +43,7 @@ jobs:
       - name: Run install smoke tests
         run: |
           python -m pytest `
-            tests/unit/test_bootstrap.py `
-            tests/unit/test_mcp_config.py `
             tests/smoke/test_cli.py::test_cli_bootstrap_dry_path_has_no_external_side_effects `
             tests/smoke/test_cli.py::test_cli_doctor_reports_install_checks `
-            tests/smoke/test_cli.py::test_cli_mcp_config_prints_ready_json `
+            tests/smoke/test_cli.py::test_cli_mcp_config_prints_codex_toml `
             -v

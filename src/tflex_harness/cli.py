@@ -12,7 +12,7 @@ from .document_factory import create_document_from_payload
 from .document_factory_validation import validate_document_factory_samples
 from .docs_search import DocsSearch
 from .grb_reverse import write_semantic_outputs
-from .mcp_config import MCP_CLIENTS, generate_mcp_config
+from .mcp_config import MCP_CLIENTS, generate_mcp_config, generate_mcp_config_toml
 from .prototype_metadata import capture_metadata_batch
 from .prototypes import list_prototypes, prototype_info, scan_and_write_catalog
 from .prototype_validation import (
@@ -217,6 +217,11 @@ def main(argv: list[str] | None = None) -> int:
         emit(get_install_doctor())
         return 0
     if args.command == "mcp-config":
+        if args.client == "codex":
+            if hasattr(sys.stdout, "reconfigure"):
+                sys.stdout.reconfigure(errors="replace")
+            print(generate_mcp_config_toml(), end="")
+            return 0
         emit(generate_mcp_config(args.client))
         return 0
     if args.command == "bootstrap":

@@ -107,7 +107,19 @@ tflex-harness mcp-config --for codex
 tflex-harness mcp-config --for claude
 ```
 
-Codex/Claude-style MCP config shape:
+Codex MCP config shape:
+
+```toml
+[mcp_servers."tflex-harness"]
+command = "tflex-harness-mcp"
+
+[mcp_servers."tflex-harness".env]
+TFLEX_HARNESS_REPO_DIR = "<repo>"
+TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
+TFLEX_INSTALL_DIR = "<tflex-install>"
+```
+
+Claude-style MCP config shape:
 
 ```json
 {
@@ -179,7 +191,7 @@ Download the release assets:
 Install wheel as a tool:
 
 ```powershell
-uv tool install .\tflex_harness-0.2.1-py3-none-any.whl --with mcp
+uv tool install .\tflex_harness-<version>-py3-none-any.whl --with mcp
 ```
 
 For full recipe/helper workspace behavior, still keep a repo checkout and set `TFLEX_HARNESS_REPO_DIR`.

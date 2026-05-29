@@ -68,7 +68,19 @@ tflex-harness mcp-config --for codex
 tflex-harness mcp-config --for claude
 ```
 
-MCP config shape:
+Codex MCP config shape:
+
+```toml
+[mcp_servers."tflex-harness"]
+command = "tflex-harness-mcp"
+
+[mcp_servers."tflex-harness".env]
+TFLEX_HARNESS_REPO_DIR = "<repo>"
+TFLEX_API_DOCS_DIR = "<tflex-api-docs>"
+TFLEX_INSTALL_DIR = "<tflex-install>"
+```
+
+Claude-style MCP config shape:
 
 ```json
 {
@@ -102,7 +114,6 @@ Editable clone + `uv tool install -e ".[mcp]"` is the recommended install so che
 ## Quick checks
 
 ```powershell
-python -m pytest tests/unit -v
 python -m pytest tests/smoke -v
 python -m tflex_harness.cli env
 python -m tflex_harness.cli search "TFlex.Model.Document" --limit 5
@@ -127,7 +138,7 @@ GitHub Actions workflow `.github/workflows/release-build.yml` builds wheel + sdi
 
 - `python -m tflex_harness.cli bootstrap` / `tflex-harness bootstrap` — clones/updates docs, persists harness env, and optionally registers the Codex skill.
 - `python -m tflex_harness.cli doctor` / `tflex-harness doctor` — reports install readiness checks with fix hints.
-- `python -m tflex_harness.cli mcp-config` / `tflex-harness mcp-config` — prints ready-to-copy MCP server JSON.
+- `python -m tflex_harness.cli mcp-config` / `tflex-harness mcp-config` — prints ready-to-copy MCP server config: TOML for Codex, JSON for Claude.
 - `search_tflex_docs` / `python -m tflex_harness.cli search` — searches `<tflex-api-docs>\llm`.
 - `get_tflex_environment` / `python -m tflex_harness.cli env` — checks docs, DLLs, compilers, runner skeleton build/env probe, and process state.
 - `run_csharp_tflex` / `python -m tflex_harness.cli run-csharp` — compiles and runs visible C# snippets via `csc.exe`, with successful builds cached by content hash.

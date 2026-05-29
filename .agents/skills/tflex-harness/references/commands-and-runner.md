@@ -10,7 +10,6 @@
 ## Common Commands
 
 ```powershell
-python -m pytest tests/unit -v
 python -m pytest tests/smoke -v
 python -m tflex_harness.cli env
 python -m tflex_harness.cli search "TFlex.Model.Document" --limit 5
