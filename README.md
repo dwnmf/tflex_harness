@@ -18,6 +18,20 @@
 - `git`.
 - `uv` желательно, но не обязательно.
 
+## Для ИИ-агентов
+
+Сначала читать:
+
+1. `install.md` — установка и первичный bootstrap.
+2. `AGENTS.md` — правила работы с репозиторием.
+3. `.agents/skills/tflex-harness/SKILL.md` — короткий рабочий навык.
+
+Минимальный запрос для настройки:
+
+```text
+Настрой https://github.com/dwnmf/tflex_harness. Сначала прочитай install.md. Установи репозиторий в редактируемом режиме с дополнениями MCP, запусти tflex-harness bootstrap --full, затем проверь через tflex-harness doctor и tflex-harness recipes. Не запускай широкие пакетные проверки на живом T-FLEX без отдельной просьбы.
+```
+
 ## Быстрая установка
 
 ```powershell
@@ -181,17 +195,3 @@ python -m build
 - `dist/tflex_harness-<version>.tar.gz`
 
 Процесс `.github/workflows/release-build.yml` публикует файлы релиза для тегов `v*`.
-
-## Для ИИ-агентов
-
-Сначала читать:
-
-1. `install.md` — установка и первичный bootstrap.
-2. `AGENTS.md` — правила работы с репозиторием.
-3. `.agents/skills/tflex-harness/SKILL.md` — короткий рабочий навык.
-
-Минимальный запрос для настройки:
-
-```text
-Настрой https://github.com/dwnmf/tflex_harness. Сначала прочитай install.md. Установи репозиторий в редактируемом режиме с дополнениями MCP, запусти tflex-harness bootstrap --full, затем проверь через tflex-harness doctor и tflex-harness recipes. Не запускай широкие пакетные проверки на живом T-FLEX без отдельной просьбы.
-```
