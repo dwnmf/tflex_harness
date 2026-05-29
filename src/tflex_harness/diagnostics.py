@@ -44,6 +44,7 @@ def find_msbuild() -> Path | None:
             text=True,
             capture_output=True,
             timeout=15,
+            stdin=subprocess.DEVNULL,
         )
         if proc.returncode == 0:
             line = next((l.strip() for l in proc.stdout.splitlines() if l.strip()), None)
@@ -54,7 +55,7 @@ def find_msbuild() -> Path | None:
 
 def _version_command(command: list[str], timeout: int = 15) -> dict[str, Any]:
     try:
-        proc = subprocess.run(command, text=True, capture_output=True, timeout=timeout)
+        proc = subprocess.run(command, text=True, capture_output=True, timeout=timeout, stdin=subprocess.DEVNULL)
         return {"available": proc.returncode == 0, "returncode": proc.returncode, "stdout": proc.stdout.strip(), "stderr": proc.stderr.strip()}
     except Exception as exc:
         return {"available": False, "error": str(exc)}
@@ -136,6 +137,7 @@ def _runner_environment(cfg: HarnessConfig, csc: Path | None) -> dict[str, Any]:
                 capture_output=True,
                 timeout=60,
                 env=build_env,
+                stdin=subprocess.DEVNULL,
             )
             status["build_returncode"] = build.returncode
             status["build_stdout"] = build.stdout.strip()
@@ -150,7 +152,7 @@ def _runner_environment(cfg: HarnessConfig, csc: Path | None) -> dict[str, Any]:
     env = os.environ.copy()
     env["PATH"] = str(cfg.tflex_program_dir) + os.pathsep + env.get("PATH", "")
     try:
-        probe = subprocess.run([str(executable), "env"], cwd=cfg.runner_dir, text=True, capture_output=True, timeout=30, env=env)
+        probe = subprocess.run([str(executable), "env"], cwd=cfg.runner_dir, text=True, capture_output=True, timeout=30, env=env, stdin=subprocess.DEVNULL)
         status["env_probe_returncode"] = probe.returncode
         status["env_probe_stdout"] = probe.stdout.strip()
         status["env_probe_stderr"] = probe.stderr.strip()
@@ -178,6 +180,7 @@ def get_environment(config: HarnessConfig | None = None) -> dict[str, Any]:
             text=True,
             capture_output=True,
             timeout=20,
+            stdin=subprocess.DEVNULL,
         )
         if ps.returncode == 0 and ps.stdout.strip():
             parsed = json.loads(ps.stdout)
