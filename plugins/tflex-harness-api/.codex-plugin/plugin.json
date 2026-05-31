@@ -1,0 +1,35 @@
+{
+  "name": "tflex-harness-api",
+  "version": "0.1.0",
+  "description": "Unified Codex plugin for tflex-harness and T-FLEX CAD 17 API docs workflows.",
+  "author": {
+    "name": "dwnmf"
+  },
+  "homepage": "https://github.com/dwnmf/tflex_harness",
+  "repository": "https://github.com/dwnmf/tflex_harness",
+  "keywords": [
+    "tflex",
+    "cad",
+    "mcp",
+    "api-docs"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "T-FLEX Harness API",
+    "shortDescription": "Run tflex-harness and research T-FLEX API docs.",
+    "longDescription": "Unified plugin that bundles tflex-harness CAD automation guidance, T-FLEX CAD 17 API documentation research guidance, and the tflex-harness MCP server. Install tflex-harness first and run bootstrap so the MCP server can discover local repo/API paths from environment.",
+    "developerName": "dwnmf",
+    "category": "Productivity",
+    "capabilities": [
+      "MCP",
+      "Skills",
+      "Local automation"
+    ],
+    "defaultPrompt": [
+      "Search T-FLEX API docs for this member.",
+      "Run a compile-only T-FLEX C# snippet.",
+      "Use tflex-harness to create CAD evidence."
+    ]
+  }
+}

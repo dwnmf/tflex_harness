@@ -104,6 +104,36 @@ TFLEX_INSTALL_DIR = "<tflex-install>"
 
 Для Claude команда печатает JSON.
 
+## Codex plugin через GitHub marketplace
+
+Быстрый путь для другого пользователя Codex:
+
+```powershell
+git clone https://github.com/dwnmf/tflex_harness C:\tflex_harness
+cd C:\tflex_harness
+uv tool install -e ".[mcp]"
+tflex-harness bootstrap --full
+```
+
+Перезапустите терминал/Codex, чтобы подхватились `TFLEX_HARNESS_REPO_DIR` и
+`TFLEX_API_DOCS_DIR`, затем установите plugin из GitHub marketplace:
+
+```powershell
+codex plugin marketplace add dwnmf/tflex_harness --ref main
+codex plugin add tflex-harness-api@tflex-harness
+```
+
+Если marketplace уже добавлен, обновить его можно так:
+
+```powershell
+codex plugin marketplace upgrade tflex-harness
+codex plugin add tflex-harness-api@tflex-harness
+```
+
+Plugin не содержит локальных путей конкретной машины. MCP запускает
+`tflex-harness-mcp` из `PATH`; пути к repo/API docs задаёт `bootstrap --full`
+через переменные окружения.
+
 ## Основные команды
 
 ```powershell

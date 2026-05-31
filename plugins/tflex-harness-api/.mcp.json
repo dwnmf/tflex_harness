@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tflex-harness": {
+      "command": "tflex-harness-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

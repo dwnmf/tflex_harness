@@ -1,0 +1,3 @@
+interface:
+  display_name: "T-FLEX Harness"
+  short_description: "Operate and test the local T-FLEX CAD harness in caveman style"
